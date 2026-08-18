@@ -1,6 +1,6 @@
 # EventHub Web App — Agent Context
 
-Last updated: 2026-08-18 — Vite foundation
+Last updated: 2026-08-18 — Removed leftover supabase/ Deno functions
 Repository: C:\Users\Hp\Documents\personal\event-web
 Default branch: master
 
@@ -57,7 +57,7 @@ Local Laravel project (not modified by this Web App foundation): `C:\Users\Hp\Do
 - Local Laravel API default: http://localhost:8002/api/v1
 - API client authentication: X-API-Key only
 - HMAC: NOT USED
-- Supabase: REMOVED from `src/` (`@supabase/supabase-js` uninstalled). Leftover `supabase/functions/` Deno files remain on disk from Lovable and are not imported by the Vite app.
+- Supabase: fully removed. `@supabase/supabase-js` is uninstalled, `src/` has no Supabase client, and the leftover Lovable `supabase/` Deno functions directory has been deleted.
 - Real backend wiring: foundation only; feature screens still use mocks unless explicitly documented otherwise
 - Mock data: src/lib/mockData.ts
 
@@ -65,7 +65,7 @@ Local Laravel project (not modified by this Web App foundation): `C:\Users\Hp\Do
 
 The Lovable cleanup has already completed.
 
-- Supabase removed from `src/`
+- Supabase removed from `src/` and the leftover `supabase/` Deno functions directory deleted
 - cohost flow removed
 - integrations removed
 - landing CMS removed
@@ -382,7 +382,8 @@ Do not allow Web App architecture to accidentally use admin-panel tokens.
 - do not log out a user merely because the API key is misconfigured
 - preserve Lovable visual quality while replacing mocks
 - old Next.js prompts may contain stale API endpoint assumptions
-- leftover `supabase/` Deno functions and `AGENTS.md` still mention Supabase; do not re-import them into `src/`
+- `AGENTS.md` is a stub pointing at `.agent`; do not restore the old Event Spark / Supabase map
+- do not recreate `supabase/` or reinstall `@supabase/supabase-js`
 - `README.md` still advertises HMAC-SHA256 as old PRD copy; not implemented and must not be rebuilt
 - default git branch is `master`; GitHub Actions also listens to `main`
 - Vite HMR can fail with `ENOTEMPTY` on `node_modules/.vite/deps` after lockfile/.env changes on Windows; restart `npm run dev`
@@ -415,6 +416,22 @@ For every meaningful change:
 7. Self-check: can a new agent continue from `.agent` alone?
 
 ## Change Log
+
+### 2026-08-18 — Removed leftover supabase/ Deno functions
+
+Files:
+
+- `supabase/` (deleted: leftover Lovable edge functions for notify, transactional email, ICS, AI cover/page generation, landing CMS)
+- `.cursor/rules/edge-functions.mdc` (deleted)
+- `.cursor/rules/project-system.mdc` (rewritten to EventHub / Laravel; no longer instructs agents to extend Supabase)
+- `.cursor/rules/frontend-data.mdc` (removed `supabase.rpc` / `notify` instructions)
+- `AGENTS.md` (replaced Event Spark Supabase map with a stub pointing at `.agent`)
+
+Changes:
+
+- The Vite app never imported `supabase/functions/`. That folder survived cleanup only because the earlier `src/` grep and the “do not redo cleanup” foundation prompt left disk leftovers in place.
+- Cursor `project-system.mdc` was still always-on Event Spark copy telling agents this SPA is on Supabase project `oiqiqdctkfjrbrjmjczc`. That conflicted with EventHub Laravel rules.
+- No `src/` pages, API clients, or env vars were changed. No Laravel contracts changed. Screens remain on mock data.
 
 ### 2026-08-18 — Vite Web App foundation
 

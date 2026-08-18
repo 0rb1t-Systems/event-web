@@ -1,19 +1,17 @@
 ---
-description: Event Spark system map — product truth, architecture, and decision defaults
+description: EventHub Web App system map — product truth, architecture, and decision defaults
 alwaysApply: true
 ---
 
 # System map
 
-Read `AGENTS.md` before architectural choices. `README.md` is a PRD, not the stack.
+Read `.agent` before architectural choices. `README.md` and `AGENTS.md` are leftover Lovable copy, not the stack.
 
-This is a Vite React SPA on Supabase (project `oiqiqdctkfjrbrjmjczc`). No Express, Redis, AWS, Stripe, Zoom, or HubSpot in code. UI name is **eventspark**.
+This is a Vite React SPA that consumes the EventHub Laravel API. Auth is `X-API-Key` plus a participant or organizer Bearer token. There is no Supabase, HMAC proxy, Next.js, or second backend.
 
-**Do:** extend hooks in `src/hooks/`, RPCs in `types.ts`, and edge functions under `supabase/functions/`.
-**Don't:** add a second backend; insert public registrations directly; call `send-transactional-email` from the browser; revive multi-template public pages; treat Integrations or ticket prices as completed payments/connectors.
+**Do:** extend existing pages/hooks, use `publicApi` / `participantApi` / `organizerApi`, preserve Lovable UI.
+**Don't:** restore `supabase/`, invent Laravel endpoints, mix participant and organizer tokens, redesign screens while swapping mock data.
 
-- Register via `register_for_event`. Check-in via `check_in_attendee`. Mail via `notify` with `{ kind, id }`.
-- Public page = `PublicEventPage` only. Event create = untitled row → `/dashboard/events/:id`.
-- `useEvents()` is owner-only; cohosts can be organizers with an empty list — fix listing if you touch it.
-- `App.tsx` eagerly imports pages; a bad export blanks every route. Prefer `lucide-react` (no `SiSlack`/`SiTwilio`).
-- Schema lives remotely. Contract: `src/integrations/supabase/types.ts`. No local migrations.
+- Public page = `PublicEventPage` only.
+- `App.tsx` eagerly imports dashboard pages. A missing named export blanks every route. Prefer `lucide-react` (no `SiSlack`/`SiTwilio`).
+- Screens still use mock data until a prompt explicitly wires a confirmed Laravel contract.
