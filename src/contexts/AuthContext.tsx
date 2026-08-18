@@ -26,7 +26,8 @@ export const useAuth = () => {
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // Cleanup mode: no real auth yet (Supabase removed).
+  // Development shell: no Laravel participant/organizer login yet.
+  // Mock user keeps existing dashboard screens reachable. Real auth belongs to later prompts.
   const [user, setUser] = useState<StubUser>({ id: "mock-user-1", email: "ahmed@techhub.so" });
   const isLoading = false;
   const value = useMemo<AuthContextType>(

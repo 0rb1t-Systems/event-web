@@ -1,0 +1,472 @@
+# EventHub Web App — Agent Context
+
+Last updated: 2026-08-18 — Vite foundation
+Repository: C:\Users\Hp\Documents\personal\event-web
+Default branch: master
+
+## Purpose
+
+This file is the persistent context for AI-assisted work on the EventHub Web App.
+
+It is the single source of truth for:
+
+- current Web App architecture
+- current module/page inventory
+- mandatory frontend patterns
+- backend API integration rules
+- participant/organizer auth boundaries
+- visual/UI preservation rules
+- runtime/environment configuration
+- known API contracts
+- active mock-vs-real-data state
+- recent changes and reasoning
+
+Every meaningful code change must update this file.
+
+A new agent should be able to read only `.agent` and correctly continue the project.
+
+`AGENTS.md` and some leftover `.cursor/rules/*.mdc` files still describe the old Event Spark / Supabase Lovable stack. They are not authoritative for EventHub. This `.agent` file is.
+
+## Project Identity
+
+EventHub Web App is a standalone Vite + React + TypeScript SPA.
+
+The repository originated from a Lovable-generated event application.
+
+Lovable is now the visual/theme foundation only.
+
+Its original backend, Supabase integration, product rules, entities, routes, and business logic are not authoritative for EventHub.
+
+The Laravel EventHub backend is a separate project and is authoritative for API contracts and domain behavior.
+
+Local Laravel project (not modified by this Web App foundation): `C:\Users\Hp\Documents\personal\event management`
+
+## Current Runtime / Workspace State
+
+- Framework: Vite + React + TypeScript
+- React version: 18.3.1
+- Vite version: 5.4.20 (installed lockfile resolved 5.4.21 during production build)
+- Router: react-router-dom 6.30.1
+- Styling/UI libraries: Tailwind CSS 3.4.17, shadcn/Radix UI, framer-motion 12.35.0, next-themes 0.3.0, lucide-react 0.462.0, sonner, recharts
+- Data library already present (do not add another): @tanstack/react-query 5.83.0
+- HTTP client: axios ^1.19.0 (installed during foundation; pages must not call it directly)
+- Package manager: npm (package-lock.json present)
+- Dev command: `npm run dev` (vite)
+- Web App URL: http://localhost:8080 (`vite.config.ts` `server.port` is 8080, not 5173)
+- Laravel API base: configured through VITE_API_BASE_URL
+- Local Laravel API default: http://localhost:8002/api/v1
+- API client authentication: X-API-Key only
+- HMAC: NOT USED
+- Supabase: REMOVED from `src/` (`@supabase/supabase-js` uninstalled). Leftover `supabase/functions/` Deno files remain on disk from Lovable and are not imported by the Vite app.
+- Real backend wiring: foundation only; feature screens still use mocks unless explicitly documented otherwise
+- Mock data: src/lib/mockData.ts
+
+## Current Cleanup State
+
+The Lovable cleanup has already completed.
+
+- Supabase removed from `src/`
+- cohost flow removed
+- integrations removed
+- landing CMS removed
+- AI image generation removed from the SPA
+- reset-password flow removed
+- unsubscribe flow removed
+- visual structure preserved
+- surviving pages render using mock data
+
+Do not restore removed Lovable features unless the product explicitly requires them later.
+
+## Design / UI Source of Truth
+
+The surviving Lovable UI is the Web App's visual design source.
+
+Rules:
+
+- preserve its cinematic event experience
+- preserve dashboard visual language
+- preserve typography
+- preserve spacing
+- preserve cards/surfaces
+- preserve colors/gradients
+- preserve animations/transitions
+- preserve responsive behavior
+- reuse existing components before creating new visual implementations
+
+Existing Lovable pages are NOT automatically EventHub product requirements.
+
+When implementing EventHub functionality, reuse the good UI but replace the old domain/data behavior.
+
+Public event pages use `color_mode` for the content below the cinematic hero. Default is light (white registration section). Do not hardcode `color_mode: "dark"` on mocks unless a specific event is dark-themed.
+
+## Environment
+
+Required Web App configuration:
+
+```text
+VITE_API_BASE_URL=http://localhost:8002/api/v1
+VITE_API_KEY=[public api client key]
+```
+
+Optional:
+
+```text
+VITE_APP_NAME=EventHub
+VITE_APP_URL=http://localhost:8080
+VITE_WAAFI_CURRENCY=USD
+```
+
+There is NO API secret in the Vite application.
+
+Never add:
+
+- VITE_API_KEY_SECRET
+- WEBAPP_API_SECRET
+- X-API-Signature
+- X-API-Timestamp
+
+`VITE_API_KEY` is a public client identifier, visible in browser JavaScript by design.
+
+Local `.env` is gitignored. `.env` and `.env.development` were previously tracked; they were removed from the git index during foundation and must stay untracked.
+
+Central helper: `src/lib/env.ts`. Feature code must not scatter `import.meta.env`.
+
+Typed env: `src/vite-env.d.ts`.
+
+Template: `.env.example`.
+
+## API Authentication
+
+Every Laravel API request from this Web App includes:
+
+```http
+X-API-Key: import.meta.env.VITE_API_KEY
+```
+
+via `env.apiKey` in `src/lib/api.ts`.
+
+Backend responses:
+
+- missing key → 401 / missing_api_key
+- unknown or inactive key → 401 / invalid_api_key
+
+Confirmed Laravel error shape (2026-08-18 smoke test):
+
+```json
+{
+  "success": false,
+  "message": "...",
+  "errors": { "error_code": ["missing_api_key"] },
+  "status_code": 401
+}
+```
+
+`src/lib/apiError.ts` reads both top-level `error_code` and nested `errors.error_code` (string or string[0]).
+
+## Public API Contracts Confirmed
+
+The following are available with X-API-Key and no participant Bearer token:
+
+- GET /events
+- GET /events/{id}
+- GET /event-categories
+
+Smoke-tested locally: GET /events with a valid public key returned HTTP 200 and a data payload.
+
+The backend controls public visibility.
+
+Do not expose draft/cancelled/completed events through client-side workarounds.
+
+Do not assume other endpoints are public.
+
+## Sanctum Web Identities
+
+Participant:
+
+- entity: User
+- ability: web-participant
+- token key: participant_token
+- helper: `participantSessionStorage` in `src/lib/authStorage.ts`
+
+Organizer:
+
+- entity: Organizer
+- ability: organizer-web
+- token key: organizer_token
+- helper: `organizerSessionStorage` in `src/lib/authStorage.ts`
+
+The two sessions are independent and must never be mixed.
+
+A browser may hold both sessions at the same time.
+
+## HTTP Architecture
+
+All API calls must go through the centralized API layer.
+
+Base URL: VITE_API_BASE_URL
+
+Shared header: X-API-Key
+
+Available clients in `src/lib/api.ts`:
+
+- publicApi — X-API-Key only; never auto-adds Bearer
+- participantApi — X-API-Key + Bearer participant_token when present
+- organizerApi — X-API-Key + Bearer organizer_token when present
+
+Do not globally force `Content-Type: application/json` (FormData uploads later).
+
+401 rules:
+
+- `missing_api_key` / `invalid_api_key` → propagate; do not clear tokens; do not redirect
+- participantApi other 401 with a participant token → clear participant session only, go to `/auth?expired=1`
+- organizerApi other 401 with an organizer token → clear organizer session only, go to `/organizer/login?expired=1`
+
+Never call axios.create() inside feature files.
+
+Never call raw axios or fetch directly from pages/components unless a future documented exception exists.
+
+**Foundation constraint:** pages currently do **not** import `publicApi` / `participantApi` / `organizerApi`. Feature wiring is later.
+
+`src/lib/env.ts` throws at import time if `VITE_API_BASE_URL` or `VITE_API_KEY` is missing. That is intentional once a page imports the API layer.
+
+## Current Routes
+
+Recorded from `src/App.tsx` after audit. Foundation did **not** change the router.
+
+PUBLIC:
+
+- `/` → Index (renders Landing)
+- `/auth` → Auth
+- `/register/:slug` → Register
+- `/register/:slug/:variant` → Register (legacy leftover still present; do not revive extra templates)
+- `/ticket/:registrationId` → Ticket
+
+NOT PRESENT (prompt expected shells; they do not exist in this cleanup):
+
+- `/organizer/login` — no page file, no route
+- `/dashboard/payouts` — no page file, no route
+- `OrganizerLogin.tsx` — missing
+- `Payouts.tsx` — missing
+
+Do not add those routes until the organizer-auth / payouts prompts.
+
+PARTICIPANT (behind `ProtectedRoute`):
+
+- `/dashboard/home` → AttendeeHome
+
+ORGANIZER / CURRENT DEVELOPMENT SHELL (behind `ProtectedRoute` + `OrganizerOnly`):
+
+- `/dashboard/events` → Events
+- `/dashboard/events/create` → redirect to `/dashboard/events`
+- `/dashboard/events/:id` → EventDetail
+- `/dashboard/events/:id/edit` → redirect to `/dashboard/events/:id`
+- `/dashboard/attendees` → Attendees
+- `/dashboard/analytics` → Analytics
+
+SHARED / CURRENT DEVELOPMENT:
+
+- `/dashboard/settings` → SettingsPage
+- `/dashboard` → RoleHomeRedirect → `/dashboard/events`
+- `*` → NotFound
+
+Guards:
+
+- `ProtectedRoute` still redirects to `/auth` when `user` is null
+- `AuthContext` currently supplies a mock user (`mock-user-1` / `ahmed@techhub.so`) so dashboard screens stay reachable
+- `OrganizerOnly` currently renders children unconditionally
+- `RoleHomeRedirect` currently always sends to `/dashboard/events`
+
+Do not treat those temporary route/guard decisions as final product architecture.
+
+## Current Module Inventory
+
+| Module | Current UI | Data source | Backend wired? | Notes |
+|---|---|---|---|---|
+| Homepage/catalog | existing Lovable UI (`Landing` via Index) | mockEvents | No | preserve UI |
+| Auth | existing email/password UI | none (console.log stubs) | No | participant auth prompt later |
+| Public event page | cinematic Lovable UI | mockEvent | No | preserve UI; keep light color_mode unless intended |
+| Digital ticket | existing invitation UI | mockParticipation | No | preserve UI |
+| Participant home | existing UI | mockParticipations | No | preserve UI |
+| Organizer events | existing UI | mockEvents | No | preserve UI |
+| Organizer event detail | existing complex UI | mockEvent/mockAttendees | No | preserve and adapt later |
+| Attendees | existing table UI | mockAttendees | No | organizer module later |
+| Analytics | existing charts/UI | mockAnalytics | No | real endpoint later |
+| Settings | existing UI | hardcoded mock profile | No | later |
+| Organizer login | not present | — | No | no shell file/route in this repo |
+| Payouts | not present | — | No | no shell file/route in this repo |
+
+Update this table whenever a future prompt replaces mock data with real API integration.
+
+## Mandatory Frontend Patterns
+
+### API
+
+- all API requests through centralized clients/services
+- never hardcode Laravel URLs
+- never hardcode API keys
+- never add HMAC
+- never invent endpoint names
+- verify non-public API contracts against current Laravel state before implementing
+
+### UI
+
+- preserve Lovable visual language
+- reuse existing components first
+- do not genericize the product
+- mobile-first
+- no UI regression during API wiring
+- loading states for all real async requests
+- error states for all real async requests
+
+### TypeScript
+
+- this repo currently has `strict: false` and `noImplicitAny: false` in `tsconfig.app.json`
+- new EventHub API/domain types must still be explicit
+- no unexplained any in new API code
+- mocks are temporary and must not define backend truth
+
+### Data flow
+
+Preferred:
+
+API → service → hook/page → component
+
+Avoid:
+
+component → raw axios → backend
+
+## Mock Data Policy
+
+src/lib/mockData.ts is temporary.
+
+It exists to preserve the UI while backend integration is performed module-by-module.
+
+Do not grow mockData into a fake application backend.
+
+When a module is wired to the Laravel API:
+
+- remove that module's obsolete mock dependency
+- keep fixtures only if useful for development/tests
+- update Module Inventory
+
+## Backend Contract Rule
+
+The old Next.js Web App foundation/prompt pack is stale architecture.
+
+In particular, do NOT reintroduce:
+
+- Next.js
+- server proxy routes
+- HMAC API signatures
+- Next.js env names
+- guessed endpoint names
+
+The current Laravel implementation is authoritative.
+
+## Known Ownership Boundary
+
+Admin = platform owner.
+
+Organizer = owner/operator of their events.
+
+Organizer-facing actions such as live Waafi charging and QR door validation must use organizer scope.
+
+Do not allow Web App architecture to accidentally use admin-panel tokens.
+
+## Known Risks / Watchouts
+
+- VITE_* environment values are visible to the browser
+- VITE_API_KEY is intentionally public
+- participant and organizer tokens must never be mixed
+- API-key 401 errors are different from expired Bearer-token 401 errors
+- do not log out a user merely because the API key is misconfigured
+- preserve Lovable visual quality while replacing mocks
+- old Next.js prompts may contain stale API endpoint assumptions
+- leftover `supabase/` Deno functions and `AGENTS.md` still mention Supabase; do not re-import them into `src/`
+- `README.md` still advertises HMAC-SHA256 as old PRD copy; not implemented and must not be rebuilt
+- default git branch is `master`; GitHub Actions also listens to `main`
+- Vite HMR can fail with `ENOTEMPTY` on `node_modules/.vite/deps` after lockfile/.env changes on Windows; restart `npm run dev`
+- `ProtectedRoute` still depends on the mock AuthContext user; signing out locally sends you to `/auth`
+- organizer expired-token redirect targets `/organizer/login`, which is not routed yet (correct for later auth prompt)
+
+## Agent Behavior Rules
+
+1. Read `.agent` fully before coding.
+2. Inspect existing code before creating alternatives.
+3. Preserve Lovable UI unless the current prompt explicitly requests a redesign.
+4. Never restore Supabase.
+5. Never introduce HMAC.
+6. Never invent Laravel API contracts.
+7. Keep participant and organizer sessions separate.
+8. Use environment configuration for all backend URLs/keys.
+9. Update `.agent` in the same session as every meaningful change.
+10. Work is incomplete until code and `.agent` agree.
+
+## Update Protocol
+
+For every meaningful change:
+
+1. Update Last updated date + summary.
+2. Update affected living sections.
+3. Update Module Inventory if module status/data source changed.
+4. Update routes if routing changed.
+5. Update API contracts if a real contract was confirmed.
+6. Append a detailed Change Log entry.
+7. Self-check: can a new agent continue from `.agent` alone?
+
+## Change Log
+
+### 2026-08-18 — Vite Web App foundation
+
+Files:
+
+- `.agent` (created)
+- `.cursor/rules/project-agent-workflow.mdc`
+- `.cursor/rules/agent-context-completeness.mdc`
+- `.cursor/rules/ui-preservation.mdc`
+- `check-agent-update.sh`
+- `install-agent-hook.ps1`
+- `install-agent-hook.sh`
+- `.github/workflows/agent-context-check.yml`
+- `.env.example`
+- `.gitignore`
+- `.env` (local only, gitignored; public key copied from Laravel `WEBAPP_API_PUBLIC_KEY`)
+- `src/vite-env.d.ts`
+- `src/lib/env.ts`
+- `src/lib/authStorage.ts`
+- `src/lib/apiError.ts`
+- `src/lib/api.ts`
+- `src/contexts/AuthContext.tsx` (comments only)
+- `src/components/OrganizerOnly.tsx` (comments only)
+- `src/components/RoleHomeRedirect.tsx` (comments only)
+- `package.json` / `package-lock.json` (axios)
+- `.git/hooks/pre-commit` (installed, BOM-free)
+
+Changes:
+
+- established persistent agent context
+- established Vite env configuration (`VITE_API_BASE_URL`, `VITE_API_KEY`, optional app/Waafi display vars)
+- established X-API-Key-only API layer (`publicApi`, `participantApi`, `organizerApi`)
+- established independent participant/organizer Bearer-token storage and injection
+- API-key 401s do not log anyone out; Bearer 401s are scope-specific
+- added local + CI `.agent` enforcement
+- CI also listens to `master` because that is this repo's current default branch
+- removed `.env` and `.env.development` from the git index so local env files stay untracked
+- preserved existing Lovable mock UI; no feature pages import the new API clients
+- did not add `/organizer/login` or `/dashboard/payouts` because those files/routes are not in the current tree
+
+Verification:
+
+- `npx tsc --noEmit` — pass
+- `npm run build` — pass
+- `src/` supabase grep — zero matches
+- Next.js / HMAC / signature artifacts in app source — none
+- GET /api/v1/events missing key — 401 missing_api_key
+- GET /api/v1/events invalid key — 401 invalid_api_key
+- GET /api/v1/events valid public key — 200 with data
+- pre-commit check fails when `.env.example` is staged without `.agent`
+- pre-commit check passes after `.agent` is also staged
+- routes and mock screens were not redesigned
+- UI: `/register/tech-summit-2026` cinematic page renders; `/ticket/1` ticket UI renders; `/dashboard/events`, `/dashboard/events/1`, `/dashboard/attendees`, `/dashboard/analytics` render with mock data
+- UI: `/` and `/auth` currently redirect to `/dashboard/events` because the cleanup AuthContext still injects a mock user and Landing/Auth skip-to-dashboard when `user` is set. That is pre-existing development-shell behavior, not a foundation UI rewrite. The Landing marketing UI remains in `src/pages/Landing.tsx`.
+- `/organizer/login` and `/dashboard/payouts` are not in this repo (no shells/routes)

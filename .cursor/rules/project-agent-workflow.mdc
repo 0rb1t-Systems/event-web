@@ -1,0 +1,64 @@
+---
+description: EventHub Web App agent workflow and architecture rules
+alwaysApply: true
+---
+
+# EventHub Web App — Agent Workflow
+
+## Before coding
+
+1. Read `.agent` fully.
+2. Inspect existing implementation before adding a new file/component.
+3. Check Module Inventory.
+4. Check whether the screen still uses mock data or real Laravel data.
+5. Verify any non-public API endpoint against the current Laravel contract.
+6. Preserve the existing Lovable visual language.
+
+## Architecture rules
+
+This project is Vite + React.
+
+Do NOT introduce:
+
+- Next.js
+- server actions
+- /api/proxy
+- HMAC signatures
+- X-API-Signature
+- X-API-Timestamp
+- API secrets in Vite
+- Supabase
+
+## API
+
+All Laravel API requests use the centralized API clients.
+
+Every API request must send X-API-Key.
+
+Participant requests may also send the participant_token Bearer token.
+
+Organizer requests may also send the organizer_token Bearer token.
+
+Never mix those tokens.
+
+Never call raw axios/fetch from a page/component when the central API/service architecture can be used.
+
+## UI
+
+The surviving Lovable application is the visual/theme source.
+
+Reuse existing UI before building replacements.
+
+Do not downgrade polished UI into generic forms/cards during backend integration.
+
+Mobile behavior must remain intact.
+
+## Before finishing
+
+1. Update `.agent`.
+2. Update living sections, not only Change Log.
+3. List files changed.
+4. Record API contracts confirmed or changed.
+5. Record mock → real-data transitions.
+6. Verify TypeScript/build.
+7. Work is incomplete until `.agent` matches reality.

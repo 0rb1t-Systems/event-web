@@ -5,7 +5,7 @@ import { Navigate } from "react-router-dom";
  * otherwise to the attendee home. Renders nothing while resolving (no flash).
  */
 export function RoleHomeRedirect() {
-  // TODO: real role redirect wired in foundation prompt.
-  // Cleanup mode: treat everyone as organizer.
+  // Development shell: role redirect is not active yet.
+  // Treat everyone as organizer so existing dashboard screens stay reachable.
   return <Navigate to="/dashboard/events" replace />;
 }

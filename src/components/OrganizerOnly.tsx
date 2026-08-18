@@ -6,7 +6,7 @@ import { Navigate } from "react-router-dom";
  * of flashing the organizer UI to attendees.
  */
 export function OrganizerOnly({ children }: { children: React.ReactNode }) {
-  // TODO: Real organizer gate wired in foundation prompt.
-  // Cleanup mode: let everything through.
+  // Development shell: organizer gate is not active yet.
+  // Keep existing dashboard screens reachable until auth is wired.
   return <>{children}</>;
 }

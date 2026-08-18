@@ -1,0 +1,65 @@
+name: Agent Context Check
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  verify-agent-updated:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files
+        id: changed
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            FILES=$(git diff --name-only \
+              "${{ github.event.pull_request.base.sha }}" \
+              "${{ github.sha }}")
+          else
+            BEFORE="${{ github.event.before }}"
+            AFTER="${{ github.event.after }}"
+
+            if [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+              FILES=$(git show --name-only --format="" "$AFTER")
+            else
+              FILES=$(git diff --name-only "$BEFORE" "$AFTER")
+            fi
+          fi
+
+          echo "files<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$FILES" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Require .agent for critical changes
+        shell: bash
+        run: |
+          FILES="${{ steps.changed.outputs.files }}"
+
+          CRITICAL_PATTERN='^(src/|package\.json|package-lock\.json|pnpm-lock\.yaml|yarn\.lock|vite\.config\.(ts|js|mts|mjs)|tailwind\.config\.(ts|js)|tsconfig.*\.json|index\.html|\.env\.example)$'
+
+          CRITICAL_CHANGED=$(echo "$FILES" | grep -E "$CRITICAL_PATTERN" || true)
+
+          if [ -z "$CRITICAL_CHANGED" ]; then
+            echo "No critical Web App files changed."
+            exit 0
+          fi
+
+          AGENT_CHANGED=$(echo "$FILES" | grep -E '^\.agent$' || true)
+
+          if [ -z "$AGENT_CHANGED" ]; then
+            echo ""
+            echo "FAIL: Critical EventHub Web App files changed but .agent was not updated."
+            echo ""
+            echo "$CRITICAL_CHANGED"
+            exit 1
+          fi
+
+          echo "PASS: .agent updated with critical Web App changes."

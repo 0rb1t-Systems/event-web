@@ -1,0 +1,34 @@
+---
+description: .agent must remain a complete standalone project briefing
+alwaysApply: true
+---
+
+# .agent Completeness
+
+`.agent` must remain a standalone project briefing.
+
+A new agent reading ONLY `.agent` must understand:
+
+- what EventHub Web App is
+- how to run it
+- what backend it consumes
+- required environment variables
+- X-API-Key authentication
+- participant vs organizer token separation
+- the route inventory
+- which screens still use mock data
+- which modules use real APIs
+- the Lovable UI preservation rule
+- known backend contracts
+- known gotchas
+- what changed most recently
+
+Do not write vague entries such as:
+
+- fixed stuff
+- updated page
+- added API
+
+Describe concrete behavior and files.
+
+Change Log entries do not replace updates to living sections.
