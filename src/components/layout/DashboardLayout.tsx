@@ -3,8 +3,6 @@ import { useLocation, Link, useNavigate } from "react-router-dom";
 import { Logo } from "@/components/Logo";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
-import { useProfile } from "@/hooks/useProfile";
-import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -45,8 +43,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const mainRef = useRef<HTMLElement>(null);
   const { pathname } = useLocation();
   const { user, signOut } = useAuth();
-  const { data: profile } = useProfile();
-  const { role, loading: roleLoading } = useUserRole();
+  const role = "organizer" as const;
+  const roleLoading = false;
   const navigate = useNavigate();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 

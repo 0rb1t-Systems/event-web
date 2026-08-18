@@ -1,4 +1,3 @@
-import { useUserRole } from "@/hooks/useUserRole";
 import { Navigate } from "react-router-dom";
 
 /**
@@ -6,8 +5,7 @@ import { Navigate } from "react-router-dom";
  * otherwise to the attendee home. Renders nothing while resolving (no flash).
  */
 export function RoleHomeRedirect() {
-  const { role, loading } = useUserRole();
-  if (loading || !role) return null;
-  if (role === "organizer") return <Navigate to="/dashboard/events" replace />;
-  return <Navigate to="/dashboard/home" replace />;
+  // TODO: real role redirect wired in foundation prompt.
+  // Cleanup mode: treat everyone as organizer.
+  return <Navigate to="/dashboard/events" replace />;
 }

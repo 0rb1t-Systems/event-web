@@ -1,5 +1,4 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
-import { incrementLinkClick } from "@/hooks/useTrackingLinks";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,23 +6,25 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { CalendarDays, MapPin, Video, Globe, Loader2, CheckCircle2, Clock, Zap } from "lucide-react";
-import { useEventBySlug, Event } from "@/hooks/useEvents";
-import { useFormFields } from "@/hooks/useFormFields";
-import { useCreateRegistration } from "@/hooks/useRegistrations";
-import { useEventModules } from "@/hooks/useEventModules";
+import { mockEvent } from "@/lib/mockData";
 
 import { PublicEventPage } from "@/components/event-public/PublicEventPage";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Tables } from "@/integrations/supabase/types";
-import { supabase } from "@/integrations/supabase/client";
 import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 import { AuroraBackdrop, GlassCard } from "@/components/register/AuroraBackdrop";
 import type { TicketTier } from "@/components/event-detail/TicketTiersManager";
 import { Crown, Ticket as TicketIcon, Check, Minus, Plus } from "lucide-react";
 
-type FormField = Tables<"form_fields">;
+type Event = any;
+type FormField = {
+  id: string;
+  label: string;
+  field_type: "text" | "email" | "tel" | "url";
+  required: boolean;
+  placeholder?: string | null;
+};
 
 const formatTicketPrice = (price: number, currency = "USD") => {
   if (!price) return "Free";
@@ -434,10 +435,75 @@ const PoweredBy = () => (
 const Register = () => {
   const { slug, variant } = useParams();
   const navigate = useNavigate();
-  const { data: event, isLoading: eventLoading } = useEventBySlug(slug);
-  const { data: modules = [], isLoading: modulesLoading } = useEventModules(event?.id);
-  const { data: formFields, isLoading: fieldsLoading } = useFormFields(event?.id);
-  const createReg = useCreateRegistration();
+  const event = useMemo(
+    () => ({
+      id: mockEvent.id,
+      slug: mockEvent.slug,
+      name: mockEvent.title,
+      description: mockEvent.description,
+      event_date: mockEvent.starts_at,
+      event_end_date: mockEvent.ends_at,
+      timezone: "Africa/Mogadishu",
+      status: "live",
+      primary_color: "#7C3AED",
+      color_mode: "light",
+      location_type: "physical",
+      location: mockEvent.address,
+      ticket_tiers: mockEvent.ticket_types.map((ticket) => ({
+        id: ticket.id,
+        name: ticket.name,
+        price: ticket.price,
+        currency: "USD",
+        quantity: ticket.quantity_limit,
+        sold_count: ticket.quantity_sold,
+        is_vip: ticket.name.toLowerCase().includes("vip"),
+      })),
+      send_confirmation_email: true,
+      cover_image_url: mockEvent.banner_image,
+    }),
+    [],
+  );
+  const modules = useMemo(
+    () => [
+      {
+        id: "mock-why-attend",
+        type: "why_attend",
+        title: "Why Attend",
+        content: {
+          bullets: [
+            "Meet founders, engineers, and operators across East Africa",
+            "Learn practical tactics from builders shipping real products",
+            "Find collaborators, customers, and your next career move",
+          ],
+        },
+        sort_order: 0,
+      },
+      {
+        id: "mock-schedule",
+        type: "schedule",
+        title: "Schedule",
+        content: {
+          items: mockEvent.sessions.map((session) => ({
+            title: session.title,
+            starts_at: session.starts_at,
+            speaker_name: session.speaker_name,
+            room: session.room,
+          })),
+        },
+        sort_order: 1,
+      },
+    ],
+    [],
+  );
+  const formFields = useMemo<FormField[]>(
+    () => [
+      { id: "full-name", label: "Full Name", field_type: "text", required: true, placeholder: "Enter your full name" },
+      { id: "email-address", label: "Email Address", field_type: "email", required: true, placeholder: "you@example.com" },
+      { id: "phone-number", label: "Phone Number", field_type: "tel", required: false, placeholder: "+252 61 234 5678" },
+    ],
+    [],
+  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [consent, setConsent] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -465,11 +531,11 @@ const Register = () => {
     return Object.keys(out).length ? { ...out, landed_at: new Date().toISOString() } : null;
   }, [searchParams]);
 
-  // Best-effort click counter for saved promoter links
+  // Preserve tracking intent for later backend wiring.
   useEffect(() => {
     const lid = searchParams.get("lid");
     if (lid && /^[0-9a-f-]{36}$/i.test(lid)) {
-      incrementLinkClick(lid);
+      console.log("TODO: track promoter link click", lid);
     }
   }, [searchParams]);
 
@@ -477,15 +543,8 @@ const Register = () => {
     setFormData(prev => ({ ...prev, [label]: value }));
   }, []);
 
-  if (eventLoading || fieldsLoading || modulesLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!event) {
+  const eventMatchesSlug = !slug || slug === event.slug;
+  if (!eventMatchesSlug) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
         <Card className="w-full max-w-md">
@@ -529,7 +588,9 @@ const Register = () => {
       if (selectedTicket.is_vip) submitData["is_vip"] = true;
     }
     try {
-      const result = await createReg.mutateAsync({ event_id: event.id, data: submitData, utm });
+      setIsSubmitting(true);
+      const result = { id: `${event.id}-mock-registration`, waitlisted: false };
+      console.log("TODO: submit registration", { event_id: event.id, data: submitData, utm });
       setWaitlisted(!!result?.waitlisted);
       setSubmitted(true);
 
@@ -549,15 +610,15 @@ const Register = () => {
           const tz = event.timezone || "America/New_York";
           // Email content is now rebuilt server-side from the registration row
           // by the `notify` function. Client only passes the registration id.
-          void supabase.functions.invoke("notify", {
-            body: { kind: "registration", registration_id: result.id },
-          }).catch((e) => console.warn("Confirmation email enqueue failed", e));
+          console.log("TODO: enqueue registration email", { kind: "registration", registration_id: result.id });
           void tz; // silence unused
         }
 
       }
     } catch (err: any) {
       toast.error(err.message || "Registration failed");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -571,7 +632,7 @@ const Register = () => {
     consent,
     onConsentChange: setConsent,
     onSubmit: handleSubmit,
-    isPending: createReg.isPending,
+    isPending: isSubmitting,
     brandColor,
     tickets,
     selectedTicketId,

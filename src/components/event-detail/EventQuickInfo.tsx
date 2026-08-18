@@ -2,14 +2,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tables } from "@/integrations/supabase/types";
 import { CalendarDays, MapPin, Type, FileText, Globe, DoorOpen, CalendarX, Users } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import SmartImageField from "./SmartImageField";
+type Event = any;
 
 interface Props {
-  event: Tables<"events">;
-  onUpdate: (fields: Partial<Tables<"events">>) => void;
+  event: Event;
+  onUpdate: (fields: Partial<Event>) => void;
 }
 
 export default function EventQuickInfo({ event, onUpdate }: Props) {

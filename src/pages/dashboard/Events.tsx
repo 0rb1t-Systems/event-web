@@ -5,12 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link, useNavigate } from "react-router-dom";
 import { Plus, Search, CalendarDays, Users, Loader2, MapPin, ExternalLink, LayoutGrid, List } from "lucide-react";
-import { useEvents, useCreateEvent } from "@/hooks/useEvents";
-import { useRegistrations } from "@/hooks/useRegistrations";
 import { format } from "date-fns";
 import { clearNewEventDraft } from "@/lib/eventDraft";
 import { getEventPriceLabel } from "@/lib/eventPrice";
 import { toast } from "sonner";
+import { mockEvents, mockAttendees } from "@/lib/mockData";
 
 const statusColors: Record<string, string> = {
   live: "bg-success text-success-foreground",
@@ -23,9 +22,23 @@ const Events = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
-  const { data: events, isLoading } = useEvents(search || undefined);
-  const { data: registrations } = useRegistrations();
-  const createEvent = useCreateEvent();
+  const events = mockEvents
+    .filter((e) => e.title.toLowerCase().includes((search || "").toLowerCase()))
+    .map((e) => ({
+      id: e.id,
+      name: e.title,
+      status: e.status === "registration_open" ? "live" : "draft",
+      event_date: e.starts_at,
+      location_value: e.address,
+      background_image_url: e.banner_image,
+      slug: e.slug,
+      ticket_tiers: e.ticket_types,
+    }));
+  const isLoading = false;
+  const registrations = mockAttendees.map((a, i) => ({ event_id: mockEvents[i % mockEvents.length].id }));
+  const createEvent = {
+    mutateAsync: async (_payload: any) => ({ id: mockEvents[0].id }),
+  };
   const [creating, setCreating] = useState(false);
 
   const handleCreateEvent = async () => {
@@ -38,6 +51,7 @@ const Events = () => {
         name: "Untitled event",
         event_type: "webinar",
       });
+      console.log("TODO: create event", created);
       navigate(`/dashboard/events/${created.id}`);
     } catch (e: any) {
       toast.error(e?.message || "Couldn't create event");

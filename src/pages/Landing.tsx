@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useUserRole } from "@/hooks/useUserRole";
-import { useLandingContent } from "@/hooks/useLandingContent";
 import { LANDING_DEFAULTS } from "@/lib/landing-defaults";
+import { mockEvents } from "@/lib/mockData";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -155,6 +154,8 @@ function IllustrationAttendees({ accents }: { accents: BentoAccents }) {
 
 const ILLUSTRATIONS = [IllustrationPages, IllustrationAnalytics, IllustrationIntegrations, IllustrationAttendees];
 
+const POPULAR_IMAGES = [eventHackathon, eventChill, eventStartup, eventSummit];
+
 const fontWeightOptions = [
   { label: "Medium (500)", value: 500 },
   { label: "Semibold (600)", value: 600 },
@@ -292,7 +293,8 @@ function ConfettiLayer({ size, opacity, count, spread }: { size: number; opacity
 const Landing = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { role, loading: roleLoading } = useUserRole();
+  const role = "organizer" as const;
+  const roleLoading = false;
 
   // Authenticated users skip the marketing page and land on their role-based home.
   useEffect(() => {
@@ -303,12 +305,12 @@ const Landing = () => {
 
   const redirectingAuthenticatedUser = !authLoading && !!user && (roleLoading || !!role);
 
-  const { data: landing } = useLandingContent();
-  const hero = landing?.content.hero ?? LANDING_DEFAULTS.hero;
-  const popular = landing?.content.popular_events ?? LANDING_DEFAULTS.popular_events;
-  const featuresContent = landing?.content.features ?? LANDING_DEFAULTS.features;
-  const testimonialsContent = landing?.content.testimonials ?? LANDING_DEFAULTS.testimonials;
-  const ctaContent = landing?.content.cta ?? LANDING_DEFAULTS.cta;
+  const landing = LANDING_DEFAULTS;
+  const hero = landing.hero;
+  const popular = landing.popular_events;
+  const featuresContent = landing.features;
+  const testimonialsContent = landing.testimonials;
+  const ctaContent = landing.cta;
   const rotatingWords = hero.rotating_words;
 
   const [wordIndex, setWordIndex] = useState(0);
@@ -369,6 +371,14 @@ const Landing = () => {
   }, [titleWeight]);
 
   if (redirectingAuthenticatedUser) return null;
+
+  const popularEvents = mockEvents.slice(0, 4).map((event, i) => ({
+    img: POPULAR_IMAGES[i % POPULAR_IMAGES.length],
+    title: event.title,
+    tag: event.monetized ? "$25" : "Free",
+    date: new Date(event.starts_at).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }),
+    city: event.city,
+  }));
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
@@ -541,12 +551,7 @@ const Landing = () => {
             </Link>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              { img: eventHackathon, title: "AI hackathon", tag: "Free", date: "Sat, Mar 28", city: "San Francisco" },
-              { img: eventChill, title: "Chill code workshop", tag: "Free", date: "Thu, Apr 3", city: "London" },
-              { img: eventStartup, title: "Startup weekend", tag: "$25", date: "Fri, Apr 11", city: "New York" },
-              { img: eventSummit, title: "Vibe coding summit", tag: "Free", date: "Sat, Apr 19", city: "Remote" },
-            ].map((event, i) => (
+            {popularEvents.map((event, i) => (
               <motion.div
                 key={event.title}
                 initial={{ opacity: 0, y: 24 }}

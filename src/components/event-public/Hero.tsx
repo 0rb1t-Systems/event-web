@@ -1,7 +1,7 @@
 import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
 import { useRef } from "react";
 import { CalendarDays, MapPin, Video, Globe, ChevronDown } from "lucide-react";
-import type { Event } from "@/hooks/useEvents";
+type Event = any;
 
 interface Props {
   event: Event;

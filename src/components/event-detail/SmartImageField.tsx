@@ -10,10 +10,37 @@ import {
   Loader2, Upload, Trash2, RefreshCw, Check, Plus,
   Image as ImageIcon, Library, X, Move, ZoomIn, RotateCcw,
 } from "lucide-react";
-import { PolaroidIcon } from "@/components/icons/PolaroidIcon";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
+const imageApi = {
+  storage: {
+    from: () => ({
+      upload: async () => ({ error: null }),
+      getPublicUrl: (path: string) => ({ data: { publicUrl: `https://images.example.com/${path}` } }),
+    }),
+  },
+  from: () => ({
+    select: () => ({
+      eq: () => ({
+        order: () => ({
+          limit: async () => ({ data: [] }),
+        }),
+        maybeSingle: async () => ({ data: null }),
+      }),
+      in: async () => ({ data: [] }),
+    }),
+    insert: async () => ({ error: null }),
+    delete: () => ({ eq: async () => ({ error: null }) }),
+  }),
+  functions: {
+    invoke: async (_name: string, _payload: any) => ({ data: { job_id: "mock-job", count: 3 }, error: null }),
+  },
+  channel: () => ({
+    on: () => ({ subscribe: () => ({}) }),
+  }),
+  removeChannel: () => {},
+};
 
 interface LibraryRow {
   id: string;
@@ -77,10 +104,10 @@ export default function SmartImageField({
     try {
       const ext = file.name.split(".").pop() || "png";
       const path = `uploads/${eventId}/${Date.now()}-${crypto.randomUUID().slice(0, 6)}.${ext}`;
-      const { error } = await supabase.storage.from("event-assets").upload(path, file, { upsert: false });
+      const { error } = await imageApi.storage.from("event-assets").upload(path, file, { upsert: false });
       if (error) throw error;
-      const { data: pub } = supabase.storage.from("event-assets").getPublicUrl(path);
-      await supabase.from("event_image_library").insert({
+      const { data: pub } = imageApi.storage.from("event-assets").getPublicUrl(path);
+      await imageApi.from("event_image_library").insert({
         event_id: eventId, url: pub.publicUrl, source: "upload", tag: tag ?? null,
       });
       setSelectedValue(pub.publicUrl);
@@ -96,7 +123,7 @@ export default function SmartImageField({
   const openStudio = async (preferLibrary = false) => {
     if (preferLibrary) {
       // Peek at library to decide default tab
-      const { count } = await supabase
+      const { count } = await imageApi
         .from("event_image_library")
         .select("id", { count: "exact", head: true })
         .eq("event_id", eventId);
@@ -149,7 +176,7 @@ export default function SmartImageField({
                     <Library className="w-4 h-4 mr-1.5" /> Change
                   </Button>
                   <Button size="sm" variant="secondary" className="h-9 rounded-full" onClick={() => openStudio(false)}>
-                    <PolaroidIcon className="w-4 h-4 mr-1.5" /> AI
+                    <ImageIcon className="w-4 h-4 mr-1.5" /> AI
                   </Button>
                   {adjustable && (
                     <Button size="sm" variant="secondary" className="h-9 rounded-full" onClick={() => setAdjusting(true)}>
@@ -175,7 +202,7 @@ export default function SmartImageField({
               <div className="flex items-center gap-2 opacity-70">
                 <Upload className="w-5 h-5" />
                 <ImageIcon className="w-5 h-5" />
-                <PolaroidIcon className="w-5 h-5" />
+                <ImageIcon className="w-5 h-5" />
               </div>
             )}
             <span className="text-sm text-center max-w-[18rem]">{emptyLabel}</span>
@@ -187,7 +214,7 @@ export default function SmartImageField({
                   onClick={(e) => { e.stopPropagation(); openStudio(false); }}
                   className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full bg-foreground text-background hover:opacity-90 cursor-pointer"
                 >
-                  <PolaroidIcon className="w-3 h-3" /> Generate with AI
+                  <ImageIcon className="w-3 h-3" /> Generate with AI
                 </span>
                 <span
                   role="button"
@@ -364,7 +391,7 @@ function ImageStudioDialog({
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data: lib } = await supabase
+      const { data: lib } = await imageApi
         .from("event_image_library")
         .select("*")
         .eq("event_id", eventId)
@@ -372,7 +399,7 @@ function ImageStudioDialog({
         .limit(60);
       if (!cancelled) setLibrary(lib || []);
 
-      const { data: jobs } = await supabase
+      const { data: jobs } = await imageApi
         .from("image_generation_jobs")
         .select("id, status, result_urls, prompt, count, created_at")
         .eq("event_id", eventId)
@@ -402,7 +429,7 @@ function ImageStudioDialog({
 
   // Realtime: react to job updates for this event.
   useEffect(() => {
-    const channel = supabase
+    const channel = imageApi
       .channel(`img-jobs-${eventId}`)
       .on(
         "postgres_changes",
@@ -433,7 +460,7 @@ function ImageStudioDialog({
         },
       )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => { imageApi.removeChannel(channel); };
   }, [eventId]);
 
   // Polling fallback: while any job is in-flight, re-query every 4s in case a
@@ -442,7 +469,7 @@ function ImageStudioDialog({
     if (activeJobs.length === 0) return;
     const ids = activeJobs.map((j) => j.id);
     const interval = setInterval(async () => {
-      const { data } = await supabase
+      const { data } = await imageApi
         .from("image_generation_jobs")
         .select("id, status, result_urls, error")
         .in("id", ids);
@@ -468,7 +495,7 @@ function ImageStudioDialog({
   }, [activeJobs]);
 
   const loadLibrary = async () => {
-    const { data } = await supabase
+    const { data } = await imageApi
       .from("event_image_library")
       .select("*")
       .eq("event_id", eventId)
@@ -490,14 +517,14 @@ function ImageStudioDialog({
       created_at: new Date().toISOString(),
     } as LibraryRow;
     setLibrary((prev) => [optimisticRow, ...prev]);
-    const { data: existing } = await supabase
+    const { data: existing } = await imageApi
       .from("event_image_library")
       .select("id")
       .eq("event_id", eventId)
       .eq("url", url)
       .maybeSingle();
     if (existing) return;
-    const { error } = await supabase.from("event_image_library").insert({
+    const { error } = await imageApi.from("event_image_library").insert({
       event_id: eventId,
       url,
       prompt: prompt || null,
@@ -522,7 +549,7 @@ function ImageStudioDialog({
     }
     if (!append) setVariants([]);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-cover-image", {
+      const { data, error } = await imageApi.functions.invoke("generate-cover-image", {
         body: {
           background: true,
           prompt, template, count: 3, event_id: eventId, tag,
@@ -545,7 +572,7 @@ function ImageStudioDialog({
       <DialogContent className="max-w-4xl rounded-3xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 font-display">
-            <PolaroidIcon className="w-5 h-5 text-primary" />
+            <ImageIcon className="w-5 h-5 text-primary" />
             Image studio
           </DialogTitle>
           <DialogDescription>
@@ -560,7 +587,7 @@ function ImageStudioDialog({
                 <Library className="w-4 h-4 mr-1.5" /> Library {library.length ? `(${library.length})` : ""}
               </TabsTrigger>
               <TabsTrigger value="generate" className="rounded-full">
-                <PolaroidIcon className="w-4 h-4 mr-1.5" /> Generate
+                <ImageIcon className="w-4 h-4 mr-1.5" /> Generate
               </TabsTrigger>
             </TabsList>
             <Button
@@ -608,7 +635,7 @@ function ImageStudioDialog({
                 disabled={generating}
                 className="rounded-full font-semibold bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                {generating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : variants.length ? <RefreshCw className="w-4 h-4 mr-2" /> : <PolaroidIcon className="w-4 h-4 mr-2" />}
+                {generating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : variants.length ? <RefreshCw className="w-4 h-4 mr-2" /> : <ImageIcon className="w-4 h-4 mr-2" />}
                 {variants.length ? "Regenerate 3" : "Generate 3"}
               </Button>
               {variants.length > 0 && (
@@ -692,7 +719,7 @@ function ImageStudioDialog({
                       className="absolute top-1.5 right-1.5 h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={async (e) => {
                         e.stopPropagation();
-                        await supabase.from("event_image_library").delete().eq("id", row.id);
+                        await imageApi.from("event_image_library").delete().eq("id", row.id);
                         loadLibrary();
                       }}
                     >

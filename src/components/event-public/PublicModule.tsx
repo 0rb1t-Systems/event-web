@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { MapPin, Plus, Quote } from "lucide-react";
-import type { EventModule } from "@/hooks/useEventModules";
+type EventModule = any;
 import SectionIcon from "@/components/event-detail/SectionIcon";
 
 interface ModuleProps {

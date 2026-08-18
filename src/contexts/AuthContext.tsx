@@ -1,59 +1,52 @@
-import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import type { ReactNode } from "react";
+import { createContext, useContext, useMemo, useState } from "react";
+
+type StubUser = { id: string; email?: string } | null;
 
 interface AuthContextType {
-  session: Session | null;
-  user: User | null;
+  session: null;
+  user: StubUser;
+  organizer: null;
+  isLoading: boolean;
+  // Legacy fields used throughout the app
   loading: boolean;
   signOut: () => Promise<void>;
+  // Foundation prompt auth stubs (not wired yet)
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType>({
-  session: null,
-  user: null,
-  loading: true,
-  signOut: async () => {},
-});
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
+  return ctx;
+};
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-  const initialSessionResolved = useRef(false);
+export function AuthProvider({ children }: { children: ReactNode }) {
+  // Cleanup mode: no real auth yet (Supabase removed).
+  const [user, setUser] = useState<StubUser>({ id: "mock-user-1", email: "ahmed@techhub.so" });
+  const isLoading = false;
+  const value = useMemo<AuthContextType>(
+    () => ({
+      session: null,
+      user,
+      organizer: null,
+      isLoading,
+      loading: false,
+      signOut: async () => {
+        setUser(null);
+      },
+      login: async () => {},
+      logout: async () => {
+        setUser(null);
+      },
+      register: async () => {},
+    }),
+    [user, isLoading],
+  );
 
-  useEffect(() => {
-    let mounted = true;
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (!mounted) return;
-        if (event === "INITIAL_SESSION") return;
-        setSession(session);
-        if (initialSessionResolved.current) setLoading(false);
-      }
-    );
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return;
-      setSession(session);
-      initialSessionResolved.current = true;
-      setLoading(false);
-    });
-
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  const signOut = async () => {
-    await supabase.auth.signOut();
-    setSession(null);
-  };
-
-  const value = { session, user: session?.user ?? null, loading, signOut };
-
-  return <AuthContext.Provider value={value}>{loading ? null : children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

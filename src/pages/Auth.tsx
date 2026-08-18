@@ -4,8 +4,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Logo } from "@/components/Logo";
@@ -32,10 +30,8 @@ const Auth = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: loginEmail,
-      password: loginPassword,
-    });
+    console.log("TODO: login", { email: loginEmail });
+    const error = null;
     setLoading(false);
     if (error) {
       toast.error(error.message);
@@ -47,14 +43,9 @@ const Auth = () => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { data, error } = await supabase.auth.signUp({
-      email: signupEmail,
-      password: signupPassword,
-      options: {
-        data: { full_name: signupName },
-        emailRedirectTo: window.location.origin,
-      },
-    });
+    console.log("TODO: signup", { name: signupName, email: signupEmail });
+    const data = { session: null };
+    const error = null;
     setLoading(false);
     if (error) {
       toast.error(error.message);
@@ -159,9 +150,8 @@ const Auth = () => {
                   className="block mx-auto text-xs text-muted-foreground hover:text-foreground transition-colors"
                   onClick={async () => {
                     if (!loginEmail) return toast.error("Enter your email first");
-                    const { error } = await supabase.auth.resetPasswordForEmail(loginEmail, {
-                      redirectTo: `${window.location.origin}/reset-password`,
-                    });
+                    console.log("TODO: reset password", { email: loginEmail });
+                    const error = null;
                     if (error) toast.error(error.message);
                     else toast.success("Password reset link sent — check your inbox");
                   }}
@@ -179,7 +169,8 @@ const Auth = () => {
                 variant="outline"
                 className="w-full mt-5 rounded-full h-11 border-input hover:bg-muted font-medium"
                 onClick={async () => {
-                  const { error } = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
+                  console.log("TODO: Google OAuth login");
+                  const error = null;
                   if (error) toast.error(error.message || "Google sign-in failed");
                 }}
               >
@@ -247,7 +238,8 @@ const Auth = () => {
                 variant="outline"
                 className="w-full mt-5 rounded-full h-11 border-input hover:bg-muted font-medium"
                 onClick={async () => {
-                  const { error } = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
+                  console.log("TODO: Google OAuth signup");
+                  const error = null;
                   if (error) toast.error(error.message || "Google sign-in failed");
                 }}
               >

@@ -5,10 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Download, Loader2, ArrowUp, ArrowDown, ArrowUpDown, ChevronLeft, ChevronRight, Star, UserCheck, ArrowUpFromLine } from "lucide-react";
-import { useRegistrationsByEvent, useUpdateRegistration, usePromoteFromWaitlist, RegStatus } from "@/hooks/useRegistrations";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { mockAttendees } from "@/lib/mockData";
+type RegStatus = "registered" | "checked_in" | "attended" | "no_show" | "waitlisted" | "cancelled";
 
 const statusStyle: Record<string, string> = {
   registered: "bg-primary/10 text-primary border-0",
@@ -48,9 +49,19 @@ export default function EventAttendeesTable({ eventId }: { eventId: string }) {
   const [sortColumn, setSortColumn] = useState<SortColumn>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [page, setPage] = useState(0);
-  const { data: registrations, isLoading } = useRegistrationsByEvent(eventId);
-  const updateReg = useUpdateRegistration();
-  const promote = usePromoteFromWaitlist();
+  const isLoading = false;
+  const registrations = useMemo(
+    () =>
+      mockAttendees.map((attendee) => ({
+        id: attendee.id,
+        data: { "Full Name": attendee.name, "Email Address": attendee.email },
+        status: attendee.status === "paid" ? "registered" : attendee.status,
+        created_at: attendee.registered_at,
+        checked_in_at: attendee.status === "checked_in" ? attendee.registered_at : null,
+        is_vip: attendee.ticket_type.toLowerCase().includes("vip"),
+      })),
+    [eventId],
+  );
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: 0, registered: 0, checked_in: 0, attended: 0, no_show: 0, waitlisted: 0, cancelled: 0, vip: 0 };
@@ -108,23 +119,23 @@ export default function EventAttendeesTable({ eventId }: { eventId: string }) {
   const handleStatusChange = (id: string, status: RegStatus) => {
     const patch: any = { id, status };
     if (status === "checked_in") patch.checked_in_at = new Date().toISOString();
-    updateReg.mutate(patch, { onSuccess: () => toast.success("Status updated") });
+    console.log("TODO: update attendee status", patch);
+    toast.success("Status updated");
   };
 
   const handleVipToggle = (r: any) => {
-    updateReg.mutate({ id: r.id, is_vip: !r.is_vip }, {
-      onSuccess: () => toast.success(r.is_vip ? "VIP removed" : "Marked as VIP"),
-    });
+    console.log("TODO: toggle VIP flag", { id: r.id, is_vip: !r.is_vip });
+    toast.success(r.is_vip ? "VIP removed" : "Marked as VIP");
   };
 
   const handleCheckIn = (id: string) => {
-    updateReg.mutate({ id, status: "checked_in", checked_in_at: new Date().toISOString() }, {
-      onSuccess: () => toast.success("Checked in"),
-    });
+    console.log("TODO: check in attendee", { id, status: "checked_in", checked_in_at: new Date().toISOString() });
+    toast.success("Checked in");
   };
 
   const handlePromote = (id: string) => {
-    promote.mutate(id, { onSuccess: () => toast.success("Promoted from waitlist") });
+    console.log("TODO: promote waitlisted attendee", { id });
+    toast.success("Promoted from waitlist");
   };
 
   const handleExportCSV = () => {

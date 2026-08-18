@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import type { ModuleType } from "@/hooks/useEventModules";
+type ModuleType = "why_attend" | "schedule" | "speakers" | "location" | "faq" | "sponsors" | "custom";
 
 /**
  * Hand-crafted, animated SVG icons for landing page sections.

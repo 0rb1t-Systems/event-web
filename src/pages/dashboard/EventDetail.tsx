@@ -5,11 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useNavigate, useParams } from "react-router-dom";
 import { Loader2, Trash2, Sun, Moon } from "lucide-react";
-import { useEvent, useUpdateEvent, useDeleteEvent, useEventEmailConfig } from "@/hooks/useEvents";
-import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
-import { useFormFields, useAddFormField, useDeleteFormField, useUpdateFormField } from "@/hooks/useFormFields";
-import { useRegistrationsByEvent } from "@/hooks/useRegistrations";
 import { toast } from "sonner";
 import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -18,13 +13,10 @@ import EventDetailHeader from "@/components/event-detail/EventDetailHeader";
 import EventQuickInfo from "@/components/event-detail/EventQuickInfo";
 import EventAttendeesTable from "@/components/event-detail/EventAttendeesTable";
 import CheckInScanner from "@/components/event-detail/CheckInScanner";
-
-import EventPromotion from "@/components/event-detail/EventPromotion";
-import EventPageBuilder from "@/components/event-detail/EventPageBuilder";
 import EventOverview from "@/components/event-detail/EventOverview";
 import EventSideNav, { type EventSection } from "@/components/event-detail/EventSideNav";
 import TicketTiersManager, { type TicketTier } from "@/components/event-detail/TicketTiersManager";
-import { getRegistrationUrl } from "@/lib/publicUrl";
+import { mockEvent, mockAttendees } from "@/lib/mockData";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,26 +31,47 @@ import {
 const EventDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { data: event, isLoading } = useEvent(id);
-  const { data: formFields } = useFormFields(id);
-  const updateEvent = useUpdateEvent();
-  const deleteEvent = useDeleteEvent();
-  const addField = useAddFormField();
-  const deleteField = useDeleteFormField();
-  const updateField = useUpdateFormField();
+  const [event, setEvent] = useState<any>({
+    ...mockEvent,
+    id: id || mockEvent.id,
+    name: mockEvent.title,
+    event_date: mockEvent.starts_at,
+    event_end_date: mockEvent.ends_at,
+    location_value: mockEvent.address,
+    location_type: "physical",
+    primary_color: "#7C3AED",
+    template: "split",
+    ticket_tiers: mockEvent.ticket_types.map((t) => ({ ...t, description: "", currency: "USD" })),
+    status: "live",
+    slug: mockEvent.slug,
+  });
+  const [formFields, setFormFields] = useState<any[]>([{ id: "f1", label: "Company", field_type: "text", required: false, placeholder: "Company" }]);
+  const isLoading = false;
+  const updateEvent = {
+    mutateAsync: async (payload: any) => { setEvent((prev: any) => ({ ...prev, ...payload })); console.log("TODO: update event", payload); },
+    mutate: (payload: any) => { setEvent((prev: any) => ({ ...prev, ...payload })); console.log("TODO: update event", payload); },
+  };
+  const deleteEvent = { mutateAsync: async (eventId: string) => console.log("TODO: delete event", eventId) };
+  const addField = { mutateAsync: async (field: any) => { setFormFields((prev) => [...prev, { ...field, id: crypto.randomUUID() }]); console.log("TODO: add field", field); } };
+  const deleteField = { mutate: ({ id: fieldId }: any) => { setFormFields((prev) => prev.filter((f) => f.id !== fieldId)); console.log("TODO: delete field", fieldId); } };
+  const updateField = { mutate: ({ id: fieldId, patch }: any) => { setFormFields((prev) => prev.map((f) => f.id === fieldId ? { ...f, ...patch } : f)); console.log("TODO: update field", fieldId, patch); } };
   const [newFieldLabel, setNewFieldLabel] = useState("");
   const [newFieldType, setNewFieldType] = useState("text");
   const [activeTab, setActiveTab] = useState<EventSection>("overview");
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const { data: registrations } = useRegistrationsByEvent(id);
-  const { data: emailConfig } = useEventEmailConfig(id);
-  const qc = useQueryClient();
+  const registrations = mockAttendees;
+  const [emailConfig, setEmailConfig] = useState<any>({
+    send_confirmation_email: true,
+    send_reminder_24h: true,
+    send_reminder_1h: false,
+    email_intro: "",
+    email_signature: "",
+  });
   const attendeesCount = registrations?.length ?? 0;
 
   const handleEmailConfigUpdate = async (patch: Record<string, any>) => {
-    const { error } = await (supabase as any).rpc("update_event_email_config", { p_event_id: id!, p_patch: patch });
-    if (error) { toast.error(error.message); return; }
-    qc.invalidateQueries({ queryKey: ["event-email-config", id] });
+    setEmailConfig((prev: any) => ({ ...prev, ...patch }));
+    console.log("TODO: update email config", patch);
   };
 
 
@@ -288,20 +301,15 @@ const EventDetail = () => {
           )}
 
           {activeTab === "page" && (
-            <EventPageBuilder
-              eventId={event.id}
-              eventSlug={event.slug}
-              eventName={event.name}
-              description={event.description}
-              eventDate={event.event_date}
-              locationType={event.location_type}
-              brandColor={event.primary_color || undefined}
-              coverImageUrl={event.background_image_url}
-            />
+            <div className="bg-card rounded-xl p-5 sm:p-6 text-muted-foreground text-sm">
+              Landing CMS editor removed in cleanup.
+            </div>
           )}
 
           {activeTab === "promotion" && (
-            <EventPromotion eventSlug={event.slug} eventId={event.id} eventName={event.name} />
+            <div className="bg-card rounded-xl p-5 sm:p-6 text-muted-foreground text-sm">
+              Promotion / tracking removed in cleanup.
+            </div>
           )}
 
           {activeTab === "attendees" && (

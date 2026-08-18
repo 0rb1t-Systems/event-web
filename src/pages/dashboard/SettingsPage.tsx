@@ -5,16 +5,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useProfile, useUpdateProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Loader2, Send, UserPlus, Plus, Trash2, Sun, Moon, Monitor, Copy, X, Globe, Calendar } from "lucide-react";
 import { useTheme } from "next-themes";
 import { copyToClipboard } from "@/lib/clipboard";
-import { useEvents } from "@/hooks/useEvents";
-import { useInvitations, useCohosts, useCreateInvitation, useRevokeInvitation, useRemoveCohost, getAcceptUrl } from "@/hooks/useCohosts";
-import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { mockEvents } from "@/lib/mockData";
 
 const SOCIAL_PLATFORMS = [
   "Twitter / X", "LinkedIn", "Instagram", "Facebook", "YouTube", "TikTok", "GitHub",
@@ -29,8 +26,19 @@ function generateCompanySlug(name: string): string {
 const SettingsPage = () => {
   const { theme, setTheme } = useTheme();
   const { user } = useAuth();
-  const { data: profile, isLoading } = useProfile();
-  const updateProfile = useUpdateProfile();
+  const profile = {
+    full_name: "Ahmed Hassan",
+    company: "TechHub Somalia",
+    website: "https://techhub.so",
+    company_description: "Technology community and event organizer.",
+    social_links: [],
+    company_slug: "techhub-somalia",
+  } as any;
+  const isLoading = false;
+  const updateProfile = {
+    isPending: false,
+    mutateAsync: async (payload: any) => console.log("TODO: save profile", payload),
+  };
   const [fullName, setFullName] = useState("");
   const [company, setCompany] = useState("");
   const [website, setWebsite] = useState("");
@@ -43,12 +51,18 @@ const SettingsPage = () => {
   const [inviteScope, setInviteScope] = useState<"account" | "event">("account");
   const [inviteEventId, setInviteEventId] = useState<string>("");
 
-  const { data: events } = useEvents();
-  const { data: invitations } = useInvitations();
-  const { data: cohostsList } = useCohosts();
-  const createInvite = useCreateInvitation();
-  const revokeInvite = useRevokeInvitation();
-  const removeCohost = useRemoveCohost();
+  const events = mockEvents.map((e) => ({ id: e.id, name: e.title, user_id: user?.id || "1" })) as any[];
+  const invitations = [] as any[];
+  const cohostsList = [] as any[];
+  const createInvite = {
+    mutateAsync: async (payload: any) => {
+      console.log("TODO: create invitation", payload);
+      return { id: crypto.randomUUID(), token: "mock-token", ...payload };
+    },
+  };
+  const revokeInvite = { mutate: (id: string) => console.log("TODO: revoke invitation", id), isPending: false } as any;
+  const removeCohost = { mutate: (id: string) => console.log("TODO: remove cohost", id), isPending: false } as any;
+  const getAcceptUrl = (token: string) => `${window.location.origin}/cohost/accept?token=${token}`;
 
   const eventNameById = (id: string | null) =>
     id ? events?.find(e => e.id === id)?.name || "Event" : null;
@@ -108,18 +122,7 @@ const SettingsPage = () => {
       });
       const acceptUrl = getAcceptUrl(inv.token);
 
-      // Try to send the invite email; fall back to copy link if email fails
-      let emailed = false;
-      try {
-        const { error: emailErr } = await supabase.functions.invoke("notify", {
-          body: { kind: "cohost_invitation", invitation_id: inv.id },
-        });
-        if (!emailErr) emailed = true;
-      } catch (_) {
-        // ignore — fall back below
-      }
-
-
+      const emailed = false;
       await copyToClipboard(acceptUrl);
       toast.success(
         emailed

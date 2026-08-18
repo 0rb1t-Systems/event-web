@@ -1,8 +1,7 @@
 import { Link } from "react-router-dom";
-import { useMyTickets, useBrowseEvents } from "@/hooks/useMyTickets";
-import { useProfile } from "@/hooks/useProfile";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Calendar, MapPin, Ticket, ArrowRight } from "lucide-react";
+import { mockEvents, mockOrganizer, mockParticipations } from "@/lib/mockData";
 
 function formatDate(iso: string | null) {
   if (!iso) return "Date TBA";
@@ -17,10 +16,29 @@ function formatDate(iso: string | null) {
 }
 
 export default function AttendeeHome() {
-  const { data: profile } = useProfile();
-  const { data: tickets, isLoading: ticketsLoading } = useMyTickets();
-  const excludeIds = (tickets ?? []).map((t) => t.event_id);
-  const { data: browse, isLoading: browseLoading } = useBrowseEvents(excludeIds);
+  const profile = { full_name: mockOrganizer.name };
+  const ticketsLoading = false;
+  const browseLoading = false;
+  const tickets = mockParticipations.map((entry) => ({
+    registration_id: entry.id,
+    event_id: entry.event.id,
+    event_name: entry.event.title,
+    event_date: entry.event.starts_at,
+    location_value: entry.event.address,
+    attendee_name: profile.full_name,
+    cover_image_url: entry.event.banner_image,
+  }));
+  const excludeIds = tickets.map((ticket) => ticket.event_id);
+  const browse = mockEvents
+    .filter((event) => !excludeIds.includes(event.id))
+    .map((event) => ({
+      id: event.id,
+      slug: event.slug,
+      name: event.title,
+      event_date: event.starts_at,
+      location_value: event.address,
+      background_image_url: event.banner_image,
+    }));
 
   const firstName = profile?.full_name?.split(" ")[0];
 

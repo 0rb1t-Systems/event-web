@@ -1,8 +1,8 @@
 import { motion } from "framer-motion";
 import { useRef } from "react";
 import { CalendarDays, MapPin, Video, Globe, Users } from "lucide-react";
-import type { Event } from "@/hooks/useEvents";
-import type { EventModule } from "@/hooks/useEventModules";
+type Event = any;
+type EventModule = any;
 import { Hero } from "./Hero";
 import { StickyRegisterBar } from "./StickyRegisterBar";
 import { PublicModule } from "./PublicModule";

@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import QRCode from "qrcode";
 import { ArrowLeft, Loader2, CalendarDays, MapPin, CheckCircle2, Download, Ticket as TicketIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { mockParticipation } from "@/lib/mockData";
 
 interface TicketData {
   id: string;
@@ -68,13 +68,25 @@ const Ticket = () => {
         setLoading(false);
         return;
       }
-      const { data, error } = await supabase.rpc("get_ticket", { p_registration_id: registrationId });
       if (!active) return;
-      if (error || !data) {
-        setTicket(null);
-      } else {
-        setTicket(data as unknown as TicketData);
-      }
+      const data: TicketData = {
+        id: registrationId,
+        event_id: mockParticipation.event.id,
+        status: mockParticipation.status,
+        checked_in_at: null,
+        attendee_name: "Ahmed Hassan",
+        ticket_name: mockParticipation.ticket_type?.name ?? "General",
+        event_name: mockParticipation.event.title,
+        event_date: mockParticipation.event.starts_at,
+        end_date: mockParticipation.event.ends_at,
+        timezone: "Africa/Mogadishu",
+        location: mockParticipation.event.address,
+        location_type: "physical",
+        primary_color: "#7C3AED",
+        cover_image_url: mockParticipation.event.banner_image,
+        event_slug: mockParticipation.event.slug,
+      };
+      setTicket(data);
       setLoading(false);
     })();
     return () => {

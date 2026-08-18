@@ -1,4 +1,4 @@
-import type { EventModule } from "@/hooks/useEventModules";
+type EventModule = any;
 import { PublicModule } from "@/components/event-public/PublicModule";
 
 interface Props {

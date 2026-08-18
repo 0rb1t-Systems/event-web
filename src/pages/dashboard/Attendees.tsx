@@ -6,9 +6,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Download, Loader2, ArrowUp, ArrowDown, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
-import { useRegistrations, Registration } from "@/hooks/useRegistrations";
-import { useRegistrationStats } from "@/hooks/useRegistrations";
 import { format } from "date-fns";
+import { mockAttendees, mockEvents } from "@/lib/mockData";
+
+type Registration = any;
 
 const statusStyle: Record<string, string> = {
   registered: "bg-primary/10 text-primary border-0",
@@ -30,8 +31,21 @@ const Attendees = () => {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [page, setPage] = useState(0);
   const [selectedRegistration, setSelectedRegistration] = useState<Registration | null>(null);
-  const { data: registrations, isLoading } = useRegistrations();
-  const { data: stats } = useRegistrationStats();
+  const registrations = mockAttendees.map((a, i) => ({
+    id: a.id,
+    event_id: mockEvents[i % mockEvents.length].id,
+    status: a.status,
+    created_at: a.registered_at,
+    data: { "Full Name": a.name, "Email Address": a.email },
+    events: { name: mockEvents[i % mockEvents.length].title },
+  }));
+  const isLoading = false;
+  const stats = {
+    total: registrations.length,
+    checkedIn: registrations.filter((r) => r.status === "checked_in").length,
+    waitlisted: registrations.filter((r) => r.status === "waitlisted").length,
+    byStatus: {} as Record<string, number>,
+  };
 
   const eventOptions = useMemo(() => {
     const map = new Map<string, string>();

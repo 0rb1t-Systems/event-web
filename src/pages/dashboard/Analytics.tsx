@@ -2,12 +2,21 @@ import { Users, TrendingUp, CalendarDays, Loader2 } from "lucide-react";
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
-import { useRegistrationStats } from "@/hooks/useRegistrations";
 import { useMemo } from "react";
 import { format, parseISO, startOfWeek } from "date-fns";
+import { mockAnalytics, mockEvents, mockAttendees } from "@/lib/mockData";
 
 const Analytics = () => {
-  const { data: stats, isLoading } = useRegistrationStats();
+  const stats = {
+    total: mockAnalytics.total_registrations,
+    activeEvents: mockEvents.length,
+    events: mockEvents.map((e) => ({ id: e.id, name: e.title })),
+    registrations: mockAttendees.map((a, i) => ({
+      event_id: mockEvents[i % mockEvents.length].id,
+      created_at: a.registered_at,
+    })),
+  };
+  const isLoading = false;
 
   const perEventData = useMemo(() => {
     if (!stats?.events || !stats?.registrations) return [];

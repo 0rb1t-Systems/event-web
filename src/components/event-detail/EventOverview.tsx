@@ -1,10 +1,5 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Tables } from "@/integrations/supabase/types";
-import { useRegistrationsByEvent } from "@/hooks/useRegistrations";
-import { useFormFields } from "@/hooks/useFormFields";
-import { useEventModules } from "@/hooks/useEventModules";
-import { useUpdateEvent } from "@/hooks/useEvents";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -28,17 +23,28 @@ import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import { getRegistrationUrl, getPublicOrigin } from "@/lib/publicUrl";
 import { copyToClipboard } from "@/lib/clipboard";
 import { toast } from "sonner";
+import { mockAttendees } from "@/lib/mockData";
+type Event = any;
 
 interface Props {
-  event: Tables<"events">;
+  event: Event;
   onJumpTab: (tab: string) => void;
 }
 
 export default function EventOverview({ event, onJumpTab }: Props) {
-  const { data: registrations, isLoading } = useRegistrationsByEvent(event.id);
-  const { data: formFields } = useFormFields(event.id);
-  const { data: modules } = useEventModules(event.id);
-  const updateEvent = useUpdateEvent();
+  const isLoading = false;
+  const registrations = useMemo(
+    () =>
+      mockAttendees.map((attendee) => ({
+        id: attendee.id,
+        status: attendee.status === "paid" ? "registered" : attendee.status,
+        checked_in_at: attendee.status === "checked_in" ? attendee.registered_at : null,
+        created_at: attendee.registered_at,
+      })),
+    [],
+  );
+  const formFields = [{ id: "full-name" }, { id: "email-address" }, { id: "phone-number" }];
+  const modules = [{ id: "why-attend" }, { id: "schedule" }, { id: "speakers" }];
   const [editingSlug, setEditingSlug] = useState(false);
   const [slugDraft, setSlugDraft] = useState(event.slug);
 
@@ -49,7 +55,7 @@ export default function EventOverview({ event, onJumpTab }: Props) {
     if (!next) { toast.error("Link can't be empty"); return; }
     if (next === event.slug) { setEditingSlug(false); return; }
     try {
-      await updateEvent.mutateAsync({ id: event.id, slug: next });
+      console.log("TODO: update event slug", { id: event.id, slug: next });
       toast.success("Link updated");
       setEditingSlug(false);
     } catch (e: any) {
