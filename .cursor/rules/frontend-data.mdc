@@ -1,0 +1,17 @@
+---
+description: Frontend data, auth, and routing conventions
+globs: src/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Frontend data and UI
+
+- Use existing React Query hooks. Keep query keys stable (`["events", userId]`, `["registrations", eventId]`, `["event_modules", eventId]`, …) and invalidate after mutations.
+- Public event columns: copy `EVENT_COLS` in `useEvents.ts`. Do not select owner-only email fields on public queries.
+- Signup: `supabase.rpc("register_for_event", { p_event_id, p_data, p_utm })`. Promote waitlist / check-in only through their RPCs.
+- Mail: `supabase.functions.invoke("notify", { body: { kind, registration_id | invitation_id } })`.
+- Roles: `useAuth` = session; `useUserRole` = organizer vs attendee; wrap organizer pages with `OrganizerOnly`.
+- Modules: `why_attend | schedule | speakers | location | faq | sponsors | custom`. Form fields: `text | email | tel | url`.
+- Prices are labels (`getEventPriceLabel`). Do not add a fake checkout.
+- Icons: lucide-react. `react-icons/si` dropped Slack and Twilio.
+- CSS: no `@import` after `@tailwind`. Fonts belong in `index.html`.
