@@ -381,6 +381,10 @@ const Auth = () => {
         <motion.p variants={staggerItem} className="text-center text-xs text-muted-foreground mt-6">
           By continuing, you agree to our Terms of Service and Privacy Policy.
         </motion.p>
+        <motion.p variants={staggerItem} className="text-center text-xs text-muted-foreground mt-3">
+          Hosting events?{" "}
+          <Link to="/organizer/login" className="hover:underline">Organizer Portal</Link>
+        </motion.p>
       </motion.div>
     </div>
   );

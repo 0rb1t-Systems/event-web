@@ -32,7 +32,7 @@ export default function EventDetailHeader({ event, onStatusChange, onDelete }: P
       console.log("TODO: duplicate event", event.id);
       const created = { id: event.id };
       toast.success("Event duplicated");
-      navigate(`/dashboard/events/${created.id}`);
+      navigate(`/organizer/events/${created.id}`);
     } catch (e: any) {
       toast.error("Could not duplicate", { description: e?.message });
     }
@@ -54,7 +54,7 @@ export default function EventDetailHeader({ event, onStatusChange, onDelete }: P
       <div className="flex items-start justify-between gap-3">
         {/* Left: Back + Title */}
         <div className="flex items-start gap-3 min-w-0">
-          <Button variant="ghost" size="icon" className="shrink-0 mt-0.5" onClick={() => navigate("/dashboard/events")}>
+          <Button variant="ghost" size="icon" className="shrink-0 mt-0.5" onClick={() => navigate("/organizer/events")}>
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <div className="min-w-0">

@@ -52,7 +52,7 @@ const Events = () => {
         event_type: "webinar",
       });
       console.log("TODO: create event", created);
-      navigate(`/dashboard/events/${created.id}`);
+      navigate(`/organizer/events/${created.id}`);
     } catch (e: any) {
       toast.error(e?.message || "Couldn't create event");
       setCreating(false);
@@ -79,7 +79,7 @@ const Events = () => {
     return (
       <div
         className="group cursor-pointer"
-        onClick={() => navigate(`/dashboard/events/${event.id}`)}
+        onClick={() => navigate(`/organizer/events/${event.id}`)}
       >
         {/* Image */}
         <div className="relative aspect-[16/10] rounded-xl overflow-hidden bg-muted mb-3">
@@ -205,7 +205,7 @@ const Events = () => {
                 <div
                   key={event.id}
                   className="group flex flex-col sm:flex-row gap-4 cursor-pointer"
-                  onClick={() => navigate(`/dashboard/events/${event.id}`)}
+                  onClick={() => navigate(`/organizer/events/${event.id}`)}
                 >
                   <div className="sm:w-56 flex-shrink-0 aspect-video sm:aspect-[16/10] rounded-xl overflow-hidden bg-muted">
                     {event.background_image_url ? (
@@ -238,7 +238,7 @@ const Events = () => {
                         <Link to={`/events/${event.id}`}><ExternalLink className="w-3 h-3 mr-1" />View page</Link>
                       </Button>
                       <Button variant="outline" size="sm" className="text-xs rounded-full" asChild onClick={(e) => e.stopPropagation()}>
-                        <Link to={`/dashboard/events/${event.id}`}>Manage</Link>
+                        <Link to={`/organizer/events/${event.id}`}>Manage</Link>
                       </Button>
                     </div>
                   </div>

@@ -460,6 +460,9 @@ const Landing = () => {
                 <Button className="hidden sm:inline-flex text-sm font-semibold" asChild>
                   <Link to="/auth">Sign up</Link>
                 </Button>
+                <Button variant="ghost" className="hidden sm:inline-flex text-sm font-medium text-muted-foreground" asChild>
+                  <Link to="/organizer/login">Organizer</Link>
+                </Button>
               </>
             )}
           </div>

@@ -12,16 +12,23 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import QRCode from "qrcode";
 import {
-  ArrowLeft, CalendarDays, MapPin, CheckCircle2, Clock, AlertTriangle,
-  Download, Loader2, Ticket as TicketIcon, RefreshCw, XCircle,
+  ArrowLeft, Award, CalendarDays, ExternalLink, MapPin, CheckCircle2, Clock,
+  AlertTriangle, Download, Loader2, MessageSquare, Star,
+  Ticket as TicketIcon, RefreshCw, XCircle,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   getParticipationInvitation,
+  getParticipationFeedback,
+  submitFeedback,
+  getParticipationCertificate,
   type ApiInvitationDetail,
+  type ApiFeedback,
+  type ApiCertificateResult,
   type InvitationConfig,
   type OverlayPositions,
   type Customizations,
@@ -298,7 +305,215 @@ const ConfiguredInvitation = ({
   );
 };
 
-// InlinePayPanel removed — ParticipantWaafiPayment (shared component) is used directly.
+// ─── Feedback panel ───────────────────────────────────────────────────────────
+
+const StarRating = ({
+  value,
+  onChange,
+  readonly,
+}: {
+  value: number;
+  onChange?: (n: number) => void;
+  readonly?: boolean;
+}) => (
+  <div className="flex gap-1">
+    {[1, 2, 3, 4, 5].map((n) => (
+      <button
+        key={n}
+        type="button"
+        disabled={readonly}
+        onClick={() => onChange?.(n)}
+        className={`transition-transform ${readonly ? "cursor-default" : "hover:scale-110 active:scale-95"}`}
+        aria-label={`${n} star${n !== 1 ? "s" : ""}`}
+      >
+        <Star
+          className="w-7 h-7"
+          fill={n <= value ? "#FBBF24" : "none"}
+          stroke={n <= value ? "#FBBF24" : "currentColor"}
+          strokeWidth={1.5}
+        />
+      </button>
+    ))}
+  </div>
+);
+
+const FeedbackPanel = ({
+  participationId,
+  initialFeedback,
+}: {
+  participationId: number;
+  initialFeedback: ApiFeedback | null;
+}) => {
+  const [feedback, setFeedback] = useState<ApiFeedback | null>(initialFeedback);
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (rating === 0) {
+      toast.error("Please select a rating.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const result = await submitFeedback({
+        participation_id: participationId,
+        rating,
+        comment: comment.trim() || null,
+      });
+      setFeedback(result);
+      toast.success("Thank you for your feedback!");
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Could not submit feedback. Please try again."));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Already submitted — show read-only confirmation
+  if (feedback) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-card rounded-3xl p-6 space-y-4 shadow-sm"
+      >
+        <div className="flex items-center gap-2">
+          <MessageSquare className="w-5 h-5 text-primary" />
+          <h2 className="font-display font-semibold text-lg tracking-[-0.01em]">Your feedback</h2>
+        </div>
+        <div className="flex items-center gap-3">
+          <StarRating value={feedback.rating} readonly />
+          <span className="text-sm text-muted-foreground">{feedback.rating} / 5</span>
+        </div>
+        {feedback.comment && (
+          <p className="text-sm text-muted-foreground leading-relaxed bg-muted/40 rounded-2xl px-4 py-3">
+            {feedback.comment}
+          </p>
+        )}
+        <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+          <CheckCircle2 className="w-3.5 h-3.5" />
+          Submitted{feedback.submitted_at ? ` on ${new Date(feedback.submitted_at).toLocaleDateString()}` : ""}
+        </div>
+      </motion.div>
+    );
+  }
+
+  // Form
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-card rounded-3xl p-6 space-y-4 shadow-sm"
+    >
+      <div className="flex items-center gap-2">
+        <MessageSquare className="w-5 h-5 text-primary" />
+        <h2 className="font-display font-semibold text-lg tracking-[-0.01em]">How was the event?</h2>
+      </div>
+      <p className="text-sm text-muted-foreground">Your feedback helps organizers improve future events.</p>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-foreground/70 uppercase tracking-wider">Rating</p>
+          <StarRating value={rating} onChange={setRating} />
+          {rating > 0 && (
+            <p className="text-xs text-muted-foreground">
+              {["", "Poor", "Fair", "Good", "Very good", "Excellent"][rating]}
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium text-foreground/70 uppercase tracking-wider">
+            Comment <span className="normal-case font-normal text-muted-foreground">(optional)</span>
+          </p>
+          <Textarea
+            placeholder="Share your thoughts about the event…"
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            maxLength={5000}
+            rows={3}
+            className="rounded-2xl resize-none bg-muted/40 border-0 text-sm placeholder:text-muted-foreground/60 focus-visible:ring-2 focus-visible:ring-offset-0"
+          />
+        </div>
+
+        <Button
+          type="submit"
+          disabled={submitting || rating === 0}
+          className="rounded-full h-11 px-6 font-semibold"
+        >
+          {submitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting…</> : "Submit feedback"}
+        </Button>
+      </form>
+    </motion.div>
+  );
+};
+
+// ─── Certificate panel ─────────────────────────────────────────────────────────
+
+const CertificatePanel = ({
+  result,
+}: {
+  result: ApiCertificateResult;
+}) => {
+  if (!result.available || !result.certificate) {
+    return (
+      <div className="bg-card rounded-3xl p-6 shadow-sm">
+        <div className="flex items-center gap-2 mb-2">
+          <Award className="w-5 h-5 text-muted-foreground" />
+          <h2 className="font-display font-semibold text-lg tracking-[-0.01em]">Certificate</h2>
+        </div>
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          Your certificate of attendance has not been issued yet. Organizers typically issue certificates
+          after the event concludes. Check back later.
+        </p>
+      </div>
+    );
+  }
+
+  const cert = result.certificate;
+  const downloadUrl = cert.file_url || (cert.file_path ? getMediaUrl(cert.file_path) : null);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-card rounded-3xl p-6 space-y-4 shadow-sm"
+    >
+      <div className="flex items-center gap-2">
+        <Award className="w-5 h-5 text-primary" />
+        <h2 className="font-display font-semibold text-lg tracking-[-0.01em]">Certificate of attendance</h2>
+      </div>
+
+      <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-sm font-medium">
+        <CheckCircle2 className="w-4 h-4 shrink-0" />
+        {cert.verified ? "Verified certificate" : "Certificate issued"}
+      </div>
+
+      {cert.issued_at && (
+        <p className="text-xs text-muted-foreground">
+          Issued on {new Date(cert.issued_at).toLocaleDateString()}
+        </p>
+      )}
+
+      {downloadUrl && (
+        <a
+          href={downloadUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2"
+        >
+          <Button className="rounded-full h-11 px-6 gap-2 font-semibold">
+            <Download className="w-4 h-4" />
+            Download certificate
+            <ExternalLink className="w-3.5 h-3.5 opacity-60" />
+          </Button>
+        </a>
+      )}
+    </motion.div>
+  );
+};
 
 // ─── Responsive scale wrapper ─────────────────────────────────────────────────
 
@@ -386,6 +601,8 @@ export default function RegistrationDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState("");
+  const [feedback, setFeedback] = useState<ApiFeedback | null | "unloaded">("unloaded");
+  const [certificate, setCertificate] = useState<ApiCertificateResult | null>(null);
 
   const printRef = useRef<HTMLDivElement>(null!);
   const printRootRef = useRef<HTMLDivElement>(null);
@@ -402,9 +619,23 @@ export default function RegistrationDetail() {
     setError(null);
 
     getParticipationInvitation(numericId)
-      .then((d) => {
+      .then(async (d) => {
         if (cancelled) return;
         setDetail(d);
+
+        // Load feedback + certificate in parallel only for checked-in participations
+        if (d.status === "checked_in") {
+          const [fb, cert] = await Promise.allSettled([
+            getParticipationFeedback(numericId),
+            getParticipationCertificate(numericId),
+          ]);
+          if (!cancelled) {
+            setFeedback(fb.status === "fulfilled" ? fb.value : null);
+            setCertificate(cert.status === "fulfilled" ? cert.value : null);
+          }
+        } else {
+          if (!cancelled) setFeedback("unloaded");
+        }
       })
       .catch((err: any) => {
         if (cancelled) return;
@@ -539,6 +770,7 @@ export default function RegistrationDetail() {
   const meta = statusMeta(detail.status, detail.payment_status);
   const isWaitlisted = detail.status === "waitlisted";
   const isCancelled = detail.status === "cancelled";
+  const isCheckedIn = detail.status === "checked_in";
   const isPaymentPending = detail.payment_status === "pending";
   const isPaymentFailed = detail.payment_status === "failed";
   const isPaymentRefunded = detail.payment_status === "refunded";
@@ -548,6 +780,8 @@ export default function RegistrationDetail() {
   const eventTitle = detail.event?.title ?? "Event";
   const eventId = detail.event?.id;
   const invitation = detail.invitation;
+  const feedbackLoaded = feedback !== "unloaded";
+  const feedbackValue = feedbackLoaded ? feedback : null;
 
   return (
     <div className="min-h-screen bg-background px-4 py-8 sm:py-14 overflow-x-hidden">
@@ -752,6 +986,37 @@ export default function RegistrationDetail() {
             </p>
           </div>
         )}
+
+        {/* ── Certificate — only for checked-in ── */}
+        <AnimatePresence>
+          {isCheckedIn && certificate && (
+            <motion.div
+              key="cert"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+            >
+              <CertificatePanel result={certificate} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ── Feedback — only for checked-in ── */}
+        <AnimatePresence>
+          {isCheckedIn && feedbackLoaded && (
+            <motion.div
+              key="feedback"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+            >
+              <FeedbackPanel
+                participationId={detail.id}
+                initialFeedback={feedbackValue}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* View event link */}
         {eventId && (

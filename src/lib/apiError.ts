@@ -158,3 +158,12 @@ export function isUnverifiedAccountError(error: unknown): boolean {
   const message = getApiErrorMessage(error, "");
   return /verify your email/i.test(message);
 }
+
+export function isOrganizerSuspendedError(error: unknown): boolean {
+  if (!axios.isAxiosError(error)) return false;
+  if (error.response?.status !== 403) return false;
+  const code = getApiErrorCode(error.response.data);
+  if (code === "organizer_suspended") return true;
+  const message = getApiErrorMessage(error, "");
+  return /suspended/i.test(message);
+}

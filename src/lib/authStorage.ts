@@ -48,6 +48,11 @@ export const organizerSessionStorage = {
   setToken: (token: string) =>
     setItem(AUTH_STORAGE_KEYS.organizerToken, token),
 
+  getOrganizerJson: () => getItem(AUTH_STORAGE_KEYS.organizer),
+
+  setOrganizerJson: (value: string) =>
+    setItem(AUTH_STORAGE_KEYS.organizer, value),
+
   clear: () => {
     removeItem(AUTH_STORAGE_KEYS.organizerToken);
     removeItem(AUTH_STORAGE_KEYS.organizer);

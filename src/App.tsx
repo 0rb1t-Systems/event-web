@@ -6,28 +6,33 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { OrganizerProvider } from "@/contexts/OrganizerContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { OrganizerOnly } from "@/components/OrganizerOnly";
+import { OrganizerProtectedRoute } from "@/components/OrganizerProtectedRoute";
 import { RoleHomeRedirect } from "@/components/RoleHomeRedirect";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { OrganizerLayout } from "@/components/layout/OrganizerLayout";
 import { SmoothScroll } from "@/components/motion/SmoothScroll";
 
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Register from "./pages/Register";
-import Ticket from "./pages/Ticket";
 import RegistrationDetail from "./pages/RegistrationDetail";
 import Events from "./pages/dashboard/Events";
-// Legacy wizard removed — events are now created/edited inline on EventDetail.
 const EventDetailEditRedirect = () => {
   const { id } = useParams();
-  return <Navigate to={`/dashboard/events/${id}`} replace />;
+  return <Navigate to={`/organizer/events/${id}`} replace />;
 };
 import EventDetail from "./pages/dashboard/EventDetail";
 import AttendeeHome from "./pages/dashboard/AttendeeHome";
 import Attendees from "./pages/dashboard/Attendees";
 import Analytics from "./pages/dashboard/Analytics";
 import SettingsPage from "./pages/dashboard/SettingsPage";
+import OrganizerLogin from "./pages/organizer/OrganizerLogin";
+import OrganizerRegister from "./pages/organizer/OrganizerRegister";
+import OrganizerDashboard from "./pages/organizer/OrganizerDashboard";
+import OrganizerSettings from "./pages/organizer/OrganizerSettings";
+import OrganizerPayouts from "./pages/organizer/OrganizerPayouts";
 import NotFound from "./pages/NotFound";
 
 const PublicRegisterRedirect = () => {
@@ -38,6 +43,11 @@ const PublicRegisterRedirect = () => {
 const TicketRedirect = () => {
   const { registrationId } = useParams();
   return <Navigate to={`/registrations/${registrationId}`} replace />;
+};
+
+const LegacyDashboardEventRedirect = () => {
+  const { id } = useParams();
+  return <Navigate to={`/organizer/events/${id}`} replace />;
 };
 
 const queryClient = new QueryClient();
@@ -54,6 +64,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} storageKey="app-theme">
       <AuthProvider>
+        <OrganizerProvider>
         <TooltipProvider>
           <Toaster />
           <Sonner />
@@ -64,31 +75,48 @@ const App = () => (
               {/* Public */}
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
-              {/* /reset-password removed in cleanup */}
               <Route path="/events/:id" element={<Register />} />
               <Route path="/register/:id" element={<PublicRegisterRedirect />} />
               <Route path="/registrations/:registrationId" element={<RegistrationDetail />} />
-              {/* /ticket/:id legacy — redirect to /registrations/:id */}
               <Route path="/ticket/:registrationId" element={<TicketRedirect />} />
-              {/* /unsubscribe removed in cleanup */}
 
-              {/* Dashboard (protected) */}
+              {/* Organizer auth (no organizer session required) */}
+              <Route path="/organizer/login" element={<OrganizerLogin />} />
+              <Route path="/organizer/register" element={<OrganizerRegister />} />
+
+              {/* Organizer app */}
+              <Route path="/organizer" element={<Navigate to="/organizer/dashboard" replace />} />
+              <Route path="/organizer/*" element={
+                <OrganizerProtectedRoute>
+                  <OrganizerLayout>
+                    <Routes>
+                      <Route path="dashboard" element={<OrganizerDashboard />} />
+                      <Route path="events" element={<Events />} />
+                      <Route path="events/create" element={<Navigate to="/organizer/events" replace />} />
+                      <Route path="events/:id" element={<EventDetail />} />
+                      <Route path="events/:id/edit" element={<EventDetailEditRedirect />} />
+                      <Route path="attendees" element={<Attendees />} />
+                      <Route path="analytics" element={<Analytics />} />
+                      <Route path="payouts" element={<OrganizerPayouts />} />
+                      <Route path="settings" element={<OrganizerSettings />} />
+                    </Routes>
+                  </OrganizerLayout>
+                </OrganizerProtectedRoute>
+              } />
+
+              {/* Participant dashboard */}
               <Route path="/dashboard" element={<ProtectedRoute><RoleHomeRedirect /></ProtectedRoute>} />
+              <Route path="/dashboard/events/create" element={<Navigate to="/organizer/events" replace />} />
+              <Route path="/dashboard/events/:id" element={<LegacyDashboardEventRedirect />} />
+              <Route path="/dashboard/events" element={<Navigate to="/organizer/events" replace />} />
+              <Route path="/dashboard/attendees" element={<Navigate to="/organizer/attendees" replace />} />
+              <Route path="/dashboard/analytics" element={<Navigate to="/organizer/analytics" replace />} />
               <Route path="/dashboard/*" element={
                 <ProtectedRoute>
                   <DashboardLayout>
                     <Routes>
                       <Route path="home" element={<AttendeeHome />} />
-                      <Route path="events" element={<OrganizerOnly><Events /></OrganizerOnly>} />
-                      <Route path="events/create" element={<Navigate to="/dashboard/events" replace />} />
-                      <Route path="events/:id" element={<OrganizerOnly><EventDetail /></OrganizerOnly>} />
-                      <Route path="events/:id/edit" element={<EventDetailEditRedirect />} />
-                      <Route path="attendees" element={<OrganizerOnly><Attendees /></OrganizerOnly>} />
-                      <Route path="analytics" element={<OrganizerOnly><Analytics /></OrganizerOnly>} />
-                      {/* /dashboard/integrations removed in cleanup */}
                       <Route path="settings" element={<SettingsPage />} />
-                      {/* /dashboard/landing-editor removed in cleanup */}
-                      {/* /dashboard/company removed in cleanup */}
                     </Routes>
                   </DashboardLayout>
                 </ProtectedRoute>
@@ -98,6 +126,7 @@ const App = () => (
             </Routes>
           </BrowserRouter>
         </TooltipProvider>
+        </OrganizerProvider>
       </AuthProvider>
     </ThemeProvider>
   </QueryClientProvider>

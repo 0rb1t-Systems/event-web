@@ -1,6 +1,6 @@
 # EventHub Web App — Agent Context
 
-Last updated: 2026-08-19 — Bug fix: Waafi error message swallowed + invitation visible after payment failure
+Last updated: 2026-08-19 — Prompt 6: Organizer auth + portal shell + dashboard
 Repository: C:\Users\Hp\Documents\personal\event-web
 Default branch: master
 
@@ -58,7 +58,7 @@ Local Laravel project (not modified by this Web App foundation): `C:\Users\Hp\Do
 - API client authentication: X-API-Key only
 - HMAC: NOT USED
 - Supabase: fully removed. `@supabase/supabase-js` is uninstalled, `src/` has no Supabase client, and the leftover Lovable `supabase/` Deno functions directory has been deleted.
-- Real backend wiring: participant auth, public catalog/detail, participation creation, WaafiPay payment, dashboard registrations list, registration detail + digital invitation. Organizer modules remain mock.
+- Real backend wiring: participant auth, public catalog/detail, participation creation, WaafiPay payment, dashboard registrations list, registration detail + digital invitation, organizer auth + organizer dashboard. Organizer events/attendees/analytics screens still use mock data.
 - Mock data: src/lib/mockData.ts
 
 ## Current Cleanup State
@@ -260,7 +260,7 @@ Never call axios.create() inside feature files.
 
 Never call raw axios or fetch directly from pages/components unless a future documented exception exists.
 
-**Foundation + participant auth + registration:** pages must not call axios/fetch directly. Participant session flows go through `src/services/participantAuth.ts` and `AuthContext`. Event catalog + public event detail are wired (Prompt 2). Registration + WaafiPay payment + ticket page are wired (Prompt 3). Organizer modules remain mock.
+**Foundation + participant + organizer auth:** pages must not call axios/fetch directly. Participant session flows go through `src/services/participantAuth.ts` and `AuthContext`. Organizer session flows go through `src/services/organizerAuth.ts` and `OrganizerContext`. Never mix those tokens. Event catalog + public event detail are wired (Prompt 2). Registration + WaafiPay payment + ticket page are wired (Prompt 3). Organizer dashboard is wired (`GET /organizer/dashboard`). Organizer events list/detail still mock.
 
 `src/lib/env.ts` throws at import time if `VITE_API_BASE_URL` or `VITE_API_KEY` is missing. That is intentional once a page imports the API layer.
 
@@ -270,25 +270,18 @@ Recorded from `src/App.tsx` after audit. Foundation did **not** change the route
 
 PUBLIC:
 
-- `/` → Index (renders Landing). Public even when a participant is logged in. Navbar shows Dashboard vs Log in/Sign up.
-- `/auth` → Auth (participant login / sign up / verify / forgot-reset). Logged-in participants are redirected to a safe internal `redirect` path or `/dashboard`.
-- `/events/:id` → Register (cinematic public event page; `{id}` is numeric Laravel-style PK; wired to GET `/events/{id}` + `/events/{id}/form-fields` — registration submission is still intentionally not created in Prompt 2)
+- `/` → Index (renders Landing). Public even when a participant is logged in. Navbar shows Dashboard vs Log in/Sign up; logged-out nav also has Organizer → `/organizer/login`.
+- `/auth` → Auth (participant login / sign up / verify / forgot-reset). Logged-in participants are redirected to a safe internal `redirect` path or `/dashboard`. Link to Organizer Portal.
+- `/events/:id` → Register (cinematic public event page; `{id}` is numeric Laravel-style PK)
 - `/register/:id` → public compatibility redirect → `/events/:id`
-- `/registrations/:registrationId` → RegistrationDetail (canonical participant registration page: status, invitation canvas, QR, PDF download)
+- `/registrations/:registrationId` → RegistrationDetail
 - `/ticket/:registrationId` → redirect to `/registrations/:registrationId` (legacy compat)
+- `/organizer/login` → OrganizerLogin (publicApi login; 403 `organizer_suspended` shown inline)
+- `/organizer/register` → OrganizerRegister (publicApi register; returns organizer-web token immediately)
 
 Removed (do not restore):
 
 - `/register/:slug` and `/register/:slug/:variant` — Lovable slug URLs; Laravel public detail is `/events/{id}` only
-
-NOT PRESENT (prompt expected shells; they do not exist in this cleanup):
-
-- `/organizer/login` — no page file, no route
-- `/dashboard/payouts` — no page file, no route
-- `OrganizerLogin.tsx` — missing
-- `Payouts.tsx` — missing
-
-Do not add those routes until the organizer-auth / payouts prompts.
 
 PARTICIPANT (behind `ProtectedRoute`; requires `participant_token` + `/auth/me`):
 
@@ -296,14 +289,24 @@ PARTICIPANT (behind `ProtectedRoute`; requires `participant_token` + `/auth/me`)
 - `/dashboard/home` → AttendeeHome
 - `/dashboard/settings` → SettingsPage (participant profile + password + appearance)
 
-ORGANIZER SCREENS (still behind `ProtectedRoute`; `OrganizerOnly` is still a pass-through):
+ORGANIZER (behind `OrganizerProtectedRoute`; requires `organizer_token` + `/organizer-auth/me`; uses `OrganizerLayout`):
 
-- `/dashboard/events` → Events
-- `/dashboard/events/create` → redirect to `/dashboard/events`
-- `/dashboard/events/:id` → EventDetail
-- `/dashboard/events/:id/edit` → redirect to `/dashboard/events/:id`
-- `/dashboard/attendees` → Attendees
-- `/dashboard/analytics` → Analytics
+- `/organizer` → `/organizer/dashboard`
+- `/organizer/dashboard` → OrganizerDashboard (`GET /organizer/dashboard` real metrics)
+- `/organizer/events` → Events (existing Lovable UI; **still mockEvents**)
+- `/organizer/events/create` → redirect to `/organizer/events`
+- `/organizer/events/:id` → EventDetail (existing Lovable UI; **still mock**)
+- `/organizer/events/:id/edit` → redirect to `/organizer/events/:id`
+- `/organizer/attendees` → Attendees (mock)
+- `/organizer/analytics` → Analytics (mock)
+- `/organizer/payouts` → OrganizerPayouts (available/pending amounts from dashboard payload only; no payout request API)
+- `/organizer/settings` → OrganizerSettings (`PATCH /organizer-auth/profile`, `POST /organizer-auth/change-password`)
+
+Legacy redirects:
+
+- `/dashboard/events` and `/dashboard/events/:id` → `/organizer/events` / `/organizer/events/:id`
+- `/dashboard/attendees` → `/organizer/attendees`
+- `/dashboard/analytics` → `/organizer/analytics`
 
 SHARED / CURRENT DEVELOPMENT:
 
@@ -311,10 +314,12 @@ SHARED / CURRENT DEVELOPMENT:
 
 Guards:
 
-- `ProtectedRoute` waits for auth boot, then redirects unauthenticated users to `/auth?redirect=<encoded path>`
-- `AuthContext` boots from `participant_token` via `GET /auth/me`. No mock user.
-- `OrganizerOnly` currently renders children unconditionally (organizer auth is a later prompt)
-- `RoleHomeRedirect` sends participant sessions to `/dashboard/home` (not organizer events)
+- `ProtectedRoute` waits for participant auth boot, then redirects unauthenticated users to `/auth?redirect=<encoded path>`
+- `OrganizerProtectedRoute` waits for organizer auth boot, then redirects to `/organizer/login?redirect=<encoded path>`
+- `AuthContext` boots from `participant_token` via `GET /auth/me`. Never stores organizer_token.
+- `OrganizerContext` boots from `organizer_token` via `GET /organizer-auth/me`. Never stores participant_token.
+- `OrganizerOnly` now requires an organizer session (redirects to `/organizer/login` if missing)
+- `RoleHomeRedirect` sends participant sessions to `/dashboard/home` only
 
 ## Current Module Inventory
 
@@ -324,15 +329,17 @@ Guards:
 | Auth | existing email/password Lovable UI + verify/forgot panels | Laravel `/auth/*` | Yes | participant register/login/verify/logout/me; admin users can use `/auth/login` as web-participant |
 | Public event page + registration | cinematic Lovable UI | `GET /events/{id}`, `GET /events/{id}/form-fields` (publicApi); `POST /participant/participations`, `POST /participant/payments/charge`, `GET /participant/participations/{id}` (participantApi) | Yes | Full flow: ticket selection → dynamic form → create participation → free/waitlist/paid branches → WaafiPay phone step (200s timeout) → success or retry |
 | Participant dashboard (home) | existing Lovable UI | `GET /participant/participations` list + `GET /events` browse (publicApi) | Yes | real own registrations with status badges; browse excludes registered events; mockParticipations removed |
-| Registration detail + invitation | new page | `GET /participant/participations/{id}/invitation` (participantApi) | Yes | `/registrations/:id`; status/payment meta card, invitation canvas (configured or polished default), standalone QR, PDF via browser print; `/ticket/:id` redirects here |
+| Registration detail + invitation + feedback + certificate | new page | `GET .../invitation`, `GET .../feedback`, `POST /participant/event-feedback`, `GET .../certificate` (participantApi) | Yes | `/registrations/:id`; status/payment meta card, payment resume (pending/failed), invitation canvas (configured or default), QR, PDF; feedback form (checked_in only, read-only after submit); certificate panel (deferred or download) |
 | Participant home | existing UI | mockParticipations + real user.name | Partial | greeting uses `/auth/me` name; tickets still mock |
-| Organizer events | existing UI | mockEvents | No | reachable by URL; not default after participant login |
+| Organizer events | existing UI under `/organizer/events` | mockEvents | No | visual shell only; Laravel `GET /organizer/events` not wired yet |
 | Organizer event detail | existing complex UI | mockEvent/mockAttendees | No | preserve and adapt later |
 | Attendees | existing table UI | mockAttendees | No | organizer module later |
 | Analytics | existing charts/UI | mockAnalytics | No | real endpoint later |
-| Settings | existing tabs/cards | Laravel profile + password; theme local | Yes | wired fields: name, email, phone, address, profile_image, change-password. Team/cohost tab removed (cleanup). Company/social not in Laravel profile |
-| Organizer login | not present | — | No | no shell file/route in this repo |
-| Payouts | not present | — | No | no shell file/route in this repo |
+| Settings | existing tabs/cards | Laravel profile + password; theme local | Yes | participant: name, email, phone, address, profile_image, change-password |
+| Organizer login/register | reused participant Auth card/primitives | `/organizer-auth/register`, `/organizer-auth/login` (publicApi) | Yes | labeled Organizer Portal; register returns token immediately (no email verify) |
+| Organizer dashboard | reused Analytics-style metric cards | `GET /organizer/dashboard` (organizerApi) | Yes | total_events, registrations, revenue, available/pending payout, recent_events, quota if present |
+| Organizer settings | reused Settings tabs | `PATCH /organizer-auth/profile`, `POST /organizer-auth/change-password` | Yes | business_name, contact_name, email, phone; password fields `current_password` + `password` + `password_confirmation` |
+| Organizer payouts | reused metric cards | dashboard `available_payout` / `pending_payout` only | Partial | no payout-request endpoint wired yet |
 
 Update this table whenever a future prompt replaces mock data with real API integration.
 
@@ -427,9 +434,11 @@ Do not allow Web App architecture to accidentally use admin-panel tokens.
 - default git branch is `master`; GitHub Actions also listens to `main`
 - Vite HMR can fail with `ENOTEMPTY` on `node_modules/.vite/deps` after lockfile/.env changes on Windows; restart `npm run dev`
 - `/` is public; do not auto-redirect logged-in participants away from the marketing page
-- participant login destination is `/dashboard` → `/dashboard/home`, never `/dashboard/events`
-- `OrganizerOnly` is still a pass-through; organizer dashboard URLs remain reachable until organizer auth
-- organizer expired-token redirect targets `/organizer/login`, which is not routed yet (correct for later auth prompt)
+- participant login destination is `/dashboard` → `/dashboard/home`, never `/organizer/events`
+- organizer login destination is `/organizer/dashboard`
+- logging out organizer clears `organizer_token` only; participant session stays
+- logging out participant clears `participant_token` only; organizer session stays
+- `OrganizerProtectedRoute` is the organizer guard; `/organizer/login` and `/organizer/register` are public
 - Laravel `POST /auth/google/login` exists; the Web App simply does not wire it yet. Never document Google auth as a missing backend method.
 
 ## Agent Behavior Rules
@@ -481,7 +490,104 @@ All under `/api/v1`. Header `X-API-Key` + Bearer `participant_token`.
 - `GET /participant/participations` — paginated list. Response: `{ success, data: { items: Participation[], pagination: { current_page, last_page, per_page, total } } }`. Query params: `status`, `per_page`, `page`. Each item includes `event` + `ticketType` relations.
 - `GET /participant/participations/{id}/invitation` — full invitation payload. Response: `{ success, data: { id, status, payment_status, qr_token, created_at, event, ticket_type, invitation, canvas: { width: 800, height: 1100 } } }`. `invitation` is null when the organizer has not configured a template. `invitation.mode` is `"template"` or `"custom"`. `invitation.overlay_positions` maps field names to `{ x, y, width?, height?, font_size?, font_color? }`. `invitation.background_image_path` is relative; pass through `getMediaUrl`.
 
+## Participant Feedback + Certificate API Contracts Confirmed
+
+All under `/api/v1`. Header `X-API-Key` + Bearer `participant_token`.
+
+- `GET /participant/participations/{id}/feedback` — returns `{ success, data: EventFeedback | null }`. Returns null if participant has not yet submitted feedback. Fields: `id, participation_id, rating (int 1-5), comment (string|null), hidden (bool), submitted_at`.
+- `POST /participant/event-feedback` — body `{ participation_id, rating, comment? }`. Returns `{ success, data: EventFeedback }` (201). Backend rules: only checked_in status allowed; duplicate rejected with 400.
+- `GET /participant/participations/{id}/certificate` — returns `{ success, data: { available: bool, certificate: null | { id, issued_at, file_path, file_url, verified } } }`. `available: false` = not yet issued (deferred — do not fake it on the frontend).
+
+Certificate delivery is deferred: the participant has read-only access to certificate state. The Web App shows a "not yet issued" explanation when `available === false` and a download button when `available === true`. Participants cannot issue or re-issue their own certificates; the read endpoint is the only certificate surface exposed to the participant Web App.
+
+## Organizer Auth + Dashboard API Contracts Confirmed
+
+All under `/api/v1`. Header `X-API-Key` always.
+
+Public (`publicApi`, no Bearer):
+
+- `POST /organizer-auth/register` — body `business_name`, `contact_name`, `email`, `phone?`, `password`, `password_confirmation`. Creates Organizer with `status=active`. Returns `{ success, data: { organizer, token, token_ability: organizer-web } }` (201). Token issued immediately; no email verification.
+- `POST /organizer-auth/login` — body `email`, `password`. Success: same token envelope. Invalid credentials → 401. Suspended organizer → 403 `{ message, errors: { error_code: ["organizer_suspended"] } }`.
+
+Authenticated (`organizerApi`, Bearer `organizer_token`):
+
+- `GET /organizer-auth/me` — `{ success, data: { organizer } }`
+- `POST /organizer-auth/logout` — current organizer token only; does not touch `participant_token`
+- `PATCH /organizer-auth/profile` — `business_name`, `contact_name`, `email`, `phone`. Status not writable.
+- `POST /organizer-auth/change-password` — `current_password`, `password`, `password_confirmation` (not `new_password`)
+- `GET /organizer/dashboard` — `{ success, data: { organizer, active_subscription, total_events, total_registrations, total_revenue, available_payout, pending_payout, recent_events, quota? } }`. `quota` is omitted when there is no package. Quota shape: `{ quota, unlimited, zero_quota, events_created, can_create_event, remaining }`.
+
+Organizer payload: `{ id, business_name, contact_name, email, phone, status }`.
+
 ## Change Log
+
+### 2026-08-19 — Prompt 6: Organizer authentication + app shell + dashboard
+
+Files:
+
+- `src/types/organizer.ts` — Organizer, register/profile/password bodies, dashboard + quota types
+- `src/services/organizerAuth.ts` — register/login via `publicApi`; me/logout/profile/change-password via `organizerApi`
+- `src/services/organizerDashboard.ts` — `GET /organizer/dashboard`
+- `src/contexts/OrganizerContext.tsx` — dedicated organizer store (`organizer`, `token`, `isLoading`, `isAuthenticated`); boot `GET /organizer-auth/me`; invalid token clears organizer session only
+- `src/lib/authStorage.ts` — `getOrganizerJson` / `setOrganizerJson` on organizer storage
+- `src/lib/authRedirect.ts` — `getSafeOrganizerInternalPath` (blocks login/register loops)
+- `src/lib/apiError.ts` — `isOrganizerSuspendedError`
+- `src/components/OrganizerProtectedRoute.tsx` — guard → `/organizer/login?redirect=`
+- `src/components/OrganizerOnly.tsx` — now requires organizer session
+- `src/components/layout/OrganizerLayout.tsx` — Dashboard / Events / Payouts / Settings + mobile sheet + organizer-only logout
+- `src/pages/organizer/OrganizerLogin.tsx` — Organizer Portal login; suspended message stays on page
+- `src/pages/organizer/OrganizerRegister.tsx` — business/contact/email/phone/password
+- `src/pages/organizer/OrganizerDashboard.tsx` — real dashboard metrics only
+- `src/pages/organizer/OrganizerSettings.tsx` — profile + password (Laravel field names)
+- `src/pages/organizer/OrganizerPayouts.tsx` — available/pending from dashboard payload
+- `src/App.tsx` — OrganizerProvider; organizer routes; legacy `/dashboard/events` redirects
+- `src/pages/Landing.tsx` / `src/pages/Auth.tsx` — Organizer Portal shortcut (does not mix tokens)
+
+Coexistence: both providers wrap the app. Organizer logout does not call participant logout.
+
+Events/attendees/analytics still mock under `/organizer/*`. Full event CRUD is a later prompt.
+
+Verification:
+
+- `npx tsc --noEmit` — pass
+- `npm run build` — pass
+
+### 2026-08-19 — Prompt 5: Feedback + Certificate; profile/password/forgot-reset confirmed complete
+
+Scope: participant self-service. Settings (profile, photo, password), forgot/reset password were already fully wired in Prompt 1. This prompt adds event feedback and certificate of attendance to the registration detail page.
+
+Pre-existing wired items (no changes needed):
+- `PUT /auth/profile` (name, email, phone, address) — SettingsPage, AuthContext.updateProfile
+- `POST /auth/profile-picture` (multipart profile_image, max 2048 KB) — SettingsPage, AuthContext.updateProfilePicture
+- `POST /auth/change-password` (current_password, new_password, new_password_confirmation) — SettingsPage, AuthContext.changePassword
+- `POST /auth/forgot-password` + `POST /auth/reset-password` — Auth.tsx + ForgotPasswordPanel
+
+New in this prompt:
+
+Files:
+
+- `src/services/participationService.ts` — added types `ApiFeedback`, `SubmitFeedbackBody`, `ApiCertificate`, `ApiCertificateResult`; added functions `getParticipationFeedback(id)`, `submitFeedback(body)`, `getParticipationCertificate(id)`.
+- `src/pages/RegistrationDetail.tsx` — added imports `Award, ExternalLink, MessageSquare, Star, AnimatePresence, Textarea, getParticipationFeedback, submitFeedback, getParticipationCertificate, ApiFeedback, ApiCertificateResult`. Added state `feedback` (ApiFeedback | null | "unloaded") and `certificate` (ApiCertificateResult | null). Load callback now fetches feedback + certificate in parallel via `Promise.allSettled` when `status === "checked_in"`. Added `StarRating`, `FeedbackPanel`, and `CertificatePanel` components. Both panels are conditionally rendered only when `isCheckedIn`. `FeedbackPanel` shows read-only confirmation if already submitted; `CertificatePanel` shows deferred message when `available === false` or download link when available.
+
+Feedback behavior:
+- Only shown when `detail.status === "checked_in"`.
+- GET /participant/participations/{id}/feedback is called on load; null response means not yet submitted.
+- Form: star rating (1-5, required) + optional textarea comment (max 5000 chars).
+- On submit: POST /participant/event-feedback with participation_id + rating + comment.
+- After success: panel transitions to read-only confirmation showing rating stars + comment + submission date.
+- Duplicate submit: backend returns 400 "Feedback already submitted"; frontend toasts the error message and keeps the form visible (backend is the authority; refresh re-loads actual state).
+
+Certificate behavior:
+- Only shown when `detail.status === "checked_in"`.
+- GET /participant/participations/{id}/certificate returns `{ available, certificate }`.
+- `available: false` → shows "not yet issued" explanation (deferred state; do not fake a download link).
+- `available: true` → shows download button using `certificate.file_url` (preferred) or `getMediaUrl(certificate.file_path)`. Verified flag shown.
+- Participants have read-only access to certificate state. The Web App does not issue or re-issue certificates; `GET .../certificate` is the only certificate surface available to participants.
+
+Verification:
+
+- `npx tsc --noEmit` — pass
+- `npm run build` — pass
 
 ### 2026-08-19 — Bug fix: Waafi error message swallowed + invitation shown after payment failure
 

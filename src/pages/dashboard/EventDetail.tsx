@@ -96,7 +96,7 @@ const EventDetail = () => {
     await deleteEvent.mutateAsync(event.id);
     setDeleteOpen(false);
     toast.success("Event deleted");
-    navigate("/dashboard/events");
+    navigate("/organizer/events");
   };
 
   const handleUpdate = (fields: any) => {

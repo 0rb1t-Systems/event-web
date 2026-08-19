@@ -1,0 +1,167 @@
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Link, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { useOrganizer } from "@/contexts/OrganizerContext";
+import { Logo } from "@/components/Logo";
+import { motion } from "framer-motion";
+import { staggerContainer, staggerItem } from "@/components/motion/Reveal";
+import { getApiErrorMessage } from "@/lib/apiError";
+import { DEFAULT_ORGANIZER_HOME } from "@/lib/authRedirect";
+
+export default function OrganizerRegister() {
+  const navigate = useNavigate();
+  const { isAuthenticated, isLoading, register } = useOrganizer();
+  const [loading, setLoading] = useState(false);
+  const [businessName, setBusinessName] = useState("");
+  const [contactName, setContactName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
+
+  useEffect(() => {
+    if (isLoading || !isAuthenticated) return;
+    navigate(DEFAULT_ORGANIZER_HOME, { replace: true });
+  }, [isAuthenticated, isLoading, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password !== passwordConfirmation) {
+      toast.error("Passwords do not match.");
+      return;
+    }
+    setLoading(true);
+    try {
+      await register({
+        business_name: businessName.trim(),
+        contact_name: contactName.trim(),
+        email: email.trim(),
+        phone: phone.trim() || null,
+        password,
+        password_confirmation: passwordConfirmation,
+      });
+      toast.success("Organizer account created!");
+      navigate(DEFAULT_ORGANIZER_HOME, { replace: true });
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Could not create your organizer account."));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 py-10 sm:py-12 relative overflow-hidden">
+      <motion.div
+        variants={staggerContainer}
+        initial="hidden"
+        animate="show"
+        className="w-full max-w-md relative z-10"
+      >
+        <motion.div variants={staggerItem} className="text-center mb-8">
+          <Link to="/" className="inline-block transition-transform duration-300 hover:scale-[1.03]">
+            <Logo size="lg" />
+          </Link>
+          <p className="mt-3 text-xs font-bold uppercase tracking-[0.2em] text-primary">Organizer Portal</p>
+          <p className="text-muted-foreground mt-1 text-sm">Create your organizer account</p>
+        </motion.div>
+
+        <motion.div variants={staggerItem} className="bg-card rounded-2xl border border-border shadow-lg p-6 sm:p-7">
+          {isLoading ? (
+            <div className="flex justify-center py-10">
+              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="business-name">Business name</Label>
+                <Input
+                  id="business-name"
+                  placeholder="Acme Events Co."
+                  required
+                  value={businessName}
+                  onChange={(e) => setBusinessName(e.target.value)}
+                  className="rounded-full h-11 px-4"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="contact-name">Contact name</Label>
+                <Input
+                  id="contact-name"
+                  placeholder="Jane Doe"
+                  required
+                  value={contactName}
+                  onChange={(e) => setContactName(e.target.value)}
+                  className="rounded-full h-11 px-4"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="org-reg-email">Email</Label>
+                <Input
+                  id="org-reg-email"
+                  type="email"
+                  placeholder="you@company.com"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="rounded-full h-11 px-4"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="org-phone">Phone <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                <Input
+                  id="org-phone"
+                  type="tel"
+                  placeholder="+252…"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="rounded-full h-11 px-4"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="org-reg-password">Password</Label>
+                <Input
+                  id="org-reg-password"
+                  type="password"
+                  minLength={8}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="rounded-full h-11 px-4"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="org-reg-password-confirm">Confirm password</Label>
+                <Input
+                  id="org-reg-password-confirm"
+                  type="password"
+                  minLength={8}
+                  required
+                  value={passwordConfirmation}
+                  onChange={(e) => setPasswordConfirmation(e.target.value)}
+                  className="rounded-full h-11 px-4"
+                />
+              </div>
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full rounded-full h-11 bg-foreground text-background hover:bg-foreground/90 font-medium"
+              >
+                {loading ? "Creating account…" : "Create organizer account"}
+              </Button>
+            </form>
+          )}
+
+          <p className="text-center text-sm text-muted-foreground mt-6">
+            Already have an account?{" "}
+            <Link to="/organizer/login" className="text-foreground font-medium hover:underline">
+              Sign in
+            </Link>
+          </p>
+        </motion.div>
+      </motion.div>
+    </div>
+  );
+}

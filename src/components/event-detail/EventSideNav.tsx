@@ -182,7 +182,7 @@ export default function EventSideNav({ active, onChange, attendeesCount }: Props
         <div className="bg-card rounded-2xl p-2 space-y-1">
           {/* Back link */}
           <Link
-            to="/dashboard/events"
+            to="/organizer/events"
             className={cn(
               "flex items-center gap-2 px-3 h-10 rounded-full text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors",
               collapsed && "justify-center px-0",

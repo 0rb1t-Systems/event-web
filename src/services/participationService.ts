@@ -129,6 +129,43 @@ type InvitationDetailResponse = WrappedSuccess<ApiInvitationDetail>;
 type ParticipationResponse = WrappedSuccess<ApiParticipation>;
 type PaymentResponse = WrappedSuccess<ApiPayment>;
 
+// ─── Feedback ─────────────────────────────────────────────────────────────────
+
+export type ApiFeedback = {
+  id: number;
+  participation_id: number;
+  rating: number;
+  comment: string | null;
+  hidden: boolean;
+  submitted_at: string | null;
+  created_at?: string;
+};
+
+type FeedbackResponse = WrappedSuccess<ApiFeedback | null>;
+
+export type SubmitFeedbackBody = {
+  participation_id: number;
+  rating: number;
+  comment?: string | null;
+};
+
+// ─── Certificate ──────────────────────────────────────────────────────────────
+
+export type ApiCertificate = {
+  id: number;
+  issued_at: string | null;
+  file_path: string | null;
+  file_url: string | null;
+  verified: boolean;
+};
+
+export type ApiCertificateResult = {
+  available: boolean;
+  certificate: ApiCertificate | null;
+};
+
+type CertificateResponse = WrappedSuccess<ApiCertificateResult>;
+
 // ─── API functions ────────────────────────────────────────────────────────────
 
 /** POST /participant/participations */
@@ -157,6 +194,31 @@ export async function listParticipations(params?: {
 export async function getParticipationInvitation(id: number): Promise<ApiInvitationDetail> {
   const resp = await participantApi.get<InvitationDetailResponse>(
     `/participant/participations/${id}/invitation`,
+  );
+  return resp.data.data;
+}
+
+/** GET /participant/participations/{id}/feedback — returns null if not yet submitted */
+export async function getParticipationFeedback(id: number): Promise<ApiFeedback | null> {
+  const resp = await participantApi.get<FeedbackResponse>(
+    `/participant/participations/${id}/feedback`,
+  );
+  return resp.data.data ?? null;
+}
+
+/** POST /participant/event-feedback */
+export async function submitFeedback(body: SubmitFeedbackBody): Promise<ApiFeedback> {
+  const resp = await participantApi.post<WrappedSuccess<ApiFeedback>>(
+    "/participant/event-feedback",
+    body,
+  );
+  return resp.data.data;
+}
+
+/** GET /participant/participations/{id}/certificate */
+export async function getParticipationCertificate(id: number): Promise<ApiCertificateResult> {
+  const resp = await participantApi.get<CertificateResponse>(
+    `/participant/participations/${id}/certificate`,
   );
   return resp.data.data;
 }
