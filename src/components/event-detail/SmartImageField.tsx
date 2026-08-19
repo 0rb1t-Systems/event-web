@@ -68,6 +68,8 @@ interface Props {
   /** Optional: persisted scale multiplier (1 = fit, >1 = zoom in). Defaults to 1. */
   scale?: number | null;
   onScaleChange?: (scale: number) => void;
+  /** When set, uploads go through the Laravel gallery contract instead of the leftover mock storage client. */
+  onUploadFile?: (file: File) => Promise<string | null>;
 }
 
 export default function SmartImageField({
@@ -77,6 +79,7 @@ export default function SmartImageField({
   styleSeedUrl,
   className, emptyLabel = "Drop an image, click to upload, or generate with AI",
   position, onPositionChange, scale, onScaleChange,
+  onUploadFile,
 }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [selectedValue, setSelectedValue] = useState<string | null>(value);
@@ -102,6 +105,14 @@ export default function SmartImageField({
     }
     setUploading(true);
     try {
+      if (onUploadFile) {
+        const url = await onUploadFile(file);
+        if (url) {
+          setSelectedValue(url);
+          onChange(url);
+        }
+        return;
+      }
       const ext = file.name.split(".").pop() || "png";
       const path = `uploads/${eventId}/${Date.now()}-${crypto.randomUUID().slice(0, 6)}.${ext}`;
       const { error } = await imageApi.storage.from("event-assets").upload(path, file, { upsert: false });
@@ -118,7 +129,7 @@ export default function SmartImageField({
     } finally {
       setUploading(false);
     }
-  }, [eventId, onChange, tag]);
+  }, [eventId, onChange, onUploadFile, tag]);
 
   const openStudio = async (preferLibrary = false) => {
     if (preferLibrary) {
@@ -172,12 +183,14 @@ export default function SmartImageField({
                   style={{ objectPosition: pos, transform: `scale(${scl})` }}
                 />
                 <div className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 flex-wrap p-3">
-                  <Button size="sm" variant="secondary" className="h-9 rounded-full" onClick={() => openStudio(true)}>
+                  <Button size="sm" variant="secondary" className="h-9 rounded-full" onClick={() => onUploadFile ? fileRef.current?.click() : openStudio(true)}>
                     <Library className="w-4 h-4 mr-1.5" /> Change
                   </Button>
-                  <Button size="sm" variant="secondary" className="h-9 rounded-full" onClick={() => openStudio(false)}>
-                    <ImageIcon className="w-4 h-4 mr-1.5" /> AI
-                  </Button>
+                  {!onUploadFile && (
+                    <Button size="sm" variant="secondary" className="h-9 rounded-full" onClick={() => openStudio(false)}>
+                      <ImageIcon className="w-4 h-4 mr-1.5" /> AI
+                    </Button>
+                  )}
                   {adjustable && (
                     <Button size="sm" variant="secondary" className="h-9 rounded-full" onClick={() => setAdjusting(true)}>
                       <Move className="w-4 h-4 mr-1.5" /> Adjust
@@ -193,7 +206,7 @@ export default function SmartImageField({
         ) : (
           <button
             type="button"
-            onClick={() => openStudio(true)}
+            onClick={() => onUploadFile ? fileRef.current?.click() : openStudio(true)}
             className="w-full h-full flex flex-col items-center justify-center gap-3 text-muted-foreground hover:text-foreground transition-colors p-4"
           >
             {uploading ? (
@@ -208,14 +221,16 @@ export default function SmartImageField({
             <span className="text-sm text-center max-w-[18rem]">{emptyLabel}</span>
             {!uploading && (
               <div className="flex items-center gap-1.5 mt-1">
-                <span
-                  role="button"
-                  tabIndex={0}
-                  onClick={(e) => { e.stopPropagation(); openStudio(false); }}
-                  className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full bg-foreground text-background hover:opacity-90 cursor-pointer"
-                >
-                  <ImageIcon className="w-3 h-3" /> Generate with AI
-                </span>
+                {!onUploadFile && (
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => { e.stopPropagation(); openStudio(false); }}
+                    className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full bg-foreground text-background hover:opacity-90 cursor-pointer"
+                  >
+                    <ImageIcon className="w-3 h-3" /> Generate with AI
+                  </span>
+                )}
                 <span
                   role="button"
                   tabIndex={0}
@@ -238,6 +253,7 @@ export default function SmartImageField({
         />
       </div>
 
+      {!onUploadFile && (
       <ImageStudioDialog
         open={studioOpen}
         onOpenChange={setStudioOpen}
@@ -254,6 +270,7 @@ export default function SmartImageField({
         }}
         onUploadFiles={handleFiles}
       />
+      )}
     </>
   );
 }

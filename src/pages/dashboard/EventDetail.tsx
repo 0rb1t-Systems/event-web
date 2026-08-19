@@ -1,22 +1,32 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import { useNavigate, useParams } from "react-router-dom";
-import { Loader2, Trash2, Sun, Moon } from "lucide-react";
+import { Loader2, Trash2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
-import { useState } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import TemplatePreview from "@/components/TemplatePreview";
+import { useCallback, useEffect, useState } from "react";
 import EventDetailHeader from "@/components/event-detail/EventDetailHeader";
 import EventQuickInfo from "@/components/event-detail/EventQuickInfo";
-import EventAttendeesTable from "@/components/event-detail/EventAttendeesTable";
-import CheckInScanner from "@/components/event-detail/CheckInScanner";
 import EventOverview from "@/components/event-detail/EventOverview";
+import EventGalleryPanel from "@/components/event-detail/EventGalleryPanel";
 import EventSideNav, { type EventSection } from "@/components/event-detail/EventSideNav";
-import TicketTiersManager, { type TicketTier } from "@/components/event-detail/TicketTiersManager";
-import { mockEvent, mockAttendees } from "@/lib/mockData";
+import {
+  getApiErrorMessage,
+  isOrganizerEventAccessError,
+} from "@/lib/apiError";
+import { getMediaUrl } from "@/lib/mediaUrl";
+import { EVENT_STATUS_LABELS, studioPatchToWriteBody, toStudioEvent } from "@/lib/organizerEventAdapters";
+import {
+  deleteOrganizerEvent,
+  getOrganizerEvent,
+  listEventCategories,
+  transitionOrganizerEvent,
+  updateOrganizerEvent,
+  uploadOrganizerEventImage,
+  validateGalleryFile,
+  type OrganizerEvent,
+  type OrganizerEventImage,
+} from "@/services/organizerEvents";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,275 +38,229 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+const ACCESS_DENIED = "You don't have access to this event.";
+
 const EventDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [event, setEvent] = useState<any>({
-    ...mockEvent,
-    id: id || mockEvent.id,
-    name: mockEvent.title,
-    event_date: mockEvent.starts_at,
-    event_end_date: mockEvent.ends_at,
-    location_value: mockEvent.address,
-    location_type: "physical",
-    primary_color: "#7C3AED",
-    template: "split",
-    ticket_tiers: mockEvent.ticket_types.map((t) => ({ ...t, description: "", currency: "USD" })),
-    status: "live",
-    slug: mockEvent.slug,
-  });
-  const [formFields, setFormFields] = useState<any[]>([{ id: "f1", label: "Company", field_type: "text", required: false, placeholder: "Company" }]);
-  const isLoading = false;
-  const updateEvent = {
-    mutateAsync: async (payload: any) => { setEvent((prev: any) => ({ ...prev, ...payload })); console.log("TODO: update event", payload); },
-    mutate: (payload: any) => { setEvent((prev: any) => ({ ...prev, ...payload })); console.log("TODO: update event", payload); },
-  };
-  const deleteEvent = { mutateAsync: async (eventId: string) => console.log("TODO: delete event", eventId) };
-  const addField = { mutateAsync: async (field: any) => { setFormFields((prev) => [...prev, { ...field, id: crypto.randomUUID() }]); console.log("TODO: add field", field); } };
-  const deleteField = { mutate: ({ id: fieldId }: any) => { setFormFields((prev) => prev.filter((f) => f.id !== fieldId)); console.log("TODO: delete field", fieldId); } };
-  const updateField = { mutate: ({ id: fieldId, patch }: any) => { setFormFields((prev) => prev.map((f) => f.id === fieldId ? { ...f, ...patch } : f)); console.log("TODO: update field", fieldId, patch); } };
-  const [newFieldLabel, setNewFieldLabel] = useState("");
-  const [newFieldType, setNewFieldType] = useState("text");
+  const eventId = Number(id);
+  const [raw, setRaw] = useState<OrganizerEvent | null>(null);
+  const [categories, setCategories] = useState<Array<{ id: number; name: string }>>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [denied, setDenied] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<EventSection>("overview");
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const registrations = mockAttendees;
-  const [emailConfig, setEmailConfig] = useState<any>({
-    send_confirmation_email: true,
-    send_reminder_24h: true,
-    send_reminder_1h: false,
-    email_intro: "",
-    email_signature: "",
-  });
-  const attendeesCount = registrations?.length ?? 0;
+  const [pendingStatus, setPendingStatus] = useState<string | null>(null);
+  const [transitioning, setTransitioning] = useState(false);
 
-  const handleEmailConfigUpdate = async (patch: Record<string, any>) => {
-    setEmailConfig((prev: any) => ({ ...prev, ...patch }));
-    console.log("TODO: update email config", patch);
+  const event = raw ? toStudioEvent(raw) : null;
+
+  const load = useCallback(async () => {
+    if (!Number.isFinite(eventId) || eventId <= 0) {
+      setDenied(true);
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
+    setLoadError(null);
+    try {
+      const data = await getOrganizerEvent(eventId);
+      setRaw(data);
+      setDenied(false);
+    } catch (err) {
+      if (isOrganizerEventAccessError(err)) {
+        setDenied(true);
+        setRaw(null);
+      } else {
+        setLoadError(getApiErrorMessage(err, "Couldn't load event"));
+        toast.error(getApiErrorMessage(err, "Couldn't load event"));
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [eventId]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  useEffect(() => {
+    listEventCategories().then(setCategories).catch(() => setCategories([]));
+  }, []);
+
+  const handleDenied = useCallback(() => {
+    setDenied(true);
+    setRaw(null);
+  }, []);
+
+  const handleUpdate = async (fields: Record<string, unknown>) => {
+    if (!raw) return;
+    const body = studioPatchToWriteBody(fields);
+    if (Object.keys(body).length === 0) return;
+    try {
+      const updated = await updateOrganizerEvent(raw.id, body);
+      setRaw(updated);
+    } catch (err) {
+      if (isOrganizerEventAccessError(err)) {
+        handleDenied();
+        return;
+      }
+      toast.error(getApiErrorMessage(err, "Couldn't save event"));
+    }
   };
 
+  const handleUploadCover = async (file: File): Promise<string | null> => {
+    if (!raw) return null;
+    const invalid = validateGalleryFile(file);
+    if (invalid) {
+      toast.error(invalid);
+      return null;
+    }
+    try {
+      const image = await uploadOrganizerEventImage(raw.id, file);
+      const updated = await updateOrganizerEvent(raw.id, { banner_path: image.path });
+      setRaw({ ...updated, images: [...(updated.images ?? raw.images ?? []), image] });
+      toast.success("Cover uploaded");
+      return getMediaUrl(image.path) ?? image.path;
+    } catch (err) {
+      if (isOrganizerEventAccessError(err)) {
+        handleDenied();
+        return null;
+      }
+      toast.error(getApiErrorMessage(err, "Upload failed"));
+      return null;
+    }
+  };
+
+  const requestTransition = (status: string) => {
+    setPendingStatus(status);
+  };
+
+  const confirmTransition = async () => {
+    if (!raw || !pendingStatus) return;
+    setTransitioning(true);
+    try {
+      const result = await transitionOrganizerEvent(raw.id, pendingStatus);
+      setRaw(result.event);
+      toast.success(`Status is now ${EVENT_STATUS_LABELS[result.event.status as string] || result.event.status}`);
+      setPendingStatus(null);
+    } catch (err) {
+      if (isOrganizerEventAccessError(err)) {
+        handleDenied();
+        return;
+      }
+      toast.error(getApiErrorMessage(err, "Couldn't change status"));
+    } finally {
+      setTransitioning(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!raw) return;
+    try {
+      await deleteOrganizerEvent(raw.id);
+      setDeleteOpen(false);
+      toast.success("Event moved to trash");
+      navigate("/organizer/events");
+    } catch (err) {
+      if (isOrganizerEventAccessError(err)) {
+        handleDenied();
+        return;
+      }
+      toast.error(getApiErrorMessage(err, "Couldn't delete event"));
+    }
+  };
+
+  const handleImagesChange = (images: OrganizerEventImage[]) => {
+    setRaw((prev) => (prev ? { ...prev, images } : prev));
+  };
 
   if (isLoading) {
     return <div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
   }
 
-  if (!event) {
-    return <div className="text-center py-20"><p className="text-muted-foreground">Event not found.</p></div>;
+  if (denied) {
+    return (
+      <div className="max-w-md mx-auto bg-card rounded-3xl p-10 text-center mt-10">
+        <AlertTriangle className="w-10 h-10 mx-auto mb-4 text-destructive" />
+        <h1 className="text-2xl font-display font-bold mb-2">{ACCESS_DENIED}</h1>
+        <p className="text-muted-foreground text-sm mb-6">This event is not available in your organizer account.</p>
+        <Button className="rounded-full" onClick={() => navigate("/organizer/events")}>Back to events</Button>
+      </div>
+    );
   }
 
-  const handleStatusChange = async (status: "draft" | "live" | "past") => {
-    await updateEvent.mutateAsync({ id: event.id, status });
-    toast.success(`Event is now ${status}`);
-  };
+  if (loadError || !event) {
+    return (
+      <div className="max-w-md mx-auto bg-card rounded-3xl p-10 text-center mt-10">
+        <AlertTriangle className="w-10 h-10 mx-auto mb-4 text-destructive" />
+        <h1 className="text-2xl font-display font-bold mb-2">Couldn't load event</h1>
+        <p className="text-muted-foreground text-sm mb-6">{loadError || "Something went wrong."}</p>
+        <Button className="rounded-full" onClick={() => void load()}>Retry</Button>
+      </div>
+    );
+  }
 
-  const handleDelete = () => {
-    setDeleteOpen(true);
-  };
-
-  const confirmDelete = async () => {
-    await deleteEvent.mutateAsync(event.id);
-    setDeleteOpen(false);
-    toast.success("Event deleted");
-    navigate("/organizer/events");
-  };
-
-  const handleUpdate = (fields: any) => {
-    updateEvent.mutate({ id: event.id, ...fields });
-  };
-
-  const handleAddField = async () => {
-    if (!newFieldLabel.trim()) return;
-    await addField.mutateAsync({
-      event_id: event.id,
-      label: newFieldLabel,
-      field_type: newFieldType,
-      required: false,
-      position: (formFields?.length ?? 0),
-    });
-    setNewFieldLabel("");
-    toast.success("Field added");
-  };
+  const irreversible = pendingStatus === "cancelled" || pendingStatus === "completed";
 
   return (
     <div className="space-y-5">
-      <EventDetailHeader event={event} onStatusChange={handleStatusChange} onDelete={handleDelete} />
+      <EventDetailHeader
+        event={event}
+        onTransition={requestTransition}
+        onDelete={() => setDeleteOpen(true)}
+        transitioning={transitioning}
+      />
 
       <div className="flex flex-col md:flex-row md:gap-5 md:items-start">
         <EventSideNav
           active={activeTab}
           onChange={setActiveTab}
-          attendeesCount={attendeesCount}
+          attendeesCount={event.registrations_count}
         />
 
         <div className="flex-1 min-w-0 space-y-5 mt-4 md:mt-0">
           {activeTab === "overview" && (
             <>
-              <EventQuickInfo event={event} onUpdate={handleUpdate} />
+              <EventQuickInfo
+                event={event}
+                onUpdate={handleUpdate}
+                categories={categories}
+                onUploadCover={handleUploadCover}
+              />
+              <EventGalleryPanel
+                eventId={event.id}
+                images={event.images}
+                onImagesChange={handleImagesChange}
+                onDenied={handleDenied}
+              />
               <EventOverview event={event} onJumpTab={(t) => setActiveTab(t as EventSection)} />
             </>
           )}
 
           {activeTab === "branding" && (
-            <div className="space-y-5">
-              <div className="bg-card rounded-xl p-5 sm:p-6 space-y-4">
-                <h3 className="font-display font-semibold">Brand customization</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Primary color</Label>
-                    <div className="flex gap-2">
-                      <input type="color" value={event.primary_color || "#7C3AED"} className="w-10 h-10 rounded-xl border border-border cursor-pointer" onChange={e => handleUpdate({ primary_color: e.target.value })} />
-                      <Input
-                        defaultValue={event.primary_color || "#7C3AED"}
-                        onBlur={e => {
-                          const v = e.target.value.trim();
-                          if (/^#[0-9a-fA-F]{6}$/.test(v) && v.toLowerCase() !== (event.primary_color || "").toLowerCase()) {
-                            handleUpdate({ primary_color: v });
-                          }
-                        }}
-                        placeholder="#7C3AED"
-                        className="rounded-full"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Template</Label>
-                    <Select value={event.template || "split"} onValueChange={v => handleUpdate({ template: v })}>
-                      <SelectTrigger className="rounded-full"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="split">Split screen</SelectItem>
-                        <SelectItem value="minimal">Minimal</SelectItem>
-                        <SelectItem value="landing">Landing page</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Color mode</Label>
-                  <div className="flex gap-2">
-                    {(["light", "dark"] as const).map((mode) => {
-                      const Icon = mode === "light" ? Sun : Moon;
-                      const isActive = (event as any).color_mode === mode || (!((event as any).color_mode) && mode === "light");
-                      return (
-                        <Button
-                          key={mode}
-                          type="button"
-                          variant={isActive ? "default" : "outline"}
-                          size="sm"
-                          className="rounded-full gap-1.5"
-                          onClick={() => handleUpdate({ color_mode: mode })}
-                        >
-                          <Icon className="w-3.5 h-3.5" />
-                          {mode === "light" ? "Light" : "Dark"}
-                        </Button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                <div className="bg-card rounded-xl p-5 sm:p-6">
-                  <Label className="mb-3 block">Live preview</Label>
-                  <div className="flex justify-center">
-                    <div className="origin-top scale-[0.72] -mb-16">
-                      <TemplatePreview
-                        template={event.template || "split"}
-                        eventName={event.name}
-                        description={event.description || ""}
-                        startDate={event.event_date ? new Date(event.event_date).toISOString().split("T")[0] : ""}
-                        startTime={event.event_date ? new Date(event.event_date).toTimeString().slice(0, 5) : ""}
-                        locationType={(event.location_type as "virtual" | "physical" | "hybrid") || "virtual"}
-                        locationValue={event.location_value || ""}
-                        locationAddress=""
-                        flyerUrl={event.background_image_url}
-                        colorMode={((event as any).color_mode as "light" | "dark") || "light"}
-                      />
-
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <div className="bg-card rounded-xl p-5 sm:p-6 text-sm text-muted-foreground">
+              Branding fields (template, color mode) are not on the organizer event API. Cover and gallery images are managed on Overview.
             </div>
           )}
 
           {activeTab === "form" && (
-            <div className="space-y-5">
-              <TicketTiersManager
-                tiers={(((event as any).ticket_tiers as TicketTier[]) ?? [])}
-                onChange={(tiers) => handleUpdate({ ticket_tiers: tiers } as any)}
-              />
-
-              <div className="grid lg:grid-cols-2 gap-5">
-                <div className="bg-card rounded-xl p-5 sm:p-6 space-y-4">
-                  <div>
-                    <h3 className="font-display font-semibold">Form fields</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">Name, email, and phone are collected by default.</p>
-                  </div>
-                  {formFields?.map((field) => (
-                    <div key={field.id} className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
-                      <div>
-                        <span className="text-sm font-medium">{field.label}</span>
-                        <span className="text-xs text-muted-foreground ml-2">({field.field_type})</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => updateField.mutate({ id: field.id, eventId: event.id, patch: { required: !field.required } })}
-                          className={`text-xs rounded-full px-3 py-1 font-medium transition-colors ${field.required ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/70"}`}
-                          aria-label={`Toggle required for ${field.label}`}
-                          title="Click to toggle required/optional"
-                        >
-                          {field.required ? "Required" : "Optional"}
-                        </button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteField.mutate({ id: field.id, eventId: event.id })}>
-                          <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                        </Button>
-                      </div>
-                    </div>
+            <div className="bg-card rounded-xl p-5 sm:p-6 space-y-3">
+              <h3 className="font-display font-semibold text-foreground">Tickets / Registration</h3>
+              <p className="text-sm text-muted-foreground">
+                Ticket types and custom form fields will be wired in a later prompt. Monetization currently: {event.monetized ? "paid" : "free"}.
+              </p>
+              {event.ticket_tiers.length > 0 && (
+                <ul className="space-y-2 pt-2">
+                  {event.ticket_tiers.map((t) => (
+                    <li key={t.id} className="flex justify-between text-sm border border-border rounded-xl px-4 py-3">
+                      <span>{t.name}</span>
+                      <span className="font-medium">{t.price ? `$${t.price}` : "Free"}</span>
+                    </li>
                   ))}
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <Input placeholder="Field label" value={newFieldLabel} onChange={e => setNewFieldLabel(e.target.value)} className="flex-1 rounded-full" />
-                    <Select value={newFieldType} onValueChange={setNewFieldType}>
-                      <SelectTrigger className="w-full sm:w-28 rounded-full"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="text">Text</SelectItem>
-                        <SelectItem value="email">Email</SelectItem>
-                        <SelectItem value="tel">Phone</SelectItem>
-                        <SelectItem value="url">URL</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Button variant="outline" onClick={handleAddField} className="rounded-full">Add</Button>
-                  </div>
-                </div>
-                <div className="bg-muted/30 rounded-xl p-5 sm:p-6">
-                  <h3 className="font-display font-semibold mb-4">Live preview</h3>
-                  <div className="bg-card rounded-xl p-4 sm:p-6 space-y-4">
-                    <h4 className="text-lg font-semibold">{event.name}</h4>
-                    <p className="text-sm text-muted-foreground">{event.description || "No description"}</p>
-                    {(((event as any).ticket_tiers as TicketTier[]) ?? []).length > 0 && (
-                      <div className="space-y-2">
-                        {(((event as any).ticket_tiers as TicketTier[]) ?? []).map((t) => (
-                          <div key={t.id} className="flex items-center justify-between p-3 rounded-xl border border-border">
-                            <div className="min-w-0">
-                              <div className="text-sm font-medium truncate">{t.name || "Untitled"}</div>
-                              {t.description && <div className="text-xs text-muted-foreground truncate">{t.description}</div>}
-                            </div>
-                            <div className="text-sm font-display font-semibold">
-                              {t.price ? new Intl.NumberFormat(undefined, { style: "currency", currency: t.currency || "USD", maximumFractionDigits: 0 }).format(t.price) : "Free"}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {formFields?.map((f) => (
-                      <div key={f.id} className="space-y-1">
-                        <Label className="text-xs">{f.label}{f.required && " *"}</Label>
-                        <Input placeholder={f.placeholder || f.label} disabled className="bg-muted/50 rounded-full" />
-                      </div>
-                    ))}
-                    <Button className="w-full rounded-full" disabled>Register now</Button>
-                  </div>
-                </div>
-              </div>
+                </ul>
+              )}
             </div>
           )}
 
@@ -314,13 +278,17 @@ const EventDetail = () => {
 
           {activeTab === "attendees" && (
             <div className="bg-card rounded-xl p-5 sm:p-6">
-              <EventAttendeesTable eventId={event.id} />
+              <h3 className="font-display font-semibold mb-2">Attendees</h3>
+              <p className="text-sm text-muted-foreground">
+                Attendee management is not wired yet. Summary: {event.registrations_count} registration{event.registrations_count === 1 ? "" : "s"}.
+              </p>
             </div>
           )}
 
           {activeTab === "checkin" && (
             <div className="bg-card rounded-xl p-5 sm:p-6">
-              <CheckInScanner eventId={event.id} />
+              <h3 className="font-display font-semibold mb-2">Check-in</h3>
+              <p className="text-sm text-muted-foreground">Check-in is not wired yet.</p>
             </div>
           )}
 
@@ -329,66 +297,78 @@ const EventDetail = () => {
               <h3 className="font-display font-semibold">Event settings</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Registration limit</Label>
-                  <Input type="number" placeholder="Unlimited" defaultValue={event.registration_limit ?? ""} onBlur={e => handleUpdate({ registration_limit: e.target.value ? parseInt(e.target.value) : null })} className="rounded-full" />
+                  <Label>Capacity</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    placeholder="Unlimited"
+                    defaultValue={event.capacity ?? ""}
+                    onBlur={(e) => handleUpdate({ capacity: e.target.value ? parseInt(e.target.value, 10) : null })}
+                    className="rounded-full"
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label>Capacity</Label>
-                  <Input type="number" placeholder="Unlimited" defaultValue={event.capacity ?? ""} onBlur={e => handleUpdate({ capacity: e.target.value ? parseInt(e.target.value) : null })} className="rounded-full" />
+                  <Label>Registration deadline</Label>
+                  <Input
+                    type="datetime-local"
+                    defaultValue={event.registration_deadline ? new Date(event.registration_deadline).toISOString().slice(0, 16) : ""}
+                    onBlur={(e) => handleUpdate({ registration_deadline: e.target.value ? new Date(e.target.value).toISOString() : null })}
+                    className="rounded-full"
+                  />
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground -mt-1">Registration window and waitlist are managed in the Overview tab.</p>
-
-              <div className="space-y-3 mt-4">
-                <h4 className="text-sm font-semibold">Email automations</h4>
-                {[
-                  { key: "send_confirmation_email", label: "Confirmation email on register", desc: "Branded confirmation with calendar invite, sent immediately." },
-                  { key: "send_reminder_24h", label: "24-hour reminder", desc: "Sent the day before the event." },
-                  { key: "send_reminder_1h", label: "1-hour reminder", desc: "Sent shortly before the event starts." },
-                ].map((opt) => (
-                  <div key={opt.key} className="flex items-center justify-between p-4 rounded-xl bg-muted/40">
-                    <div className="pr-4">
-                      <p className="text-sm font-medium">{opt.label}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{opt.desc}</p>
-                    </div>
-                    <Switch
-                      checked={!!(emailConfig as any)?.[opt.key]}
-                      onCheckedChange={(v) => handleEmailConfigUpdate({ [opt.key]: v })}
-                    />
-                  </div>
-                ))}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Email intro (optional)</Label>
-                    <Input key={`intro-${emailConfig?.email_intro ?? ""}`} defaultValue={emailConfig?.email_intro || ""} onBlur={e => handleEmailConfigUpdate({ email_intro: e.target.value || null })} placeholder="Thanks for signing up!" className="rounded-full" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Sign-off (optional)</Label>
-                    <Input key={`sig-${emailConfig?.email_signature ?? ""}`} defaultValue={emailConfig?.email_signature || ""} onBlur={e => handleEmailConfigUpdate({ email_signature: e.target.value || null })} placeholder="— The eventspark team" className="rounded-full" />
-                  </div>
-                </div>
-              </div>
-
-
-              <Button variant="destructive" size="sm" className="mt-4 rounded-full" onClick={handleDelete}>
+              <Button variant="destructive" size="sm" className="mt-4 rounded-full" onClick={() => setDeleteOpen(true)}>
                 <Trash2 className="w-4 h-4 mr-2" /> Delete event
               </Button>
             </div>
           )}
         </div>
       </div>
+
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this event?</AlertDialogTitle>
+            <AlertDialogTitle>Move this event to trash?</AlertDialogTitle>
             <AlertDialogDescription>
-              This permanently deletes the event and all its registrations. This action cannot be undone.
+              The event is soft-deleted and removed from your list. This does not hard-delete records on the server.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction data-testid="confirm-delete-event" onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete event
+              Move to trash
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!pendingStatus} onOpenChange={(open) => { if (!open) setPendingStatus(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {pendingStatus === "cancelled" ? "Cancel this event?" : `Change status to ${EVENT_STATUS_LABELS[pendingStatus || ""] || pendingStatus}?`}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingStatus === "cancelled" ? (
+                <span className="block text-destructive font-medium">
+                  Cancellation cannot be undone from this app. Cancelled events leave the public catalog and stay terminal.
+                </span>
+              ) : pendingStatus === "completed" ? (
+                "Completed is a terminal status. You will not be able to transition this event again."
+              ) : (
+                `This uses POST /organizer/events/${event.id}/transition. Status cannot be changed with a normal save.`
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={transitioning}>Keep current status</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmTransition}
+              disabled={transitioning}
+              className={irreversible ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}
+            >
+              {transitioning ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              {pendingStatus === "cancelled" ? "Cancel event" : "Confirm transition"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

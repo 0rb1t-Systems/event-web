@@ -1,6 +1,6 @@
 # EventHub Web App — Agent Context
 
-Last updated: 2026-08-19 — Prompt 6: Organizer auth + portal shell + dashboard
+Last updated: 2026-08-19 — Prompt 7: Organizer events list/create/edit/status/gallery
 Repository: C:\Users\Hp\Documents\personal\event-web
 Default branch: master
 
@@ -58,7 +58,7 @@ Local Laravel project (not modified by this Web App foundation): `C:\Users\Hp\Do
 - API client authentication: X-API-Key only
 - HMAC: NOT USED
 - Supabase: fully removed. `@supabase/supabase-js` is uninstalled, `src/` has no Supabase client, and the leftover Lovable `supabase/` Deno functions directory has been deleted.
-- Real backend wiring: participant auth, public catalog/detail, participation creation, WaafiPay payment, dashboard registrations list, registration detail + digital invitation, organizer auth + organizer dashboard. Organizer events/attendees/analytics screens still use mock data.
+- Real backend wiring: participant auth, public catalog/detail, participation creation, WaafiPay payment, dashboard registrations list, registration detail + digital invitation, organizer auth + organizer dashboard + organizer event CRUD (list/create/edit/transition/delete/gallery). Organizer attendees/analytics still use mock data.
 - Mock data: src/lib/mockData.ts
 
 ## Current Cleanup State
@@ -260,7 +260,7 @@ Never call axios.create() inside feature files.
 
 Never call raw axios or fetch directly from pages/components unless a future documented exception exists.
 
-**Foundation + participant + organizer auth:** pages must not call axios/fetch directly. Participant session flows go through `src/services/participantAuth.ts` and `AuthContext`. Organizer session flows go through `src/services/organizerAuth.ts` and `OrganizerContext`. Never mix those tokens. Event catalog + public event detail are wired (Prompt 2). Registration + WaafiPay payment + ticket page are wired (Prompt 3). Organizer dashboard is wired (`GET /organizer/dashboard`). Organizer events list/detail still mock.
+**Foundation + participant + organizer auth:** pages must not call axios/fetch directly. Participant session flows go through `src/services/participantAuth.ts` and `AuthContext`. Organizer session flows go through `src/services/organizerAuth.ts` and `OrganizerContext`. Never mix those tokens. Event catalog + public event detail are wired (Prompt 2). Registration + WaafiPay payment + ticket page are wired (Prompt 3). Organizer dashboard is wired (`GET /organizer/dashboard`). Organizer events list/create/detail/gallery/status transitions are wired (`/organizer/events*`). Tickets, attendees, check-in, branding PATCH, and analytics remain later.
 
 `src/lib/env.ts` throws at import time if `VITE_API_BASE_URL` or `VITE_API_KEY` is missing. That is intentional once a page imports the API layer.
 
@@ -293,9 +293,10 @@ ORGANIZER (behind `OrganizerProtectedRoute`; requires `organizer_token` + `/orga
 
 - `/organizer` → `/organizer/dashboard`
 - `/organizer/dashboard` → OrganizerDashboard (`GET /organizer/dashboard` real metrics)
-- `/organizer/events` → Events (existing Lovable UI; **still mockEvents**)
-- `/organizer/events/create` → redirect to `/organizer/events`
-- `/organizer/events/:id` → EventDetail (existing Lovable UI; **still mock**)
+- `/organizer/events` → Events list (`GET /organizer/events`; real owned events)
+- `/organizer/events/new` → OrganizerEventCreate (`POST /organizer/events`)
+- `/organizer/events/create` → redirect to `/organizer/events/new`
+- `/organizer/events/:id` → EventDetail (`GET/PATCH/DELETE /organizer/events/{id}`, transition, gallery)
 - `/organizer/events/:id/edit` → redirect to `/organizer/events/:id`
 - `/organizer/attendees` → Attendees (mock)
 - `/organizer/analytics` → Analytics (mock)
@@ -305,6 +306,7 @@ ORGANIZER (behind `OrganizerProtectedRoute`; requires `organizer_token` + `/orga
 Legacy redirects:
 
 - `/dashboard/events` and `/dashboard/events/:id` → `/organizer/events` / `/organizer/events/:id`
+- `/dashboard/events/create` → `/organizer/events/new`
 - `/dashboard/attendees` → `/organizer/attendees`
 - `/dashboard/analytics` → `/organizer/analytics`
 
@@ -331,9 +333,10 @@ Guards:
 | Participant dashboard (home) | existing Lovable UI | `GET /participant/participations` list + `GET /events` browse (publicApi) | Yes | real own registrations with status badges; browse excludes registered events; mockParticipations removed |
 | Registration detail + invitation + feedback + certificate | new page | `GET .../invitation`, `GET .../feedback`, `POST /participant/event-feedback`, `GET .../certificate` (participantApi) | Yes | `/registrations/:id`; status/payment meta card, payment resume (pending/failed), invitation canvas (configured or default), QR, PDF; feedback form (checked_in only, read-only after submit); certificate panel (deferred or download) |
 | Participant home | existing UI | mockParticipations + real user.name | Partial | greeting uses `/auth/me` name; tickets still mock |
-| Organizer events | existing UI under `/organizer/events` | mockEvents | No | visual shell only; Laravel `GET /organizer/events` not wired yet |
-| Organizer event detail | existing complex UI | mockEvent/mockAttendees | No | preserve and adapt later |
-| Attendees | existing table UI | mockAttendees | No | organizer module later |
+| Organizer events | existing Events studio UI under `/organizer/events` | `GET /organizer/events` (`search`, `status`, `per_page`, `page`) | Yes | owned events only; shows image (`banner_path`), title, Laravel status, dates, registrations_count, monetized |
+| Organizer event create | multi-section form reused from studio cards | `POST /organizer/events` | Yes | does not send organizer_id/featured/monetized/status; quota 403 shows dashboard package/quota, no fake checkout |
+| Organizer event detail | existing EventDetail + QuickInfo/Header/Overview/gallery | `GET/PATCH/DELETE /organizer/events/{id}`, `POST .../transition`, gallery multipart | Yes | 403/404 copy: "You don't have access to this event."; status only via transition; PATCH rejects status |
+| Attendees | existing table UI | mockAttendees | No | organizer module later; event studio attendees tab is a placeholder count only |
 | Analytics | existing charts/UI | mockAnalytics | No | real endpoint later |
 | Settings | existing tabs/cards | Laravel profile + password; theme local | Yes | participant: name, email, phone, address, profile_image, change-password |
 | Organizer login/register | reused participant Auth card/primitives | `/organizer-auth/register`, `/organizer-auth/login` (publicApi) | Yes | labeled Organizer Portal; register returns token immediately (no email verify) |
@@ -439,7 +442,12 @@ Do not allow Web App architecture to accidentally use admin-panel tokens.
 - logging out organizer clears `organizer_token` only; participant session stays
 - logging out participant clears `participant_token` only; organizer session stays
 - `OrganizerProtectedRoute` is the organizer guard; `/organizer/login` and `/organizer/register` are public
-- Laravel `POST /auth/google/login` exists; the Web App simply does not wire it yet. Never document Google auth as a missing backend method.
+- organizer event studio must not PATCH `status`, `featured`, `monetized`, or `organizer_id`
+- event status changes only via `POST /organizer/events/{id}/transition` using EventStatusMachine targets
+- other organizers' events return 404 "Event not found"; UI must show "You don't have access to this event." and must not render leaked details
+- create quota failures are 403 with package messages; show dashboard quota, do not invent upgrade checkout
+- gallery upload field name is `image`; jpeg/png/jpg/gif/webp; max 4096 KB
+- list index does not eager-load images; cover on the list uses `banner_path`
 
 ## Agent Behavior Rules
 
@@ -519,7 +527,51 @@ Authenticated (`organizerApi`, Bearer `organizer_token`):
 
 Organizer payload: `{ id, business_name, contact_name, email, phone, status }`.
 
+## Organizer Events API Contracts Confirmed
+
+All under `/api/v1`, `organizerApi` (X-API-Key + Bearer `organizer_token`). Owned events only.
+
+- `GET /organizer/events` — query `status`, `search` (aliased to `q`), `q`, `per_page` (max 100), `page`. Searchable: `title`, `city`. Sort: `id|title|status|starts_at|created_at`. Index eager-loads `category` only. Envelope `{ success, data: { items, pagination } }`.
+- `POST /organizer/events` — writable: `event_category_id`/`category_id`, `title` (required), `description`, `city`, `address`, `latitude`, `longitude` (pair), `banner_path`, `capacity`, `registration_deadline`, `starts_at`, `ends_at`. Backend forces `status=draft`, `featured=false`, `monetized=false`, `organizer_id` from token. Do not send those overrides. Quota 403 messages: no active package; package quota 0; quota reached.
+- `GET /organizer/events/{id}` — 404 `"Event not found"` if not owned (no 403 leak). Loads `category`, `images`, `ticketTypes`.
+- `PATCH /organizer/events/{id}` — same writable fields (`sometimes`). Rejects `status` (must use transition). Rejects `featured`, `monetized`, `organizer_id`.
+- `DELETE /organizer/events/{id}` — soft delete; `"Event moved to trash"`.
+- `POST /organizer/events/{id}/transition` — `{ status }`. Returns `{ event, allowed_transitions }`. Invalid → 400 `invalid_status_transition`.
+- Status machine: draft→published|cancelled; published→registration_open|draft|cancelled; registration_open→sold_out|registration_closed|ongoing|cancelled; sold_out→registration_closed|ongoing|cancelled; registration_closed→ongoing|cancelled; ongoing→completed|cancelled; completed/cancelled terminal.
+- Gallery: `GET /organizer/events/{id}/images`; `POST` multipart field `image` (jpeg/png/jpg/gif/webp, max 4096 KB); `DELETE /organizer/events/{id}/images/{image}`. Stored `assets/images/events/`.
+
 ## Change Log
+
+### 2026-08-19 — Prompt 7: Organizer events list, create, edit, status, gallery
+
+Files:
+
+- `src/services/organizerEvents.ts` — list/create/get/patch/delete/transition + gallery list/upload/delete + public category list + gallery file validation
+- `src/lib/organizerEventAdapters.ts` — Laravel event → studio UI fields; PATCH mapper limited to writable keys
+- `src/lib/apiError.ts` — `isOrganizerEventAccessError`, `isEventQuotaError`
+- `src/pages/dashboard/Events.tsx` — real owned list (search/status/page); no mockEvents
+- `src/pages/organizer/OrganizerEventCreate.tsx` — multi-section create using backend fields only
+- `src/pages/dashboard/EventDetail.tsx` — load/save/transition/delete/gallery; denied copy; no status PATCH
+- `src/components/event-detail/EventQuickInfo.tsx` — title/description/dates/city/address/category/capacity/deadline + cover upload
+- `src/components/event-detail/EventDetailHeader.tsx` — allowed transitions only; duplicate removed
+- `src/components/event-detail/EventOverview.tsx` — KPIs from event summary counts; no mock attendee charts
+- `src/components/event-detail/EventGalleryPanel.tsx` — multipart gallery UI
+- `src/components/event-detail/SmartImageField.tsx` — optional `onUploadFile` (skips leftover fake storage/AI)
+- `src/App.tsx` — `/organizer/events/new`; `/organizer/events/create` and `/dashboard/events/create` redirect there
+
+Behavior:
+
+- Create does not send organizer_id, featured, monetized, or status.
+- Edit uses PATCH writable fields only.
+- Status uses transition API with confirm; cancellation warning is strong; completed/cancelled are terminal.
+- Quota create failure shows Laravel message plus dashboard package/quota; no upgrade checkout.
+- 403/404 on event show/update/gallery: "You don't have access to this event."
+- Tickets, attendees, check-in, branding persist are not invented.
+
+Verification:
+
+- `npx tsc --noEmit`
+- `npm run build`
 
 ### 2026-08-19 — Prompt 6: Organizer authentication + app shell + dashboard
 
@@ -545,7 +597,7 @@ Files:
 
 Coexistence: both providers wrap the app. Organizer logout does not call participant logout.
 
-Events/attendees/analytics still mock under `/organizer/*`. Full event CRUD is a later prompt.
+Attendees/analytics still mock under `/organizer/*`. Event CRUD is Prompt 7.
 
 Verification:
 

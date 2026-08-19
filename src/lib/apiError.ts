@@ -167,3 +167,17 @@ export function isOrganizerSuspendedError(error: unknown): boolean {
   const message = getApiErrorMessage(error, "");
   return /suspended/i.test(message);
 }
+
+/** Cross-organizer event show/update/gallery returns 404 (and sometimes 403). Do not render leaked details. */
+export function isOrganizerEventAccessError(error: unknown): boolean {
+  if (!axios.isAxiosError(error)) return false;
+  const status = error.response?.status;
+  return status === 403 || status === 404;
+}
+
+export function isEventQuotaError(error: unknown): boolean {
+  if (!axios.isAxiosError(error)) return false;
+  if (error.response?.status !== 403) return false;
+  const message = getApiErrorMessage(error, "");
+  return /quota|no active subscription package/i.test(message);
+}

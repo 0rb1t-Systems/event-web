@@ -31,6 +31,7 @@ import SettingsPage from "./pages/dashboard/SettingsPage";
 import OrganizerLogin from "./pages/organizer/OrganizerLogin";
 import OrganizerRegister from "./pages/organizer/OrganizerRegister";
 import OrganizerDashboard from "./pages/organizer/OrganizerDashboard";
+import OrganizerEventCreate from "./pages/organizer/OrganizerEventCreate";
 import OrganizerSettings from "./pages/organizer/OrganizerSettings";
 import OrganizerPayouts from "./pages/organizer/OrganizerPayouts";
 import NotFound from "./pages/NotFound";
@@ -92,7 +93,8 @@ const App = () => (
                     <Routes>
                       <Route path="dashboard" element={<OrganizerDashboard />} />
                       <Route path="events" element={<Events />} />
-                      <Route path="events/create" element={<Navigate to="/organizer/events" replace />} />
+                      <Route path="events/new" element={<OrganizerEventCreate />} />
+                      <Route path="events/create" element={<Navigate to="/organizer/events/new" replace />} />
                       <Route path="events/:id" element={<EventDetail />} />
                       <Route path="events/:id/edit" element={<EventDetailEditRedirect />} />
                       <Route path="attendees" element={<Attendees />} />
@@ -106,7 +108,7 @@ const App = () => (
 
               {/* Participant dashboard */}
               <Route path="/dashboard" element={<ProtectedRoute><RoleHomeRedirect /></ProtectedRoute>} />
-              <Route path="/dashboard/events/create" element={<Navigate to="/organizer/events" replace />} />
+              <Route path="/dashboard/events/create" element={<Navigate to="/organizer/events/new" replace />} />
               <Route path="/dashboard/events/:id" element={<LegacyDashboardEventRedirect />} />
               <Route path="/dashboard/events" element={<Navigate to="/organizer/events" replace />} />
               <Route path="/dashboard/attendees" element={<Navigate to="/organizer/attendees" replace />} />
