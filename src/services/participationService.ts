@@ -66,6 +66,65 @@ export type ChargeBody = {
   payer_phone: string;
 };
 
+// ─── List / pagination ────────────────────────────────────────────────────────
+
+export type ParticipationListMeta = {
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+};
+
+export type ParticipationListResponse = WrappedSuccess<{
+  items: ApiParticipation[];
+  pagination: ParticipationListMeta;
+}>;
+
+// ─── Invitation ───────────────────────────────────────────────────────────────
+
+export type OverlayPositions = Record<
+  string,
+  { x?: number; y?: number; width?: number; height?: number; font_size?: number; font_color?: string }
+>;
+
+export type Customizations = {
+  primary_color?: string;
+  secondary_color?: string;
+  font_family?: string;
+  header_text?: string;
+  [key: string]: unknown;
+};
+
+export type SystemTemplate = {
+  id: number;
+  name: string;
+  preview_image_path?: string | null;
+  overlay_positions?: OverlayPositions | null;
+  customizations?: Customizations | null;
+};
+
+export type InvitationConfig = {
+  mode: "template" | "custom" | null;
+  system_template?: SystemTemplate | null;
+  background_image_path?: string | null;
+  customizations?: Customizations | null;
+  overlay_positions?: OverlayPositions | null;
+} | null;
+
+export type ApiInvitationDetail = {
+  id: number;
+  status: ApiParticipation["status"];
+  payment_status: ApiParticipation["payment_status"];
+  qr_token: string | null;
+  created_at: string;
+  event: ApiParticipation["event"];
+  ticket_type: ApiParticipation["ticket_type"];
+  invitation: InvitationConfig;
+  canvas: { width: number; height: number };
+};
+
+type InvitationDetailResponse = WrappedSuccess<ApiInvitationDetail>;
+
 // Wrapped responses
 type ParticipationResponse = WrappedSuccess<ApiParticipation>;
 type PaymentResponse = WrappedSuccess<ApiPayment>;
@@ -81,6 +140,24 @@ export async function createParticipation(body: CreateParticipationBody): Promis
 /** GET /participant/participations/{id} */
 export async function getParticipation(id: number): Promise<ApiParticipation> {
   const resp = await participantApi.get<ParticipationResponse>(`/participant/participations/${id}`);
+  return resp.data.data;
+}
+
+/** GET /participant/participations — paginated list of own participations */
+export async function listParticipations(params?: {
+  status?: string;
+  per_page?: number;
+  page?: number;
+}): Promise<{ items: ApiParticipation[]; pagination: ParticipationListMeta }> {
+  const resp = await participantApi.get<ParticipationListResponse>("/participant/participations", { params });
+  return resp.data.data;
+}
+
+/** GET /participant/participations/{id}/invitation */
+export async function getParticipationInvitation(id: number): Promise<ApiInvitationDetail> {
+  const resp = await participantApi.get<InvitationDetailResponse>(
+    `/participant/participations/${id}/invitation`,
+  );
   return resp.data.data;
 }
 

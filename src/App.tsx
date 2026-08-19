@@ -16,6 +16,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Register from "./pages/Register";
 import Ticket from "./pages/Ticket";
+import RegistrationDetail from "./pages/RegistrationDetail";
 import Events from "./pages/dashboard/Events";
 // Legacy wizard removed — events are now created/edited inline on EventDetail.
 const EventDetailEditRedirect = () => {
@@ -32,6 +33,11 @@ import NotFound from "./pages/NotFound";
 const PublicRegisterRedirect = () => {
   const { id } = useParams();
   return <Navigate to={`/events/${id}`} replace />;
+};
+
+const TicketRedirect = () => {
+  const { registrationId } = useParams();
+  return <Navigate to={`/registrations/${registrationId}`} replace />;
 };
 
 const queryClient = new QueryClient();
@@ -61,8 +67,9 @@ const App = () => (
               {/* /reset-password removed in cleanup */}
               <Route path="/events/:id" element={<Register />} />
               <Route path="/register/:id" element={<PublicRegisterRedirect />} />
-              <Route path="/ticket/:registrationId" element={<Ticket />} />
-              <Route path="/registrations/:registrationId" element={<Ticket />} />
+              <Route path="/registrations/:registrationId" element={<RegistrationDetail />} />
+              {/* /ticket/:id legacy — redirect to /registrations/:id */}
+              <Route path="/ticket/:registrationId" element={<TicketRedirect />} />
               {/* /unsubscribe removed in cleanup */}
 
               {/* Dashboard (protected) */}

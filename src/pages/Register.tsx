@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useParams, useNavigate } from "react-router-dom";
 import {
   CalendarDays, MapPin, Video, Globe, Loader2, CheckCircle2,
-  Clock, AlertTriangle, Phone,
+  Clock, AlertTriangle,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { publicApi } from "@/lib/api";
@@ -28,9 +28,10 @@ import { getMediaUrl } from "@/lib/mediaUrl";
 import type { TicketTier } from "@/components/event-detail/TicketTiersManager";
 import { Crown, Ticket as TicketIcon, Check, Minus, Plus } from "lucide-react";
 import {
-  createParticipation, chargeParticipation, getParticipation,
+  createParticipation,
   type ApiParticipation,
 } from "@/services/participationService";
+import { ParticipantWaafiPayment } from "@/components/participant/ParticipantWaafiPayment";
 
 type FormField = UiFormField;
 
@@ -276,206 +277,6 @@ const DynamicField = ({
         />
       );
   }
-};
-
-// ─── Waafi phone step ─────────────────────────────────────────────────────────
-
-const WaafiPhoneStep = ({
-  participationId, eventName, amount, currency, brandColor, isDark,
-  onSuccess, onFailure, onCancel,
-}: {
-  participationId: number;
-  eventName: string;
-  amount: string;
-  currency: string;
-  brandColor: string;
-  isDark?: boolean;
-  onSuccess: (participation: ApiParticipation) => void;
-  onFailure: (msg: string) => void;
-  onCancel: () => void;
-}) => {
-  const [phone, setPhone] = useState("");
-  const [charging, setCharging] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, []);
-
-  const handleCharge = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!phone.trim()) {
-      toast.error("Please enter your EVC Plus phone number.");
-      return;
-    }
-
-    setCharging(true);
-    setElapsed(0);
-    timerRef.current = setInterval(() => setElapsed((s) => s + 1), 1000);
-
-    try {
-      const payment = await chargeParticipation({ participation_id: participationId, payer_phone: phone.trim() });
-      if (timerRef.current) clearInterval(timerRef.current);
-
-      if (payment.status === "completed") {
-        // Fetch updated participation after payment
-        try {
-          const updated = await getParticipation(participationId);
-          onSuccess(updated);
-        } catch {
-          // Use embedded participation if re-fetch fails
-          const embedded = payment.participation;
-          onSuccess(embedded ?? { id: participationId } as ApiParticipation);
-        }
-      } else {
-        const reason = payment.failure_reason || payment.failure_code || "Payment failed.";
-        onFailure(reason);
-      }
-    } catch (err: any) {
-      if (timerRef.current) clearInterval(timerRef.current);
-      const status = err?.response?.status;
-      const msg = getApiErrorMessage(err);
-      if (status === 400 && msg.toLowerCase().includes("already pending")) {
-        onFailure("A payment is already pending for this participation. Please wait for the previous request to complete.");
-      } else if (status === 400 && msg.toLowerCase().includes("already paid")) {
-        // Payment was completed by another path — re-fetch
-        try {
-          const updated = await getParticipation(participationId);
-          onSuccess(updated);
-        } catch {
-          onSuccess({ id: participationId } as ApiParticipation);
-        }
-      } else {
-        onFailure(msg || "Payment failed. Please try again.");
-      }
-    } finally {
-      setCharging(false);
-      setElapsed(0);
-    }
-  };
-
-  const formattedAmount = (() => {
-    try {
-      return new Intl.NumberFormat(undefined, { style: "currency", currency, maximumFractionDigits: 0 }).format(Number(amount));
-    } catch {
-      return `${currency} ${amount}`;
-    }
-  })();
-
-  return (
-    <motion.div
-      key="waafi"
-      initial={{ opacity: 0, y: 18 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -12 }}
-      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-      className="w-full max-w-lg mx-auto relative z-10"
-    >
-      <GlassCard isDark={isDark} brandColor={brandColor}>
-        <div className="p-8">
-          <div className="flex items-center gap-3 mb-6">
-            <div
-              className="w-11 h-11 rounded-full flex items-center justify-center shrink-0"
-              style={{ background: `linear-gradient(135deg, ${brandColor}, hsl(265 90% 62%))` }}
-            >
-              <Phone className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h2 className="font-display font-bold text-lg tracking-[-0.02em]">Pay with EVC Plus</h2>
-              <p className="text-muted-foreground text-xs">{eventName}</p>
-            </div>
-          </div>
-
-          <div
-            className="rounded-2xl px-4 py-3 mb-6"
-            style={{ background: `${brandColor}12` }}
-          >
-            <p className="text-[10px] uppercase tracking-[0.18em] font-bold text-muted-foreground mb-0.5">Total</p>
-            <p className="text-2xl font-display font-bold tabular-nums tracking-[-0.02em]" style={{ color: brandColor }}>
-              {formattedAmount}
-            </p>
-          </div>
-
-          <AnimatePresence mode="wait">
-            {charging ? (
-              <motion.div
-                key="pending"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-center py-4 space-y-4"
-              >
-                <Loader2 className="w-8 h-8 animate-spin mx-auto" style={{ color: brandColor }} />
-                <div>
-                  <p className="font-semibold text-sm">Waiting for approval on your phone.</p>
-                  <p className="text-muted-foreground text-xs mt-1">
-                    Check your EVC prompt and enter your PIN.
-                  </p>
-                  <p className="text-muted-foreground text-xs">
-                    This can take up to 3 minutes.
-                  </p>
-                  {elapsed > 0 && (
-                    <p className="text-muted-foreground text-xs mt-2 tabular-nums">
-                      {elapsed}s elapsed…
-                    </p>
-                  )}
-                </div>
-                <p className="text-[11px] text-muted-foreground">
-                  Do not close this page.
-                </p>
-              </motion.div>
-            ) : (
-              <motion.form
-                key="form"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                onSubmit={handleCharge}
-                className="space-y-4"
-              >
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-foreground/80">
-                    EVC Plus phone number
-                  </Label>
-                  <Input
-                    type="tel"
-                    placeholder="e.g. 0612345678 or +252612345678"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    required
-                    className="h-12 rounded-2xl bg-muted/40 border-0 px-4 text-sm placeholder:text-muted-foreground/60 focus-visible:ring-2 focus-visible:ring-offset-0"
-                    style={{ ["--tw-ring-color" as any]: brandColor }}
-                  />
-                  <p className="text-[11px] text-muted-foreground">
-                    Enter the phone number linked to your Hormuud EVC wallet.
-                    You&apos;ll receive a PIN prompt on your phone.
-                  </p>
-                </div>
-
-                <Button
-                  type="submit"
-                  className="w-full h-14 text-base border-0 text-white rounded-full font-display font-semibold tracking-[-0.01em] transition-transform hover:scale-[1.01] active:scale-[0.99]"
-                  style={{
-                    background: `linear-gradient(135deg, ${brandColor}, hsl(265 90% 62%))`,
-                    boxShadow: `0 18px 40px -12px ${brandColor}99, 0 0 0 1px rgba(255,255,255,0.08) inset`,
-                  }}
-                >
-                  Send payment request
-                </Button>
-
-                <button
-                  type="button"
-                  onClick={onCancel}
-                  className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors py-1"
-                >
-                  Cancel
-                </button>
-              </motion.form>
-            )}
-          </AnimatePresence>
-        </div>
-      </GlassCard>
-    </motion.div>
-  );
 };
 
 // ─── Result screens ───────────────────────────────────────────────────────────
@@ -1139,7 +940,10 @@ const Register = () => {
         msg.toLowerCase().includes("already has an active participation") ||
         msg.toLowerCase().includes("duplicate")
       ) {
-        toast.error("You're already registered for this event.");
+        // Check if they have a pending participation they should resume paying for
+        toast.error("You're already registered for this event. Check your tickets.");
+        // Navigate to dashboard so they can find their pending registration
+        setTimeout(() => navigate("/dashboard/home"), 1500);
       } else if (
         msg.toLowerCase().includes("deadline") ||
         msg.toLowerCase().includes("deadline has passed")
@@ -1179,9 +983,15 @@ const Register = () => {
 
   const handlePaymentCancel = () => {
     chargeInFlightRef.current = false;
-    // Return to form step; participation was already created (status=joined, payment_status=pending)
-    setStep({ kind: "form" });
-    toast("Payment cancelled. You can try again or contact the organizer.");
+    // Participation already exists (payment_status=pending). Navigating back to the form
+    // would let the user re-submit and get a "already has an active participation" error.
+    // Instead, go to the registration detail page where they can resume payment.
+    if (step.kind === "waafi") {
+      toast("Payment cancelled. Your registration is saved — you can complete payment anytime from your tickets.");
+      navigate(`/registrations/${step.participation.id}`);
+    } else {
+      setStep({ kind: "form" });
+    }
   };
 
   const handleRetryPayment = () => {
@@ -1257,20 +1067,24 @@ const Register = () => {
           registerLabel={registerLabel}
           registerDisabled={true}
           formSlot={
-            <AuroraBackdrop brandColor={brandColor} isDark={isDark}>
-              <WaafiPhoneStep
-                participationId={step.participation.id}
-                eventName={event.name}
-                amount={ticket?.price ? String(ticket.price) : step.participation.ticket_type?.price ?? "0"}
-                currency={ticket?.currency || "USD"}
-                brandColor={brandColor}
-                isDark={isDark}
-                onSuccess={handlePaymentSuccess}
-                onFailure={handlePaymentFailure}
-                onCancel={handlePaymentCancel}
-              />
-              <PoweredBy />
-            </AuroraBackdrop>
+            <div className="relative min-h-[320px]">
+              <AuroraBackdrop brandColor={brandColor} isDark={isDark} />
+              <div className="relative z-10 flex flex-col items-center gap-4 py-6">
+                <ParticipantWaafiPayment
+                  participationId={step.participation.id}
+                  eventName={event.name}
+                  ticketName={ticket?.name ?? step.participation.ticket_type?.name ?? null}
+                  amount={ticket?.price ? String(ticket.price) : step.participation.ticket_type?.price ?? "0"}
+                  currency={ticket?.currency || "USD"}
+                  brandColor={brandColor}
+                  isDark={isDark}
+                  onSuccess={handlePaymentSuccess}
+                  onFailure={handlePaymentFailure}
+                  onCancel={handlePaymentCancel}
+                />
+                <PoweredBy />
+              </div>
+            </div>
           }
         />
       </div>
@@ -1289,16 +1103,19 @@ const Register = () => {
           registerLabel={registerLabel}
           registerDisabled={true}
           formSlot={
-            <AuroraBackdrop brandColor={brandColor} isDark={isDark}>
-              <SuccessCard
-                brandColor={brandColor}
-                eventName={event.name}
-                waitlisted={step.waitlisted}
-                participationId={step.participation.id}
-                isDark={isDark}
-              />
-              <PoweredBy />
-            </AuroraBackdrop>
+            <div className="relative min-h-[320px]">
+              <AuroraBackdrop brandColor={brandColor} isDark={isDark} />
+              <div className="relative z-10 flex flex-col items-center gap-4 py-6">
+                <SuccessCard
+                  brandColor={brandColor}
+                  eventName={event.name}
+                  waitlisted={step.waitlisted}
+                  participationId={step.participation.id}
+                  isDark={isDark}
+                />
+                <PoweredBy />
+              </div>
+            </div>
           }
         />
       </div>
@@ -1317,15 +1134,18 @@ const Register = () => {
           registerLabel={registerLabel}
           registerDisabled={true}
           formSlot={
-            <AuroraBackdrop brandColor={brandColor} isDark={isDark}>
-              <PaymentFailCard
-                brandColor={brandColor}
-                reason={step.reason}
-                onRetry={handleRetryPayment}
-                isDark={isDark}
-              />
-              <PoweredBy />
-            </AuroraBackdrop>
+            <div className="relative min-h-[320px]">
+              <AuroraBackdrop brandColor={brandColor} isDark={isDark} />
+              <div className="relative z-10 flex flex-col items-center gap-4 py-6">
+                <PaymentFailCard
+                  brandColor={brandColor}
+                  reason={step.reason}
+                  onRetry={handleRetryPayment}
+                  isDark={isDark}
+                />
+                <PoweredBy />
+              </div>
+            </div>
           }
         />
       </div>

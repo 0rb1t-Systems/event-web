@@ -58,13 +58,23 @@ function friendlyValidationMessage(message: string): string {
 /**
  * Human-readable API error for toasts/forms. Never returns raw JSON.
  * Does not surface participant_admin_login_forbidden (admin-panel only).
+ *
+ * Priority:
+ *  1. response.data.message  (backend human-readable text, e.g. "Insufficient balance")
+ *  2. first meaningful validation/domain error from response.data.errors.*
+ *  3. Axios network/timeout message
+ *  4. fallback
  */
 export function getApiErrorMessage(
   error: unknown,
   fallback = "Something went wrong. Please try again.",
 ): string {
   if (axios.isAxiosError(error)) {
+    // Network error / no response (timeout, DNS failure, etc.)
     if (!error.response) {
+      if (error.code === "ECONNABORTED" || error.message?.toLowerCase().includes("timeout")) {
+        return "The request timed out. Please check your connection and try again.";
+      }
       return "Unable to connect. Check your internet connection and try again.";
     }
 
@@ -79,16 +89,24 @@ export function getApiErrorMessage(
       return fallback;
     }
 
+    // 1. Prefer backend's top-level human-readable message first (e.g. "Insufficient balance")
+    //    This is what Laravel/Waafi surfaces for domain failures.
+    if (data && typeof data === "object") {
+      const message = (data as { message?: unknown }).message;
+      if (
+        typeof message === "string" &&
+        message.trim() &&
+        message !== "Validation failed" &&
+        message !== "The given data was invalid."
+      ) {
+        return message;
+      }
+    }
+
+    // 2. Fall back to first meaningful validation/field error
     const fieldMessage = firstValidationMessage(data);
     if (fieldMessage) {
       return friendlyValidationMessage(fieldMessage);
-    }
-
-    if (data && typeof data === "object") {
-      const message = (data as { message?: unknown }).message;
-      if (typeof message === "string" && message.trim() && message !== "Validation failed") {
-        return message;
-      }
     }
 
     return fallback;
@@ -99,6 +117,39 @@ export function getApiErrorMessage(
   }
 
   return fallback;
+}
+
+/**
+ * Extract the best human-readable failure message from a WaafiPay/charge response.
+ *
+ * When `POST /participant/payments/charge` returns HTTP 200 but payment.status = "failed",
+ * Laravel may expose the Waafi provider message via:
+ *   - payment.failure_reason  (most direct — Waafi's human message)
+ *   - payment.failure_code    (machine code, still useful if reason is absent)
+ *
+ * If the endpoint throws an HTTP error instead, use getApiErrorMessage on the caught error.
+ *
+ * Returns the best available message, never an empty string.
+ */
+export function getChargeFailureMessage(payment: {
+  failure_reason?: string | null;
+  failure_code?: string | null;
+}): string {
+  if (payment.failure_reason && payment.failure_reason.trim()) {
+    return payment.failure_reason.trim();
+  }
+  if (payment.failure_code && payment.failure_code.trim()) {
+    // failure_code is often a machine token — capitalise it for readability
+    const code = payment.failure_code.trim();
+    // If it looks like a human sentence already, return as-is
+    if (/\s/.test(code)) return code;
+    // Convert SNAKE_CASE / SCREAMING to "Snake case"
+    return code
+      .split(/[_\s]+/)
+      .map((w, i) => i === 0 ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : w.toLowerCase())
+      .join(" ");
+  }
+  return "Payment was not completed.";
 }
 
 export function isUnverifiedAccountError(error: unknown): boolean {
