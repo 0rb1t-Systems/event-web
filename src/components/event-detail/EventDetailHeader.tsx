@@ -20,7 +20,7 @@ export default function EventDetailHeader({ event, onStatusChange, onDelete }: P
   const navigate = useNavigate();
 
   const handleCopyLink = async () => {
-    const ok = await copyToClipboard(getRegistrationUrl(event.slug));
+    const ok = await copyToClipboard(getRegistrationUrl(event.id));
     if (!ok) return toast.error("Couldn't copy — select the link and copy manually.");
     toast.success("Registration link copied", {
       description: `Uses your "${event.template || "split"}" template.`,
@@ -91,7 +91,7 @@ export default function EventDetailHeader({ event, onStatusChange, onDelete }: P
             <Copy className="w-3 h-3 mr-1" /> Copy link
           </Button>
           <Button variant="outline" size="sm" className="hidden sm:inline-flex h-8 text-xs rounded-full" asChild>
-            <a href={`/register/${event.slug}`} target="_blank" rel="noopener noreferrer">
+            <a href={`/events/${event.id}`} target="_blank" rel="noopener noreferrer">
               <ExternalLink className="w-3 h-3 mr-1" /> Preview
             </a>
           </Button>
@@ -110,7 +110,7 @@ export default function EventDetailHeader({ event, onStatusChange, onDelete }: P
                 <DropdownMenuItem onClick={() => onStatusChange("past")}>Set Past</DropdownMenuItem>
                 <DropdownMenuItem onClick={handleCopyLink}><Copy className="w-3.5 h-3.5 mr-2" /> Copy link</DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <a href={`/register/${event.slug}`} target="_blank" rel="noopener noreferrer">
+                  <a href={`/events/${event.id}`} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="w-3.5 h-3.5 mr-2" /> Preview
                   </a>
                 </DropdownMenuItem>

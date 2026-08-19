@@ -6,7 +6,7 @@ import { Navigate } from "react-router-dom";
  * of flashing the organizer UI to attendees.
  */
 export function OrganizerOnly({ children }: { children: React.ReactNode }) {
-  // Development shell: organizer gate is not active yet.
-  // Keep existing dashboard screens reachable until auth is wired.
+  // Organizer auth is not implemented yet. Keep organizer screens reachable
+  // by direct URL; participant sessions still default to /dashboard/home.
   return <>{children}</>;
 }

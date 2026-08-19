@@ -235,7 +235,7 @@ const Events = () => {
                     </div>
                     <div className="flex gap-2 pt-2">
                       <Button variant="outline" size="sm" className="text-xs rounded-full" asChild onClick={(e) => e.stopPropagation()}>
-                        <Link to={`/register/${event.slug}`}><ExternalLink className="w-3 h-3 mr-1" />View page</Link>
+                        <Link to={`/events/${event.id}`}><ExternalLink className="w-3 h-3 mr-1" />View page</Link>
                       </Button>
                       <Button variant="outline" size="sm" className="text-xs rounded-full" asChild onClick={(e) => e.stopPropagation()}>
                         <Link to={`/dashboard/events/${event.id}`}>Manage</Link>

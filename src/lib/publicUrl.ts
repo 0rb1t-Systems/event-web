@@ -37,9 +37,9 @@ export const REGISTRATION_VARIANTS: { id: RegistrationVariant; label: string; de
   { id: "landing", label: "Landing page", description: "Full hero with details — best for organic & web traffic" },
 ];
 
-export function getRegistrationUrl(slug: string, variant?: RegistrationVariant): string {
-  const base = `${getPublicOrigin()}/register/${slug}`;
-  return variant ? `${base}/${variant}` : base;
+/** Public cinematic event page URL (Laravel uses numeric event IDs, not slugs). */
+export function getRegistrationUrl(eventId: string): string {
+  return `${getPublicOrigin()}/events/${eventId}`;
 }
 
 export function getCompanyUrl(slug: string): string {

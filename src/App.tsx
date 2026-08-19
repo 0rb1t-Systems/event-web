@@ -29,6 +29,11 @@ import Analytics from "./pages/dashboard/Analytics";
 import SettingsPage from "./pages/dashboard/SettingsPage";
 import NotFound from "./pages/NotFound";
 
+const PublicRegisterRedirect = () => {
+  const { id } = useParams();
+  return <Navigate to={`/events/${id}`} replace />;
+};
+
 const queryClient = new QueryClient();
 
 function ScrollToTop() {
@@ -54,9 +59,10 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
               {/* /reset-password removed in cleanup */}
-              <Route path="/register/:slug" element={<Register />} />
-              <Route path="/register/:slug/:variant" element={<Register />} />
+              <Route path="/events/:id" element={<Register />} />
+              <Route path="/register/:id" element={<PublicRegisterRedirect />} />
               <Route path="/ticket/:registrationId" element={<Ticket />} />
+              <Route path="/registrations/:registrationId" element={<Ticket />} />
               {/* /unsubscribe removed in cleanup */}
 
               {/* Dashboard (protected) */}

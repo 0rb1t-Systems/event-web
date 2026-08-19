@@ -2,29 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import QRCode from "qrcode";
-import { ArrowLeft, Loader2, CalendarDays, MapPin, CheckCircle2, Download, Ticket as TicketIcon } from "lucide-react";
+import { ArrowLeft, Loader2, CalendarDays, MapPin, CheckCircle2, Download, Ticket as TicketIcon, Clock, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { mockParticipation } from "@/lib/mockData";
-
-interface TicketData {
-  id: string;
-  event_id: string;
-  status: string;
-  checked_in_at: string | null;
-  attendee_name: string;
-  ticket_name?: string | null;
-  event_name: string;
-  event_date: string | null;
-  end_date: string | null;
-  timezone: string | null;
-  location: string | null;
-  location_type: string | null;
-  primary_color: string | null;
-  cover_image_url: string | null;
-  event_slug: string | null;
-}
+import { getParticipation, type ApiParticipation } from "@/services/participationService";
+import { getApiErrorMessage } from "@/lib/apiError";
+import { getMediaUrl } from "@/lib/mediaUrl";
 
 function formatDateTime(iso: string | null, tz?: string | null) {
   if (!iso) return "";
@@ -44,12 +28,48 @@ function formatDateTime(iso: string | null, tz?: string | null) {
   }
 }
 
+const BRAND_DEFAULT = "#7C3AED";
+
+function deriveTicketData(p: ApiParticipation) {
+  return {
+    id: String(p.id),
+    event_id: p.event_id ? String(p.event_id) : null,
+    status: p.status,
+    payment_status: p.payment_status,
+    qr_token: p.qr_token,
+    attendee_name: null as string | null, // resolved from user session below
+    ticket_name: p.ticket_type?.name ?? null,
+    event_name: p.event?.title ?? "Event",
+    event_date: p.event?.starts_at ?? null,
+    end_date: p.event?.ends_at ?? null,
+    timezone: "Africa/Mogadishu" as const,
+    location: p.event?.address ?? null,
+    cover_image_url: p.event?.banner_path ? getMediaUrl(p.event.banner_path) : null,
+    primary_color: BRAND_DEFAULT,
+  };
+}
+
+const WaitlistBadge = () => (
+  <div className="mt-5 rounded-full bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400 px-4 py-2 text-xs font-medium flex items-center justify-center gap-2">
+    <Clock className="w-4 h-4" />
+    You&apos;re on the waitlist
+  </div>
+);
+
+const PendingPaymentBadge = () => (
+  <div className="mt-5 rounded-full bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400 px-4 py-2 text-xs font-medium flex items-center justify-center gap-2">
+    <AlertTriangle className="w-4 h-4" />
+    Payment pending
+  </div>
+);
+
 const Ticket = () => {
   const { registrationId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [ticket, setTicket] = useState<TicketData | null>(null);
+  const [participation, setParticipation] = useState<ApiParticipation | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const downloadRef = useRef<HTMLAnchorElement>(null);
 
@@ -62,53 +82,59 @@ const Ticket = () => {
   };
 
   useEffect(() => {
-    let active = true;
-    (async () => {
-      if (!registrationId) {
-        setLoading(false);
-        return;
-      }
-      if (!active) return;
-      const data: TicketData = {
-        id: registrationId,
-        event_id: mockParticipation.event.id,
-        status: mockParticipation.status,
-        checked_in_at: null,
-        attendee_name: "Ahmed Hassan",
-        ticket_name: mockParticipation.ticket_type?.name ?? "General",
-        event_name: mockParticipation.event.title,
-        event_date: mockParticipation.event.starts_at,
-        end_date: mockParticipation.event.ends_at,
-        timezone: "Africa/Mogadishu",
-        location: mockParticipation.event.address,
-        location_type: "physical",
-        primary_color: "#7C3AED",
-        cover_image_url: mockParticipation.event.banner_image,
-        event_slug: mockParticipation.event.slug,
-      };
-      setTicket(data);
+    if (!registrationId) {
       setLoading(false);
-    })();
-    return () => {
-      active = false;
-    };
-  }, [registrationId]);
+      return;
+    }
 
+    const numericId = Number(registrationId);
+    if (!Number.isFinite(numericId) || numericId <= 0) {
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    getParticipation(numericId)
+      .then((p) => {
+        if (cancelled) return;
+        setParticipation(p);
+      })
+      .catch((err: any) => {
+        if (cancelled) return;
+        const status = err?.response?.status;
+        if (status === 401 || status === 403) {
+          navigate(`/auth?redirect=/registrations/${registrationId}`, { replace: true });
+          return;
+        }
+        setError(getApiErrorMessage(err) || "Could not load your ticket.");
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [registrationId, navigate]);
+
+  // Generate QR for the qr_token (not the raw ID)
   useEffect(() => {
-    if (!registrationId) return;
-    QRCode.toDataURL(registrationId, {
+    const qrValue = participation?.qr_token || registrationId;
+    if (!qrValue) return;
+    QRCode.toDataURL(qrValue, {
       width: 720,
       margin: 2,
       color: { dark: "#000000", light: "#ffffff" },
     })
       .then(setQrDataUrl)
       .catch(() => setQrDataUrl(""));
-  }, [registrationId]);
+  }, [participation, registrationId]);
 
   const handleDownload = () => {
-    if (!qrDataUrl || !ticket) return;
+    if (!qrDataUrl || !participation) return;
     const a = downloadRef.current;
     if (!a) return;
+    const ticket = deriveTicketData(participation);
     a.href = qrDataUrl;
     a.download = `${ticket.event_name.replace(/[^\w-]+/g, "_")}_ticket.png`;
     a.click();
@@ -123,20 +149,14 @@ const Ticket = () => {
     );
   }
 
-  if (!ticket) {
+  if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4 bg-background">
         <div className="max-w-md w-full bg-card rounded-3xl p-10 text-center">
-          <TicketIcon className="w-10 h-10 mx-auto mb-4 text-muted-foreground" />
-          <h1 className="text-2xl font-display font-bold mb-2">Ticket not found</h1>
-          <p className="text-muted-foreground text-sm mb-6">
-            This ticket link is invalid or the event is no longer live.
-          </p>
-          <Button
-            onClick={handleBack}
-            variant="outline"
-            className="rounded-full h-11 px-5"
-          >
+          <AlertTriangle className="w-10 h-10 mx-auto mb-4 text-destructive" />
+          <h1 className="text-2xl font-display font-bold mb-2">Couldn&apos;t load ticket</h1>
+          <p className="text-muted-foreground text-sm mb-6">{error}</p>
+          <Button onClick={handleBack} variant="outline" className="rounded-full h-11 px-5">
             <ArrowLeft className="w-4 h-4 mr-2" />
             {user ? "Back to my tickets" : "Back to home"}
           </Button>
@@ -145,8 +165,32 @@ const Ticket = () => {
     );
   }
 
-  const brand = ticket.primary_color || "hsl(var(--primary))";
-  const checkedIn = !!ticket.checked_in_at;
+  if (!participation) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4 bg-background">
+        <div className="max-w-md w-full bg-card rounded-3xl p-10 text-center">
+          <TicketIcon className="w-10 h-10 mx-auto mb-4 text-muted-foreground" />
+          <h1 className="text-2xl font-display font-bold mb-2">Ticket not found</h1>
+          <p className="text-muted-foreground text-sm mb-6">
+            This ticket link is invalid or the event is no longer live.
+          </p>
+          <Button onClick={handleBack} variant="outline" className="rounded-full h-11 px-5">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            {user ? "Back to my tickets" : "Back to home"}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const ticket = deriveTicketData(participation);
+  ticket.attendee_name = user?.name ?? null;
+
+  const brand = ticket.primary_color || BRAND_DEFAULT;
+  const checkedIn = ticket.status === "checked_in";
+  const isWaitlisted = ticket.status === "waitlisted";
+  const paymentPending = ticket.payment_status === "pending";
+  const qrValue = participation.qr_token || registrationId || "";
 
   return (
     <div className="min-h-screen bg-background px-4 py-8 sm:py-14 flex items-center justify-center overflow-x-hidden">
@@ -198,44 +242,58 @@ const Ticket = () => {
             <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-background" />
           </div>
 
-          {/* QR */}
+          {/* QR + details */}
           <div className="px-6 pb-7">
-            <div className="rounded-2xl bg-white p-4 flex items-center justify-center">
-              {qrDataUrl ? (
-                <img src={qrDataUrl} alt="Ticket QR code" className="w-full max-w-[260px] aspect-square" />
-              ) : (
-                <div className="w-[260px] aspect-square flex items-center justify-center">
-                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                </div>
-              )}
-            </div>
+            {isWaitlisted || paymentPending ? (
+              <div className="rounded-2xl bg-muted/40 flex items-center justify-center py-12">
+                {isWaitlisted
+                  ? <Clock className="w-14 h-14 text-muted-foreground/50" />
+                  : <AlertTriangle className="w-14 h-14 text-muted-foreground/50" />}
+              </div>
+            ) : (
+              <div className="rounded-2xl bg-white p-4 flex items-center justify-center">
+                {qrDataUrl ? (
+                  <img src={qrDataUrl} alt="Ticket QR code" className="w-full max-w-[260px] aspect-square" />
+                ) : (
+                  <div className="w-[260px] aspect-square flex items-center justify-center">
+                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="mt-5 space-y-2 text-center">
               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Attendee</p>
-              <p className="font-display font-semibold text-lg">{ticket.attendee_name}</p>
+              <p className="font-display font-semibold text-lg">{ticket.attendee_name || "—"}</p>
               {ticket.ticket_name && (
                 <p className="text-xs text-muted-foreground">{ticket.ticket_name}</p>
               )}
             </div>
 
             {checkedIn ? (
-              <div className="mt-5 rounded-full bg-emerald-50 text-emerald-700 px-4 py-2 text-xs font-medium flex items-center justify-center gap-2">
+              <div className="mt-5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400 px-4 py-2 text-xs font-medium flex items-center justify-center gap-2">
                 <CheckCircle2 className="w-4 h-4" />
-                Checked in {ticket.checked_in_at ? new Date(ticket.checked_in_at).toLocaleString() : ""}
+                Checked in
               </div>
+            ) : isWaitlisted ? (
+              <WaitlistBadge />
+            ) : paymentPending ? (
+              <PendingPaymentBadge />
             ) : (
               <div className="mt-5 rounded-full bg-muted text-muted-foreground px-4 py-2 text-xs font-medium text-center">
                 Show this QR at the door
               </div>
             )}
 
-            <Button
-              onClick={handleDownload}
-              className="w-full mt-5 rounded-full h-11 bg-foreground text-background hover:bg-foreground/90"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Save ticket
-            </Button>
+            {!isWaitlisted && !paymentPending && (
+              <Button
+                onClick={handleDownload}
+                className="w-full mt-5 rounded-full h-11 bg-foreground text-background hover:bg-foreground/90"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Save ticket
+              </Button>
+            )}
 
             <p className="text-[11px] text-muted-foreground text-center mt-4">
               Bookmark this page to keep your ticket handy.
@@ -243,10 +301,10 @@ const Ticket = () => {
           </div>
         </div>
 
-        {ticket.event_slug && (
+        {ticket.event_id && (
           <div className="text-center mt-5">
             <Link
-              to={`/register/${ticket.event_slug}`}
+              to={`/events/${ticket.event_id}`}
               className="text-xs text-muted-foreground hover:text-foreground"
             >
               View event page

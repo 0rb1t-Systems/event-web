@@ -31,6 +31,11 @@ export const participantSessionStorage = {
   setToken: (token: string) =>
     setItem(AUTH_STORAGE_KEYS.participantToken, token),
 
+  getUserJson: () => getItem(AUTH_STORAGE_KEYS.participantUser),
+
+  setUserJson: (value: string) =>
+    setItem(AUTH_STORAGE_KEYS.participantUser, value),
+
   clear: () => {
     removeItem(AUTH_STORAGE_KEYS.participantToken);
     removeItem(AUTH_STORAGE_KEYS.participantUser);

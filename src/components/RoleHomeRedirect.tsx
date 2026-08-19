@@ -1,11 +1,9 @@
 import { Navigate } from "react-router-dom";
 
 /**
- * Sends the user to the organizer dashboard if they own/cohost any events,
- * otherwise to the attendee home. Renders nothing while resolving (no flash).
+ * Participant sessions land on attendee home.
+ * Organizer-auth is not wired yet; do not send participants to /dashboard/events.
  */
 export function RoleHomeRedirect() {
-  // Development shell: role redirect is not active yet.
-  // Treat everyone as organizer so existing dashboard screens stay reachable.
-  return <Navigate to="/dashboard/events" replace />;
+  return <Navigate to="/dashboard/home" replace />;
 }

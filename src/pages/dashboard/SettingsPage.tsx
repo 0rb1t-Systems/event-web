@@ -1,151 +1,89 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Loader2, Send, UserPlus, Plus, Trash2, Sun, Moon, Monitor, Copy, X, Globe, Calendar } from "lucide-react";
+import { Loader2, Sun, Moon, Monitor } from "lucide-react";
 import { useTheme } from "next-themes";
-import { copyToClipboard } from "@/lib/clipboard";
-import { Badge } from "@/components/ui/badge";
-import { mockEvents } from "@/lib/mockData";
-
-const SOCIAL_PLATFORMS = [
-  "Twitter / X", "LinkedIn", "Instagram", "Facebook", "YouTube", "TikTok", "GitHub",
-];
-
-type SocialLink = { platform: string; url: string };
-
-function generateCompanySlug(name: string): string {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") + "-" + Math.random().toString(36).substring(2, 6);
-}
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getApiErrorMessage } from "@/lib/apiError";
+import { getMediaUrl } from "@/lib/mediaUrl";
 
 const SettingsPage = () => {
   const { theme, setTheme } = useTheme();
-  const { user } = useAuth();
-  const profile = {
-    full_name: "Ahmed Hassan",
-    company: "TechHub Somalia",
-    website: "https://techhub.so",
-    company_description: "Technology community and event organizer.",
-    social_links: [],
-    company_slug: "techhub-somalia",
-  } as any;
-  const isLoading = false;
-  const updateProfile = {
-    isPending: false,
-    mutateAsync: async (payload: any) => console.log("TODO: save profile", payload),
-  };
-  const [fullName, setFullName] = useState("");
-  const [company, setCompany] = useState("");
-  const [website, setWebsite] = useState("");
-  const [companyDescription, setCompanyDescription] = useState("");
-  const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
-  const [companySlug, setCompanySlug] = useState("");
-  const [initialized, setInitialized] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteSending, setInviteSending] = useState(false);
-  const [inviteScope, setInviteScope] = useState<"account" | "event">("account");
-  const [inviteEventId, setInviteEventId] = useState<string>("");
-
-  const events = mockEvents.map((e) => ({ id: e.id, name: e.title, user_id: user?.id || "1" })) as any[];
-  const invitations = [] as any[];
-  const cohostsList = [] as any[];
-  const createInvite = {
-    mutateAsync: async (payload: any) => {
-      console.log("TODO: create invitation", payload);
-      return { id: crypto.randomUUID(), token: "mock-token", ...payload };
-    },
-  };
-  const revokeInvite = { mutate: (id: string) => console.log("TODO: revoke invitation", id), isPending: false } as any;
-  const removeCohost = { mutate: (id: string) => console.log("TODO: remove cohost", id), isPending: false } as any;
-  const getAcceptUrl = (token: string) => `${window.location.origin}/cohost/accept?token=${token}`;
-
-  const eventNameById = (id: string | null) =>
-    id ? events?.find(e => e.id === id)?.name || "Event" : null;
+  const { user, updateProfile, updateProfilePicture, changePassword } = useAuth();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [newPasswordConfirmation, setNewPasswordConfirmation] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (profile && !initialized) {
-      setFullName(profile.full_name || "");
-      setCompany(profile.company || "");
-      setWebsite((profile as any).website || "");
-      setCompanyDescription((profile as any).company_description || "");
-      const links = (profile as any).social_links;
-      setSocialLinks(Array.isArray(links) ? links : []);
-      setCompanySlug((profile as any).company_slug || "");
-      setInitialized(true);
-    }
-  }, [profile, initialized]);
+    if (!user) return;
+    setName(user.name || "");
+    setEmail(user.email || "");
+    setPhone(user.phone || "");
+    setAddress(user.address || "");
+  }, [user]);
 
   const handleSave = async () => {
+    setSavingProfile(true);
     try {
-      const slug = companySlug || (company ? generateCompanySlug(company) : undefined);
-      await updateProfile.mutateAsync({
-        full_name: fullName,
-        company,
-        website,
-        company_description: companyDescription,
-        social_links: socialLinks,
-        ...(slug ? { company_slug: slug } : {}),
-      } as any);
-      if (slug) setCompanySlug(slug);
-      toast.success("Profile updated!");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to update profile");
-    }
-  };
-
-  const handleInvite = async () => {
-    const email = inviteEmail.trim().toLowerCase();
-    if (!email) return;
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      toast.error("Enter a valid email address");
-      return;
-    }
-    if (inviteScope === "event" && !inviteEventId) {
-      toast.error("Pick an event to share");
-      return;
-    }
-    if (email === user?.email?.toLowerCase()) {
-      toast.error("You can't invite yourself");
-      return;
-    }
-    setInviteSending(true);
-    try {
-      const inv = await createInvite.mutateAsync({
-        email,
-        scope: inviteScope,
-        event_id: inviteScope === "event" ? inviteEventId : null,
+      await updateProfile({
+        name: name.trim(),
+        email: email.trim(),
+        phone: phone.trim() || null,
+        address: address.trim() || null,
       });
-      const acceptUrl = getAcceptUrl(inv.token);
-
-      const emailed = false;
-      await copyToClipboard(acceptUrl);
-      toast.success(
-        emailed
-          ? `Invite sent to ${email} — link also copied to clipboard.`
-          : `Invite created — link copied to clipboard. Send it to ${email}.`
-      );
-      setInviteEmail("");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to create invitation");
+      toast.success("Profile updated!");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Failed to update profile"));
     } finally {
-      setInviteSending(false);
+      setSavingProfile(false);
     }
   };
 
-  const addSocialLink = () => setSocialLinks([...socialLinks, { platform: "", url: "" }]);
-  const updateSocialLink = (index: number, field: keyof SocialLink, value: string) => {
-    const updated = [...socialLinks];
-    updated[index] = { ...updated[index], [field]: value };
-    setSocialLinks(updated);
+  const handlePhoto = async (file: File | undefined) => {
+    if (!file) return;
+    setUploadingPhoto(true);
+    try {
+      await updateProfilePicture(file);
+      toast.success("Photo updated!");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Could not update your photo."));
+    } finally {
+      setUploadingPhoto(false);
+    }
   };
-  const removeSocialLink = (index: number) => setSocialLinks(socialLinks.filter((_, i) => i !== index));
 
-  if (isLoading) {
+  const handlePassword = async () => {
+    if (newPassword !== newPasswordConfirmation) {
+      toast.error("New passwords do not match.");
+      return;
+    }
+    setSavingPassword(true);
+    try {
+      await changePassword(currentPassword, newPassword, newPasswordConfirmation);
+      setCurrentPassword("");
+      setNewPassword("");
+      setNewPasswordConfirmation("");
+      toast.success("Password changed.");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Could not change your password."));
+    } finally {
+      setSavingPassword(false);
+    }
+  };
+
+  if (!user) {
     return <div className="flex justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
   }
 
@@ -160,73 +98,96 @@ const SettingsPage = () => {
         <TabsList className="bg-muted rounded-full p-1">
           <TabsTrigger value="profile" className="rounded-full data-[state=active]:bg-card data-[state=active]:shadow-sm">Profile</TabsTrigger>
           <TabsTrigger value="appearance" className="rounded-full data-[state=active]:bg-card data-[state=active]:shadow-sm">Appearance</TabsTrigger>
-          <TabsTrigger value="team" className="rounded-full data-[state=active]:bg-card data-[state=active]:shadow-sm">Team</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="profile" className="mt-6">
+        <TabsContent value="profile" className="mt-6 space-y-6">
           <div className="bg-card rounded-xl p-6 space-y-5">
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Full name</Label>
-                <Input value={fullName} onChange={e => setFullName(e.target.value)} className="rounded-full" />
+            <div className="flex items-center gap-4">
+              <button
+                type="button"
+                className="relative rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                onClick={() => fileRef.current?.click()}
+                aria-label="Change profile photo"
+              >
+                <Avatar className="h-16 w-16">
+                  <AvatarImage src={getMediaUrl(user.profile_image)} alt={user.name} />
+                  <AvatarFallback className="bg-foreground text-background text-lg font-semibold uppercase">
+                    {(user.name?.[0] ?? user.email?.[0] ?? "?").toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              </button>
+              <div>
+                <p className="text-sm font-medium">Profile photo</p>
+                <p className="text-xs text-muted-foreground">JPG or PNG, up to 2 MB.</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 rounded-full"
+                  disabled={uploadingPhoto}
+                  onClick={() => fileRef.current?.click()}
+                >
+                  {uploadingPhoto ? "Uploading…" : "Change photo"}
+                </Button>
               </div>
-              <div className="space-y-2">
-                <Label>Email</Label>
-                <Input value={user?.email || ""} disabled className="rounded-full" />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Company</Label>
-              <Input value={company} onChange={e => setCompany(e.target.value)} className="rounded-full" />
-            </div>
-            <div className="space-y-2">
-              <Label>Website</Label>
-              <Input value={website} onChange={e => setWebsite(e.target.value)} placeholder="https://yourcompany.com" className="rounded-full" />
-            </div>
-            <div className="space-y-2">
-              <Label>Company description</Label>
-              <Textarea
-                value={companyDescription}
-                onChange={e => setCompanyDescription(e.target.value)}
-                placeholder="A short description of your company or organization…"
-                rows={3}
-                className="rounded-xl"
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  void handlePhoto(file);
+                }}
               />
             </div>
 
-
-            <div className="space-y-3">
-              <Label>Social media</Label>
-              {socialLinks.map((link, i) => (
-                <div key={i} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                  <Select value={link.platform} onValueChange={v => updateSocialLink(i, "platform", v)}>
-                    <SelectTrigger className="w-full sm:w-40 shrink-0 rounded-full">
-                      <SelectValue placeholder="Platform" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {SOCIAL_PLATFORMS.map(p => (
-                        <SelectItem key={p} value={p}>{p}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    value={link.url}
-                    onChange={e => updateSocialLink(i, "url", e.target.value)}
-                    placeholder="https://…"
-                    className="flex-1 rounded-full"
-                  />
-                  <Button variant="ghost" size="icon" className="shrink-0 text-muted-foreground hover:text-destructive self-end sm:self-auto" onClick={() => removeSocialLink(i)}>
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              ))}
-              <Button type="button" variant="outline" size="sm" onClick={addSocialLink} className="rounded-full">
-                <Plus className="w-4 h-4 mr-1" /> Add social
-              </Button>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Full name</Label>
+                <Input value={name} onChange={e => setName(e.target.value)} className="rounded-full" />
+              </div>
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input type="email" value={email} onChange={e => setEmail(e.target.value)} className="rounded-full" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Phone</Label>
+              <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+252…" className="rounded-full" />
+            </div>
+            <div className="space-y-2">
+              <Label>Address</Label>
+              <Input value={address} onChange={e => setAddress(e.target.value)} placeholder="City, country" className="rounded-full" />
             </div>
 
-            <Button onClick={handleSave} disabled={updateProfile.isPending} className="rounded-full">
-              {updateProfile.isPending ? "Saving…" : "Save changes"}
+            <Button onClick={handleSave} disabled={savingProfile} className="rounded-full">
+              {savingProfile ? "Saving…" : "Save changes"}
+            </Button>
+          </div>
+
+          <div className="bg-card rounded-xl p-6 space-y-5">
+            <div>
+              <h3 className="font-display font-semibold text-lg mb-1">Password</h3>
+              <p className="text-sm text-muted-foreground">Use a password at least 8 characters long.</p>
+            </div>
+            <div className="space-y-2">
+              <Label>Current password</Label>
+              <Input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="rounded-full" />
+            </div>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>New password</Label>
+                <Input type="password" minLength={8} value={newPassword} onChange={e => setNewPassword(e.target.value)} className="rounded-full" />
+              </div>
+              <div className="space-y-2">
+                <Label>Confirm new password</Label>
+                <Input type="password" minLength={8} value={newPasswordConfirmation} onChange={e => setNewPasswordConfirmation(e.target.value)} className="rounded-full" />
+              </div>
+            </div>
+            <Button onClick={handlePassword} disabled={savingPassword || !currentPassword || !newPassword} className="rounded-full">
+              {savingPassword ? "Updating…" : "Update password"}
             </Button>
           </div>
         </TabsContent>
@@ -265,152 +226,6 @@ const SettingsPage = () => {
               ))}
             </div>
           </div>
-        </TabsContent>
-
-        <TabsContent value="team" className="mt-6 space-y-6">
-          <div className="bg-card rounded-xl p-6 space-y-4">
-            <div className="flex items-center gap-2">
-              <UserPlus className="w-5 h-5 text-muted-foreground" />
-              <h3 className="font-display font-semibold text-lg">Invite co-hosts</h3>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Co-hosts can fully edit event details, manage attendees, branding, and registration — but can't delete events.
-            </p>
-
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setInviteScope("account")}
-                className={`flex items-start gap-3 rounded-xl p-4 text-left transition-all ${
-                  inviteScope === "account" ? "bg-muted ring-2 ring-foreground" : "bg-muted/40 hover:bg-muted"
-                }`}
-              >
-                <Globe className="w-5 h-5 mt-0.5 shrink-0" />
-                <div>
-                  <p className="font-medium text-sm">All my events</p>
-                  <p className="text-xs text-muted-foreground">Account-wide co-host</p>
-                </div>
-              </button>
-              <button
-                type="button"
-                onClick={() => setInviteScope("event")}
-                className={`flex items-start gap-3 rounded-xl p-4 text-left transition-all ${
-                  inviteScope === "event" ? "bg-muted ring-2 ring-foreground" : "bg-muted/40 hover:bg-muted"
-                }`}
-              >
-                <Calendar className="w-5 h-5 mt-0.5 shrink-0" />
-                <div>
-                  <p className="font-medium text-sm">One event</p>
-                  <p className="text-xs text-muted-foreground">Per-event co-host</p>
-                </div>
-              </button>
-            </div>
-
-            {inviteScope === "event" && (
-              <Select value={inviteEventId} onValueChange={setInviteEventId}>
-                <SelectTrigger className="rounded-full">
-                  <SelectValue placeholder="Pick an event…" />
-                </SelectTrigger>
-                <SelectContent>
-                  {(events || []).filter(e => e.user_id === user?.id).map(e => (
-                    <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Input
-                placeholder="colleague@email.com"
-                type="email"
-                value={inviteEmail}
-                onChange={e => setInviteEmail(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && handleInvite()}
-                className="flex-1 rounded-full"
-              />
-              <Button
-                className="shrink-0 w-full sm:w-auto rounded-full"
-                onClick={handleInvite}
-                disabled={inviteSending || !inviteEmail.trim()}
-              >
-                {inviteSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4 mr-1" /> Send invite</>}
-              </Button>
-            </div>
-          </div>
-
-          {/* Pending invitations */}
-          {invitations && invitations.filter((i: any) => i.status === "pending").length > 0 && (
-            <div className="bg-card rounded-xl p-6 space-y-3">
-              <h3 className="font-display font-semibold text-lg">Pending invitations</h3>
-              <div className="space-y-2">
-                {invitations.filter((i: any) => i.status === "pending").map((i: any) => (
-                  <div key={i.id} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 p-3 rounded-xl bg-muted/40">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{i.email}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {i.scope === "account" ? "All events" : eventNameById(i.event_id) || "Event"} · expires {new Date(i.expires_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="flex gap-2 self-end sm:self-auto">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="rounded-full"
-                        onClick={async () => {
-                          const ok = await copyToClipboard(getAcceptUrl(i.token));
-                          toast[ok ? "success" : "error"](ok ? "Link copied!" : "Couldn't copy.");
-                        }}
-                      >
-                        <Copy className="w-3.5 h-3.5 mr-1" /> Copy link
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="rounded-full text-muted-foreground hover:text-destructive"
-                        onClick={() => revokeInvite.mutate(i.id)}
-                        title="Revoke invitation"
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Active co-hosts */}
-          {cohostsList && cohostsList.length > 0 && (
-            <div className="bg-card rounded-xl p-6 space-y-3">
-              <h3 className="font-display font-semibold text-lg">Active co-hosts</h3>
-              <div className="space-y-2">
-                {cohostsList.map((c: any) => {
-                  const matchingInvite = invitations?.find((i: any) => i.accepted_by === c.cohost_user_id && i.event_id === c.event_id);
-                  return (
-                    <div key={c.id} className="flex items-center gap-3 p-3 rounded-xl bg-muted/40">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{matchingInvite?.email || "Co-host"}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <Badge variant="secondary" className="text-xs rounded-full">
-                            {c.event_id ? eventNameById(c.event_id) || "Event" : "All events"}
-                          </Badge>
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="rounded-full text-muted-foreground hover:text-destructive"
-                        onClick={() => removeCohost.mutate(c.id)}
-                        title="Remove co-host"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </TabsContent>
       </Tabs>
     </div>

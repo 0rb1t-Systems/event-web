@@ -1,11 +1,17 @@
 import { motion } from "framer-motion";
 import { useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { CalendarDays, MapPin, Video, Globe, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { copyToClipboard } from "@/lib/clipboard";
+import { getPublicOrigin } from "@/lib/publicUrl";
+import { toast } from "sonner";
 type Event = any;
 type EventModule = any;
 import { Hero } from "./Hero";
 import { StickyRegisterBar } from "./StickyRegisterBar";
 import { PublicModule } from "./PublicModule";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Props {
   event: Event;
@@ -14,6 +20,8 @@ interface Props {
   isDark: boolean;
   formattedDate: string;
   formSlot: React.ReactNode;
+  registerLabel?: string;
+  registerDisabled?: boolean;
 }
 
 /**
@@ -28,11 +36,25 @@ export function PublicEventPage({
   isDark,
   formattedDate,
   formSlot,
+  registerLabel,
+  registerDisabled,
 }: Props) {
   const registerRef = useRef<HTMLDivElement>(null);
 
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
   const scrollToRegister = () => {
     registerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const handleRegisterClick = () => {
+    if (registerDisabled) return;
+    if (!user) {
+      navigate(`/auth?redirect=${encodeURIComponent(`/events/${event.id}`)}`);
+      return;
+    }
+    scrollToRegister();
   };
 
   const visibleModules = modules
@@ -46,6 +68,16 @@ export function PublicEventPage({
     event.location_type === "physical" ? MapPin :
     event.location_type === "hybrid" ? Globe : Video;
 
+  const shareUrl =
+    typeof window !== "undefined"
+      ? `${getPublicOrigin()}/events/${event.id}`
+      : `/events/${event.id}`;
+
+  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareUrl)}`;
+  const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
+  const linkedinUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
+  const xUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}`;
+
   return (
     <div className={isDark ? "dark" : ""}>
       <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
@@ -53,14 +85,65 @@ export function PublicEventPage({
           event={event}
           brandColor={brandColor}
           formattedDate={formattedDate}
-          onRegisterClick={scrollToRegister}
+          onRegisterClick={handleRegisterClick}
+          registerLabel={registerLabel}
+          registerDisabled={registerDisabled}
         />
 
         <StickyRegisterBar
           brandColor={brandColor}
           eventName={event.name}
-          onRegisterClick={scrollToRegister}
+          onRegisterClick={handleRegisterClick}
+          registerLabel={registerLabel}
+          registerDisabled={registerDisabled}
         />
+
+        {/* Share kit (Prompt 2) */}
+        <section className="relative px-5 sm:px-8 lg:px-12 pt-8 sm:pt-10 pb-0">
+          <div className="max-w-4xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <p className="text-[10px] sm:text-xs font-bold tracking-[0.25em] uppercase text-muted-foreground">
+                Share
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">Invite friends with the numeric event link.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <a href={whatsappUrl} target="_blank" rel="noreferrer" className="inline-flex">
+                <Button type="button" variant="outline" size="sm" className="rounded-full">
+                  WhatsApp
+                </Button>
+              </a>
+              <a href={facebookUrl} target="_blank" rel="noreferrer" className="inline-flex">
+                <Button type="button" variant="outline" size="sm" className="rounded-full">
+                  Facebook
+                </Button>
+              </a>
+              <a href={linkedinUrl} target="_blank" rel="noreferrer" className="inline-flex">
+                <Button type="button" variant="outline" size="sm" className="rounded-full">
+                  LinkedIn
+                </Button>
+              </a>
+              <a href={xUrl} target="_blank" rel="noreferrer" className="inline-flex">
+                <Button type="button" variant="outline" size="sm" className="rounded-full">
+                  X
+                </Button>
+              </a>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-full"
+                onClick={async () => {
+                  const ok = await copyToClipboard(shareUrl);
+                  if (ok) toast.success("Link copied");
+                  else toast.error("Couldn&apos;t copy link");
+                }}
+              >
+                Copy link
+              </Button>
+            </div>
+          </div>
+        </section>
 
         {/* Editorial intro — only when description exists */}
         {event.description && (

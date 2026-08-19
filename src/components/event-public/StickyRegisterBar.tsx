@@ -5,13 +5,21 @@ interface Props {
   brandColor: string;
   eventName: string;
   onRegisterClick: () => void;
+  registerLabel?: string;
+  registerDisabled?: boolean;
 }
 
 /**
  * Sticky bottom (mobile) / top (desktop) register bar that springs in once the
  * hero scrolls out of view. Includes safe-area padding for iOS.
  */
-export function StickyRegisterBar({ brandColor, eventName, onRegisterClick }: Props) {
+export function StickyRegisterBar({
+  brandColor,
+  eventName,
+  onRegisterClick,
+  registerLabel = "Register",
+  registerDisabled = false,
+}: Props) {
   const [show, setShow] = useState(false);
   const { scrollY } = useScroll();
   useMotionValueEvent(scrollY, "change", (v) => {
@@ -43,14 +51,17 @@ export function StickyRegisterBar({ brandColor, eventName, onRegisterClick }: Pr
             <button
               type="button"
               onClick={onRegisterClick}
-              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 h-11 sm:h-12 px-6 sm:px-7 rounded-full text-sm sm:text-base font-semibold text-white transition-transform hover:scale-[1.02] active:scale-[0.99]"
+              disabled={registerDisabled}
+              className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-2 h-11 sm:h-12 px-6 sm:px-7 rounded-full text-sm sm:text-base font-semibold text-white transition-transform hover:scale-[1.02] active:scale-[0.99] ${
+                registerDisabled ? "opacity-60 cursor-not-allowed hover:scale-[1] active:scale-[1]" : ""
+              }`}
               style={{
                 background: `linear-gradient(135deg, ${brandColor}, hsl(265 90% 62%))`,
                 boxShadow: `0 12px 30px -8px ${brandColor}88`,
               }}
             >
-              Register
-              <span>→</span>
+              {registerLabel}
+              {!registerDisabled && <span>→</span>}
             </button>
           </div>
         </motion.div>

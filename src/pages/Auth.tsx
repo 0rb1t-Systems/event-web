@@ -8,50 +8,97 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Logo } from "@/components/Logo";
 import { motion } from "framer-motion";
-import { Magnetic } from "@/components/motion/Magnetic";
 import { staggerContainer, staggerItem } from "@/components/motion/Reveal";
+import { getApiErrorMessage, isUnverifiedAccountError } from "@/lib/apiError";
+import { getSafeInternalPath } from "@/lib/authRedirect";
+import { VerifyEmailPanel } from "@/components/auth/VerifyEmailPanel";
+import { ForgotPasswordPanel } from "@/components/auth/ForgotPasswordPanel";
+
+type AuthPanel = "tabs" | "verify" | "forgot";
 
 const Auth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const redirectTo = searchParams.get("redirect") || "/dashboard";
-  const { user } = useAuth();
+  const redirectTo = getSafeInternalPath(searchParams.get("redirect"));
+  const {
+    user,
+    isLoading: authLoading,
+    login,
+    register,
+    verifyEmail,
+    resendVerification,
+    forgotPassword,
+    resetPassword,
+  } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [panel, setPanel] = useState<AuthPanel>("tabs");
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [signupName, setSignupName] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
+  const [signupPasswordConfirm, setSignupPasswordConfirm] = useState("");
+  const [pendingEmail, setPendingEmail] = useState("");
+  const [pendingPassword, setPendingPassword] = useState("");
 
   useEffect(() => {
-    if (user) navigate(redirectTo, { replace: true });
-  }, [user, navigate, redirectTo]);
+    if (searchParams.get("expired") === "1") {
+      toast.error("Your session expired. Please sign in again.");
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (authLoading || !user) return;
+    navigate(redirectTo, { replace: true });
+  }, [user, authLoading, navigate, redirectTo]);
+
+  const finishAuthenticated = async (email: string, password: string) => {
+    await login(email, password);
+    toast.success("Welcome back!");
+    navigate(redirectTo, { replace: true });
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    console.log("TODO: login", { email: loginEmail });
-    const error = null;
-    setLoading(false);
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success("Welcome back!");
+    try {
+      await finishAuthenticated(loginEmail, loginPassword);
+    } catch (error) {
+      if (isUnverifiedAccountError(error)) {
+        setPendingEmail(loginEmail);
+        setPendingPassword(loginPassword);
+        setPanel("verify");
+        toast.error("Please verify your email before signing in.");
+      } else {
+        toast.error(getApiErrorMessage(error, "Invalid email or password."));
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    console.log("TODO: signup", { name: signupName, email: signupEmail });
-    const data = { session: null };
-    const error = null;
-    setLoading(false);
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success(data.session ? "Account created!" : "Account created! Check your email to confirm before signing in.");
+    if (signupPassword !== signupPasswordConfirm) {
+      toast.error("Passwords do not match.");
+      return;
     }
+    setLoading(true);
+    try {
+      await register(signupName, signupEmail, signupPassword, signupPasswordConfirm);
+      setPendingEmail(signupEmail);
+      setPendingPassword(signupPassword);
+      setPanel("verify");
+      toast.success("Account created! Check your email for a verification code.");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Could not create your account."));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const googleUnavailable = () => {
+    toast.error("Google sign-in is coming soon. Use email and password for now.");
   };
 
   return (
@@ -104,6 +151,80 @@ const Auth = () => {
 
         {/* Auth card */}
         <motion.div variants={staggerItem} className="bg-card rounded-2xl border border-border shadow-lg p-6 sm:p-7">
+          {authLoading ? (
+            <div className="flex justify-center py-10">
+              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : panel === "verify" ? (
+            <VerifyEmailPanel
+              email={pendingEmail}
+              loading={loading}
+              onVerify={async (code) => {
+                setLoading(true);
+                try {
+                  await verifyEmail(pendingEmail, code);
+                  toast.success("Email verified.");
+                  if (pendingPassword) {
+                    await finishAuthenticated(pendingEmail, pendingPassword);
+                  } else {
+                    setPanel("tabs");
+                    setLoginEmail(pendingEmail);
+                    toast.success("You can sign in now.");
+                  }
+                } catch (error) {
+                  toast.error(getApiErrorMessage(error, "That verification code is invalid or expired."));
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              onResend={async () => {
+                try {
+                  await resendVerification(pendingEmail);
+                  toast.success("A new verification code is on its way.");
+                } catch (error) {
+                  toast.error(getApiErrorMessage(error, "Could not resend the verification code."));
+                }
+              }}
+              onBack={() => setPanel("tabs")}
+            />
+          ) : panel === "forgot" ? (
+            <ForgotPasswordPanel
+              initialEmail={loginEmail}
+              loading={loading}
+              onSendCode={async (email) => {
+                setLoading(true);
+                try {
+                  await forgotPassword(email);
+                  setPendingEmail(email);
+                  toast.success("Check your email for a reset code.");
+                } catch (error) {
+                  toast.error(getApiErrorMessage(error, "Could not send a reset code."));
+                  throw error;
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              onReset={async ({ email, resetCode, password, passwordConfirmation }) => {
+                if (password !== passwordConfirmation) {
+                  toast.error("Passwords do not match.");
+                  return;
+                }
+                setLoading(true);
+                try {
+                  await resetPassword(email, resetCode, password, passwordConfirmation);
+                  toast.success("Password updated. Sign in with your new password.");
+                  setLoginEmail(email);
+                  setLoginPassword("");
+                  setPanel("tabs");
+                } catch (error) {
+                  toast.error(getApiErrorMessage(error, "That reset code is invalid."));
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              onBack={() => setPanel("tabs")}
+            />
+          ) : (
           <Tabs defaultValue="login">
             <TabsList className="grid w-full grid-cols-2 rounded-full bg-muted p-1 mb-6">
               <TabsTrigger value="login" className="rounded-full data-[state=active]:bg-card data-[state=active]:shadow-sm text-sm font-medium">
@@ -148,13 +269,7 @@ const Auth = () => {
                 <button
                   type="button"
                   className="block mx-auto text-xs text-muted-foreground hover:text-foreground transition-colors"
-                  onClick={async () => {
-                    if (!loginEmail) return toast.error("Enter your email first");
-                    console.log("TODO: reset password", { email: loginEmail });
-                    const error = null;
-                    if (error) toast.error(error.message);
-                    else toast.success("Password reset link sent — check your inbox");
-                  }}
+                  onClick={() => setPanel("forgot")}
                 >
                   Forgot password?
                 </button>
@@ -168,11 +283,7 @@ const Auth = () => {
               <Button
                 variant="outline"
                 className="w-full mt-5 rounded-full h-11 border-input hover:bg-muted font-medium"
-                onClick={async () => {
-                  console.log("TODO: Google OAuth login");
-                  const error = null;
-                  if (error) toast.error(error.message || "Google sign-in failed");
-                }}
+                onClick={googleUnavailable}
               >
                 <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
@@ -218,10 +329,25 @@ const Auth = () => {
                     type="password"
                     placeholder="••••••••"
                     required
+                    minLength={8}
                     value={signupPassword}
                     onChange={e => setSignupPassword(e.target.value)}
                     className="rounded-full h-11 px-4 border-input"
                     data-testid="signup-password"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="password-signup-confirm" className="text-sm font-medium text-foreground">Confirm password</Label>
+                  <Input
+                    id="password-signup-confirm"
+                    type="password"
+                    placeholder="••••••••"
+                    required
+                    minLength={8}
+                    value={signupPasswordConfirm}
+                    onChange={e => setSignupPasswordConfirm(e.target.value)}
+                    className="rounded-full h-11 px-4 border-input"
+                    data-testid="signup-password-confirm"
                   />
                 </div>
                 <Button type="submit" className="w-full rounded-full h-11 bg-foreground text-background hover:bg-foreground/90 hover:scale-[1.02] transition-transform font-medium" disabled={loading} data-testid="signup-submit">
@@ -237,11 +363,7 @@ const Auth = () => {
               <Button
                 variant="outline"
                 className="w-full mt-5 rounded-full h-11 border-input hover:bg-muted font-medium"
-                onClick={async () => {
-                  console.log("TODO: Google OAuth signup");
-                  const error = null;
-                  if (error) toast.error(error.message || "Google sign-in failed");
-                }}
+                onClick={googleUnavailable}
               >
                 <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
@@ -253,6 +375,7 @@ const Auth = () => {
               </Button>
             </TabsContent>
           </Tabs>
+          )}
         </motion.div>
 
         <motion.p variants={staggerItem} className="text-center text-xs text-muted-foreground mt-6">

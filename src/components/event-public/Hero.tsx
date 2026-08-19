@@ -8,6 +8,8 @@ interface Props {
   brandColor: string;
   formattedDate: string;
   onRegisterClick: () => void;
+  registerLabel?: string;
+  registerDisabled?: boolean;
 }
 
 /**
@@ -15,7 +17,14 @@ interface Props {
  * slow Ken-Burns scale, layered scrim, and parallax title. If no image exists, a
  * brand-tinted gradient stage is rendered instead — never an empty box.
  */
-export function Hero({ event, brandColor, formattedDate, onRegisterClick }: Props) {
+export function Hero({
+  event,
+  brandColor,
+  formattedDate,
+  onRegisterClick,
+  registerLabel = "Register now",
+  registerDisabled = false,
+}: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const reduce = useReducedMotion();
   const { scrollY } = useScroll();
@@ -95,6 +104,20 @@ export function Hero({ event, brandColor, formattedDate, onRegisterClick }: Prop
               {formattedDate}
             </div>
           )}
+          {(event.organizer_business_name || event.category_name) && (
+            <div className="mt-2 flex flex-wrap items-center gap-2 sm:gap-2.5">
+              {event.organizer_business_name && (
+                <span className="inline-flex items-center gap-2 h-9 px-4 rounded-full text-sm font-medium text-white/90 bg-white/10 backdrop-blur-md">
+                  Presented by <span className="font-semibold text-white">{event.organizer_business_name}</span>
+                </span>
+              )}
+              {event.category_name && (
+                <span className="inline-flex items-center gap-2 h-9 px-4 rounded-full text-sm font-medium text-white/90 bg-white/10 backdrop-blur-md">
+                  {event.category_name}
+                </span>
+              )}
+            </div>
+          )}
           <h1
             className="font-display font-bold tracking-[-0.035em] leading-[1.0] sm:leading-[0.95] text-white break-words hyphens-auto"
             style={{ fontSize: "clamp(2.25rem, 6.5vw, 7.5rem)" }}
@@ -110,14 +133,17 @@ export function Hero({ event, brandColor, formattedDate, onRegisterClick }: Prop
             <button
               type="button"
               onClick={onRegisterClick}
-              className="group inline-flex items-center justify-center gap-2 h-12 sm:h-14 px-7 sm:px-9 rounded-full text-base sm:text-lg font-semibold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.99]"
+              disabled={registerDisabled}
+              className={`group inline-flex items-center justify-center gap-2 h-12 sm:h-14 px-7 sm:px-9 rounded-full text-base sm:text-lg font-semibold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.99] ${
+                registerDisabled ? "opacity-60 cursor-not-allowed hover:scale-[1] active:scale-[1]" : ""
+              }`}
               style={{
                 background: `linear-gradient(135deg, ${brandColor}, hsl(265 90% 62%))`,
                 boxShadow: `0 18px 50px -12px ${brandColor}aa`,
               }}
             >
-              Register now
-              <span className="transition-transform group-hover:translate-x-1">→</span>
+              {registerLabel}
+              {!registerDisabled && <span className="transition-transform group-hover:translate-x-1">→</span>}
             </button>
             <span className="inline-flex items-center gap-2 h-12 sm:h-14 px-5 sm:px-6 rounded-full text-sm font-medium text-white bg-white/10 backdrop-blur-md">
               <LocationIcon className="w-4 h-4" />

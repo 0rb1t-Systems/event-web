@@ -1,30 +1,38 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useParams, useSearchParams, useNavigate } from "react-router-dom";
-import { CalendarDays, MapPin, Video, Globe, Loader2, CheckCircle2, Clock, Zap } from "lucide-react";
-import { mockEvent } from "@/lib/mockData";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useParams, useNavigate } from "react-router-dom";
+import {
+  CalendarDays, MapPin, Video, Globe, Loader2, CheckCircle2,
+  Clock, AlertTriangle, Phone,
+} from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { publicApi } from "@/lib/api";
+import { getApiErrorMessage } from "@/lib/apiError";
+import {
+  adaptPublicEventDetailToUi, adaptUiFormFields,
+  type PublicEventDetailResponse, type PublicEventFormFieldResponse,
+  type PublicEventUiModel, type UiFormField,
+} from "@/lib/publicEventsAdapters";
 
 import { PublicEventPage } from "@/components/event-public/PublicEventPage";
 import { toast } from "sonner";
-import { motion } from "framer-motion";
-import PhoneInput from "react-phone-number-input";
-import "react-phone-number-input/style.css";
+import { motion, AnimatePresence } from "framer-motion";
 import { AuroraBackdrop, GlassCard } from "@/components/register/AuroraBackdrop";
+import { getMediaUrl } from "@/lib/mediaUrl";
 import type { TicketTier } from "@/components/event-detail/TicketTiersManager";
 import { Crown, Ticket as TicketIcon, Check, Minus, Plus } from "lucide-react";
+import {
+  createParticipation, chargeParticipation, getParticipation,
+  type ApiParticipation,
+} from "@/services/participationService";
 
-type Event = any;
-type FormField = {
-  id: string;
-  label: string;
-  field_type: "text" | "email" | "tel" | "url";
-  required: boolean;
-  placeholder?: string | null;
-};
+type FormField = UiFormField;
 
 const formatTicketPrice = (price: number, currency = "USD") => {
   if (!price) return "Free";
@@ -89,20 +97,26 @@ const TicketPicker = ({
     <div className="space-y-2">
       {tickets.map((t) => {
         const selected = selectedId === t.id;
+        const soldOut = t.capacity !== null && t.capacity !== undefined && t.capacity <= 0;
         return (
           <motion.button
             type="button"
             key={t.id}
-            onClick={() => onSelect(t.id)}
-            whileTap={{ scale: 0.99 }}
+            onClick={() => !soldOut && onSelect(t.id)}
+            whileTap={soldOut ? undefined : { scale: 0.99 }}
+            disabled={soldOut}
             className={`group w-full text-left relative overflow-hidden rounded-2xl p-4 transition-all ${
-              selected ? "bg-card" : "bg-muted/40 hover:bg-muted/70"
+              soldOut
+                ? "opacity-50 cursor-not-allowed bg-muted/30"
+                : selected
+                  ? "bg-card"
+                  : "bg-muted/40 hover:bg-muted/70"
             }`}
-            style={selected ? {
+            style={selected && !soldOut ? {
               boxShadow: `0 0 0 1.5px ${brandColor}, 0 18px 40px -20px ${brandColor}66`,
             } : undefined}
           >
-            {selected && (
+            {selected && !soldOut && (
               <motion.div
                 layoutId="ticket-glow"
                 className="absolute inset-0 -z-10 opacity-60"
@@ -112,9 +126,9 @@ const TicketPicker = ({
             <div className="flex items-center gap-3.5">
               <div
                 className={`shrink-0 w-10 h-10 rounded-full inline-flex items-center justify-center transition ${
-                  selected ? "text-white" : t.is_vip ? "text-foreground bg-background" : "bg-background text-muted-foreground"
+                  selected && !soldOut ? "text-white" : t.is_vip ? "text-foreground bg-background" : "bg-background text-muted-foreground"
                 }`}
-                style={selected ? {
+                style={selected && !soldOut ? {
                   background: t.is_vip
                     ? `linear-gradient(135deg, ${brandColor}, hsl(265 90% 62%))`
                     : brandColor,
@@ -135,6 +149,11 @@ const TicketPicker = ({
                       VIP
                     </span>
                   )}
+                  {soldOut && (
+                    <span className="text-[9px] uppercase tracking-[0.2em] font-bold px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+                      Sold out
+                    </span>
+                  )}
                 </div>
                 {t.description && (
                   <p className="text-xs text-muted-foreground truncate mt-0.5">{t.description}</p>
@@ -148,7 +167,7 @@ const TicketPicker = ({
                 </div>
                 <div
                   className={`shrink-0 w-5 h-5 rounded-full inline-flex items-center justify-center transition ${
-                    selected ? "scale-100" : "scale-0"
+                    selected && !soldOut ? "scale-100" : "scale-0"
                   }`}
                   style={{ background: brandColor }}
                 >
@@ -157,7 +176,7 @@ const TicketPicker = ({
               </div>
             </div>
 
-            {selected && (
+            {selected && !soldOut && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
@@ -177,10 +196,392 @@ const TicketPicker = ({
   </div>
 );
 
+// ─── Single dynamic form field ───────────────────────────────────────────────
 
-// ─── Helper: format event date/time with timezone ───
+const DynamicField = ({
+  field, value, onChange, brandColor,
+}: {
+  field: FormField;
+  value: string;
+  onChange: (key: string, value: string) => void;
+  brandColor: string;
+}) => {
+  const inputClass = "h-12 rounded-2xl bg-muted/40 border-0 px-4 text-sm placeholder:text-muted-foreground/60 focus-visible:ring-2 focus-visible:ring-offset-0";
+
+  switch (field.field_type) {
+    case "select": {
+      const opts = Array.isArray(field.options) ? field.options : [];
+      const normalized = opts.map((o) =>
+        typeof o === "string" ? { value: o, label: o } : (o as { value: string; label: string })
+      );
+      return (
+        <Select value={value || ""} onValueChange={(v) => onChange(field.key, v)}>
+          <SelectTrigger className={inputClass} style={{ ["--tw-ring-color" as any]: brandColor }}>
+            <SelectValue placeholder={field.placeholder || field.label} />
+          </SelectTrigger>
+          <SelectContent>
+            {normalized.map((o) => (
+              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      );
+    }
+    case "checkbox":
+      return (
+        <div className="flex items-center gap-2.5">
+          <Checkbox
+            id={field.key}
+            checked={value === "true"}
+            onCheckedChange={(c) => onChange(field.key, c ? "true" : "false")}
+          />
+          <Label htmlFor={field.key} className="text-sm text-foreground/80 cursor-pointer">
+            {field.placeholder || field.label}
+          </Label>
+        </div>
+      );
+    case "date":
+      return (
+        <Input
+          type="date"
+          required={field.required}
+          value={value || ""}
+          onChange={(e) => onChange(field.key, e.target.value)}
+          className={inputClass}
+          style={{ ["--tw-ring-color" as any]: brandColor }}
+        />
+      );
+    case "number":
+      return (
+        <Input
+          type="number"
+          placeholder={field.placeholder || field.label}
+          required={field.required}
+          value={value || ""}
+          onChange={(e) => onChange(field.key, e.target.value)}
+          className={inputClass}
+          style={{ ["--tw-ring-color" as any]: brandColor }}
+        />
+      );
+    default:
+      return (
+        <Input
+          type="text"
+          placeholder={field.placeholder || field.label}
+          required={field.required}
+          value={value || ""}
+          onChange={(e) => onChange(field.key, e.target.value)}
+          className={inputClass}
+          style={{ ["--tw-ring-color" as any]: brandColor }}
+        />
+      );
+  }
+};
+
+// ─── Waafi phone step ─────────────────────────────────────────────────────────
+
+const WaafiPhoneStep = ({
+  participationId, eventName, amount, currency, brandColor, isDark,
+  onSuccess, onFailure, onCancel,
+}: {
+  participationId: number;
+  eventName: string;
+  amount: string;
+  currency: string;
+  brandColor: string;
+  isDark?: boolean;
+  onSuccess: (participation: ApiParticipation) => void;
+  onFailure: (msg: string) => void;
+  onCancel: () => void;
+}) => {
+  const [phone, setPhone] = useState("");
+  const [charging, setCharging] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, []);
+
+  const handleCharge = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!phone.trim()) {
+      toast.error("Please enter your EVC Plus phone number.");
+      return;
+    }
+
+    setCharging(true);
+    setElapsed(0);
+    timerRef.current = setInterval(() => setElapsed((s) => s + 1), 1000);
+
+    try {
+      const payment = await chargeParticipation({ participation_id: participationId, payer_phone: phone.trim() });
+      if (timerRef.current) clearInterval(timerRef.current);
+
+      if (payment.status === "completed") {
+        // Fetch updated participation after payment
+        try {
+          const updated = await getParticipation(participationId);
+          onSuccess(updated);
+        } catch {
+          // Use embedded participation if re-fetch fails
+          const embedded = payment.participation;
+          onSuccess(embedded ?? { id: participationId } as ApiParticipation);
+        }
+      } else {
+        const reason = payment.failure_reason || payment.failure_code || "Payment failed.";
+        onFailure(reason);
+      }
+    } catch (err: any) {
+      if (timerRef.current) clearInterval(timerRef.current);
+      const status = err?.response?.status;
+      const msg = getApiErrorMessage(err);
+      if (status === 400 && msg.toLowerCase().includes("already pending")) {
+        onFailure("A payment is already pending for this participation. Please wait for the previous request to complete.");
+      } else if (status === 400 && msg.toLowerCase().includes("already paid")) {
+        // Payment was completed by another path — re-fetch
+        try {
+          const updated = await getParticipation(participationId);
+          onSuccess(updated);
+        } catch {
+          onSuccess({ id: participationId } as ApiParticipation);
+        }
+      } else {
+        onFailure(msg || "Payment failed. Please try again.");
+      }
+    } finally {
+      setCharging(false);
+      setElapsed(0);
+    }
+  };
+
+  const formattedAmount = (() => {
+    try {
+      return new Intl.NumberFormat(undefined, { style: "currency", currency, maximumFractionDigits: 0 }).format(Number(amount));
+    } catch {
+      return `${currency} ${amount}`;
+    }
+  })();
+
+  return (
+    <motion.div
+      key="waafi"
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -12 }}
+      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+      className="w-full max-w-lg mx-auto relative z-10"
+    >
+      <GlassCard isDark={isDark} brandColor={brandColor}>
+        <div className="p-8">
+          <div className="flex items-center gap-3 mb-6">
+            <div
+              className="w-11 h-11 rounded-full flex items-center justify-center shrink-0"
+              style={{ background: `linear-gradient(135deg, ${brandColor}, hsl(265 90% 62%))` }}
+            >
+              <Phone className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="font-display font-bold text-lg tracking-[-0.02em]">Pay with EVC Plus</h2>
+              <p className="text-muted-foreground text-xs">{eventName}</p>
+            </div>
+          </div>
+
+          <div
+            className="rounded-2xl px-4 py-3 mb-6"
+            style={{ background: `${brandColor}12` }}
+          >
+            <p className="text-[10px] uppercase tracking-[0.18em] font-bold text-muted-foreground mb-0.5">Total</p>
+            <p className="text-2xl font-display font-bold tabular-nums tracking-[-0.02em]" style={{ color: brandColor }}>
+              {formattedAmount}
+            </p>
+          </div>
+
+          <AnimatePresence mode="wait">
+            {charging ? (
+              <motion.div
+                key="pending"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center py-4 space-y-4"
+              >
+                <Loader2 className="w-8 h-8 animate-spin mx-auto" style={{ color: brandColor }} />
+                <div>
+                  <p className="font-semibold text-sm">Waiting for approval on your phone.</p>
+                  <p className="text-muted-foreground text-xs mt-1">
+                    Check your EVC prompt and enter your PIN.
+                  </p>
+                  <p className="text-muted-foreground text-xs">
+                    This can take up to 3 minutes.
+                  </p>
+                  {elapsed > 0 && (
+                    <p className="text-muted-foreground text-xs mt-2 tabular-nums">
+                      {elapsed}s elapsed…
+                    </p>
+                  )}
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Do not close this page.
+                </p>
+              </motion.div>
+            ) : (
+              <motion.form
+                key="form"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                onSubmit={handleCharge}
+                className="space-y-4"
+              >
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-foreground/80">
+                    EVC Plus phone number
+                  </Label>
+                  <Input
+                    type="tel"
+                    placeholder="e.g. 0612345678 or +252612345678"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    required
+                    className="h-12 rounded-2xl bg-muted/40 border-0 px-4 text-sm placeholder:text-muted-foreground/60 focus-visible:ring-2 focus-visible:ring-offset-0"
+                    style={{ ["--tw-ring-color" as any]: brandColor }}
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Enter the phone number linked to your Hormuud EVC wallet.
+                    You&apos;ll receive a PIN prompt on your phone.
+                  </p>
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full h-14 text-base border-0 text-white rounded-full font-display font-semibold tracking-[-0.01em] transition-transform hover:scale-[1.01] active:scale-[0.99]"
+                  style={{
+                    background: `linear-gradient(135deg, ${brandColor}, hsl(265 90% 62%))`,
+                    boxShadow: `0 18px 40px -12px ${brandColor}99, 0 0 0 1px rgba(255,255,255,0.08) inset`,
+                  }}
+                >
+                  Send payment request
+                </Button>
+
+                <button
+                  type="button"
+                  onClick={onCancel}
+                  className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors py-1"
+                >
+                  Cancel
+                </button>
+              </motion.form>
+            )}
+          </AnimatePresence>
+        </div>
+      </GlassCard>
+    </motion.div>
+  );
+};
+
+// ─── Result screens ───────────────────────────────────────────────────────────
+
+const SuccessCard = ({
+  brandColor, eventName, waitlisted, participationId, isDark,
+}: {
+  brandColor: string;
+  eventName: string;
+  waitlisted: boolean;
+  participationId: number | null;
+  isDark?: boolean;
+}) => {
+  const navigate = useNavigate();
+  return (
+    <motion.div
+      key="success"
+      initial={{ opacity: 0, scale: 0.92, y: 20 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{ type: "spring", damping: 18 }}
+      className="w-full max-w-lg mx-auto relative z-10"
+    >
+      <GlassCard isDark={isDark} brandColor={brandColor}>
+        <div className="p-10 text-center">
+          <motion.div
+            initial={{ scale: 0, rotate: -90 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: "spring", delay: 0.2, damping: 12 }}
+            className="relative inline-block mb-5"
+          >
+            <div className="absolute inset-0 blur-2xl rounded-full" style={{ background: brandColor, opacity: 0.5 }} />
+            <div
+              className="relative w-20 h-20 rounded-full flex items-center justify-center"
+              style={{
+                background: `linear-gradient(135deg, ${brandColor}, hsl(265 90% 65%))`,
+                boxShadow: `0 12px 40px -8px ${brandColor}88`,
+              }}
+            >
+              {waitlisted ? <Clock className="w-9 h-9 text-white" /> : <CheckCircle2 className="w-9 h-9 text-white" />}
+            </div>
+          </motion.div>
+          <h2 className="text-3xl font-display font-bold mb-3 tracking-[-0.02em]">
+            {waitlisted ? "You're on the waitlist" : "You're registered!"}
+          </h2>
+          <p className="text-muted-foreground leading-relaxed">
+            {waitlisted
+              ? <>This event is at capacity. We&apos;ve added you to the waitlist for <strong>{eventName}</strong> and will notify you if a spot opens up.</>
+              : <>Thank you for registering for <strong>{eventName}</strong>. You&apos;ll receive a confirmation email shortly.</>}
+          </p>
+          {!waitlisted && participationId && (
+            <Button
+              className="mt-6 rounded-full h-11 px-6 text-white border-0 font-semibold"
+              style={{ background: `linear-gradient(135deg, ${brandColor}, hsl(265 90% 62%))` }}
+              onClick={() => navigate(`/registrations/${participationId}`)}
+            >
+              View your ticket
+            </Button>
+          )}
+        </div>
+      </GlassCard>
+    </motion.div>
+  );
+};
+
+const PaymentFailCard = ({
+  brandColor, reason, onRetry, isDark,
+}: {
+  brandColor: string;
+  reason: string;
+  onRetry: () => void;
+  isDark?: boolean;
+}) => (
+  <motion.div
+    key="fail"
+    initial={{ opacity: 0, scale: 0.92, y: 20 }}
+    animate={{ opacity: 1, scale: 1, y: 0 }}
+    transition={{ type: "spring", damping: 18 }}
+    className="w-full max-w-lg mx-auto relative z-10"
+  >
+    <GlassCard isDark={isDark} brandColor={brandColor}>
+      <div className="p-10 text-center">
+        <div className="relative inline-block mb-5">
+          <div className="w-20 h-20 rounded-full flex items-center justify-center bg-destructive/10 mx-auto">
+            <AlertTriangle className="w-9 h-9 text-destructive" />
+          </div>
+        </div>
+        <h2 className="text-2xl font-display font-bold mb-3 tracking-[-0.02em]">Payment failed</h2>
+        <p className="text-muted-foreground text-sm leading-relaxed mb-6">{reason}</p>
+        <Button
+          className="rounded-full h-11 px-6 text-white border-0 font-semibold"
+          style={{ background: `linear-gradient(135deg, ${brandColor}, hsl(265 90% 62%))` }}
+          onClick={onRetry}
+        >
+          Try again
+        </Button>
+      </div>
+    </GlassCard>
+  </motion.div>
+);
+
+// ─── Event info sidebar ───────────────────────────────────────────────────────
+
+type Event = PublicEventUiModel;
+
 function formatEventDateTime(event: Event) {
-  const tz = event.timezone || "America/New_York";
+  const tz = event.timezone || "Africa/Mogadishu";
   const parts: string[] = [];
 
   if (event.event_date) {
@@ -194,7 +595,6 @@ function formatEventDateTime(event: Event) {
       const end = new Date(event.event_end_date);
       const endDateStr = end.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: tz });
       const endTimeStr = end.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: tz });
-
       if (endDateStr === dateStr) {
         line += ` – ${endTimeStr}`;
       } else {
@@ -202,48 +602,25 @@ function formatEventDateTime(event: Event) {
       }
     }
 
-    // Timezone abbreviation
     const tzAbbr = start.toLocaleTimeString("en-US", { timeZone: tz, timeZoneName: "short" }).split(" ").pop() || tz;
     line += ` ${tzAbbr}`;
-
     parts.push(line);
   }
 
   return parts.join("");
 }
 
-// ─── Extracted stable components ───
-
-const SuccessCard = ({ brandColor, eventName, waitlisted, isDark }: { brandColor: string; eventName: string; waitlisted: boolean; isDark?: boolean }) => (
-  <motion.div key="success" initial={{ opacity: 0, scale: 0.92, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ type: "spring", damping: 18 }} className="w-full max-w-lg mx-auto relative z-10">
-    <GlassCard isDark={isDark} brandColor={brandColor}>
-      <div className="p-10 text-center">
-        <motion.div initial={{ scale: 0, rotate: -90 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", delay: 0.2, damping: 12 }} className="relative inline-block mb-5">
-          <div className="absolute inset-0 blur-2xl rounded-full" style={{ background: brandColor, opacity: 0.5 }} />
-          <div className="relative w-20 h-20 rounded-full flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${brandColor}, hsl(265 90% 65%))`, boxShadow: `0 12px 40px -8px ${brandColor}88` }}>
-            {waitlisted ? <Clock className="w-9 h-9 text-white" /> : <CheckCircle2 className="w-9 h-9 text-white" />}
-          </div>
-        </motion.div>
-        <h2 className="text-3xl font-display font-bold mb-3 tracking-[-0.02em]">
-          {waitlisted ? "You're on the waitlist" : "You're registered"}
-        </h2>
-        <p className="text-muted-foreground leading-relaxed">
-          {waitlisted
-            ? <>This event is at capacity. We've added you to the waitlist for <strong>{eventName}</strong> and will email you if a spot opens up.</>
-            : <>Thank you for registering for <strong>{eventName}</strong>. You'll receive a confirmation email shortly.</>}
-        </p>
-      </div>
-    </GlassCard>
-  </motion.div>
-);
-
 const EventInfo = ({ event, className = "" }: { event: Event; className?: string }) => {
   const [expanded, setExpanded] = useState(false);
-  const locationIcon = event.location_type === "physical" ? <MapPin className="w-4 h-4" /> : event.location_type === "hybrid" ? <Globe className="w-4 h-4" /> : <Video className="w-4 h-4" />;
-  const locationLabel = event.location_type === "physical" ? "In-Person" : event.location_type === "hybrid" ? "Hybrid" : "Virtual";
+  const locationIcon =
+    event.location_type === "physical" ? <MapPin className="w-4 h-4" /> :
+    event.location_type === "hybrid" ? <Globe className="w-4 h-4" /> :
+    <Video className="w-4 h-4" />;
+  const locationLabel =
+    event.location_type === "physical" ? "In-Person" :
+    event.location_type === "hybrid" ? "Hybrid" : "Virtual";
   const dateTimeStr = formatEventDateTime(event);
 
-  // Truncate to first 2 sentences
   const description = event.description || "";
   const sentences = description.match(/[^.!?]*[.!?]+/g) || [description];
   const isTruncatable = sentences.length > 1;
@@ -282,6 +659,8 @@ const EventInfo = ({ event, className = "" }: { event: Event; className?: string
   );
 };
 
+// ─── Registration form ────────────────────────────────────────────────────────
+
 const RegistrationForm = ({
   formFields,
   formData,
@@ -290,6 +669,8 @@ const RegistrationForm = ({
   onConsentChange,
   onSubmit,
   isPending,
+  submitDisabled,
+  submitLabel,
   brandColor,
   tickets,
   selectedTicketId,
@@ -300,11 +681,13 @@ const RegistrationForm = ({
 }: {
   formFields: FormField[] | undefined;
   formData: Record<string, string>;
-  onFieldChange: (label: string, value: string) => void;
+  onFieldChange: (key: string, value: string) => void;
   consent: boolean;
   onConsentChange: (v: boolean) => void;
   onSubmit: (e: React.FormEvent) => void;
   isPending: boolean;
+  submitDisabled?: boolean;
+  submitLabel?: string;
   brandColor: string;
   tickets: TicketTier[];
   selectedTicketId: string | null;
@@ -323,6 +706,8 @@ const RegistrationForm = ({
       : selectedTicket
         ? `Reserve ${quantity > 1 ? `${quantity} spots` : "my spot"}`
         : "Register now";
+
+  const effectiveLabel = submitLabel ?? ctaLabel;
 
   return (
     <form onSubmit={onSubmit} className={`space-y-6 ${className}`}>
@@ -348,29 +733,17 @@ const RegistrationForm = ({
       <div className="space-y-3.5">
         {formFields?.map((field) => (
           <div key={field.id} className="space-y-1.5">
-            <Label className="text-xs font-medium text-foreground/80">
-              {field.label}{field.required && <span style={{ color: brandColor }}> *</span>}
-            </Label>
-            {field.field_type === "tel" ? (
-              <PhoneInput
-                international
-                defaultCountry="US"
-                placeholder={field.placeholder || field.label}
-                value={formData[field.label] || ""}
-                onChange={(v) => onFieldChange(field.label, v || "")}
-                className="phone-input-wrapper"
-              />
-            ) : (
-              <Input
-                type={field.field_type === "email" ? "email" : "text"}
-                placeholder={field.placeholder || field.label}
-                required={field.required}
-                value={formData[field.label] || ""}
-                onChange={e => onFieldChange(field.label, e.target.value)}
-                className="h-12 rounded-2xl bg-muted/40 border-0 px-4 text-sm placeholder:text-muted-foreground/60 focus-visible:ring-2 focus-visible:ring-offset-0"
-                style={{ ['--tw-ring-color' as any]: brandColor }}
-              />
+            {field.field_type !== "checkbox" && (
+              <Label className="text-xs font-medium text-foreground/80">
+                {field.label}{field.required && <span style={{ color: brandColor }}> *</span>}
+              </Label>
             )}
+            <DynamicField
+              field={field}
+              value={formData[field.key] || ""}
+              onChange={onFieldChange}
+              brandColor={brandColor}
+            />
           </div>
         ))}
       </div>
@@ -407,14 +780,15 @@ const RegistrationForm = ({
           background: `linear-gradient(135deg, ${brandColor}, hsl(265 90% 62%))`,
           boxShadow: `0 18px 40px -12px ${brandColor}99, 0 0 0 1px rgba(255,255,255,0.08) inset`,
         }}
-        disabled={isPending}
+        disabled={isPending || !!submitDisabled}
       >
-        {isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing…</> : ctaLabel}
+        {isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing…</> : effectiveLabel}
       </Button>
     </form>
   );
 };
 
+// ─── Flyer decorative ─────────────────────────────────────────────────────────
 
 const FlyerImage = ({ flyerUrl, eventName, className = "" }: { flyerUrl: string | null; eventName: string; className?: string }) => (
   flyerUrl ? (
@@ -426,204 +800,537 @@ const FlyerImage = ({ flyerUrl, eventName, className = "" }: { flyerUrl: string 
 
 const PoweredBy = () => (
   <p className="text-center text-xs text-muted-foreground mt-6">
-    Powered by <span className="font-semibold">eventspark</span>
+    Powered by <span className="font-semibold">EventHub</span>
   </p>
 );
 
-// ─── Main component ───
+// ─── Registration step state ───────────────────────────────────────────────────
+
+type RegistrationStep =
+  | { kind: "form" }
+  | { kind: "waafi"; participation: ApiParticipation }
+  | { kind: "success"; participation: ApiParticipation; waitlisted: boolean }
+  | { kind: "payment_failed"; participation: ApiParticipation; reason: string };
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 const Register = () => {
-  const { slug, variant } = useParams();
+  const { id } = useParams();
   const navigate = useNavigate();
-  const event = useMemo(
-    () => ({
-      id: mockEvent.id,
-      slug: mockEvent.slug,
-      name: mockEvent.title,
-      description: mockEvent.description,
-      event_date: mockEvent.starts_at,
-      event_end_date: mockEvent.ends_at,
-      timezone: "Africa/Mogadishu",
-      status: "live",
-      primary_color: "#7C3AED",
-      color_mode: "light",
-      location_type: "physical",
-      location: mockEvent.address,
-      ticket_tiers: mockEvent.ticket_types.map((ticket) => ({
-        id: ticket.id,
-        name: ticket.name,
-        price: ticket.price,
-        currency: "USD",
-        quantity: ticket.quantity_limit,
-        sold_count: ticket.quantity_sold,
-        is_vip: ticket.name.toLowerCase().includes("vip"),
-      })),
-      send_confirmation_email: true,
-      cover_image_url: mockEvent.banner_image,
-    }),
-    [],
-  );
-  const modules = useMemo(
-    () => [
-      {
-        id: "mock-why-attend",
-        type: "why_attend",
-        title: "Why Attend",
-        content: {
-          bullets: [
-            "Meet founders, engineers, and operators across East Africa",
-            "Learn practical tactics from builders shipping real products",
-            "Find collaborators, customers, and your next career move",
-          ],
-        },
-        sort_order: 0,
-      },
-      {
-        id: "mock-schedule",
-        type: "schedule",
-        title: "Schedule",
-        content: {
-          items: mockEvent.sessions.map((session) => ({
-            title: session.title,
-            starts_at: session.starts_at,
-            speaker_name: session.speaker_name,
-            room: session.room,
-          })),
-        },
-        sort_order: 1,
-      },
-    ],
-    [],
-  );
-  const formFields = useMemo<FormField[]>(
-    () => [
-      { id: "full-name", label: "Full Name", field_type: "text", required: true, placeholder: "Enter your full name" },
-      { id: "email-address", label: "Email Address", field_type: "email", required: true, placeholder: "you@example.com" },
-      { id: "phone-number", label: "Phone Number", field_type: "tel", required: false, placeholder: "+252 61 234 5678" },
-    ],
-    [],
-  );
+  const { user } = useAuth();
+
+  const eventId = id ? Number(id) : NaN;
+
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [retryNonce, setRetryNonce] = useState(0);
+
+  const [event, setEvent] = useState<PublicEventUiModel | null>(null);
+  const [formFields, setFormFields] = useState<FormField[] | undefined>(undefined);
+  const [modules, setModules] = useState<any[]>([]);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [consent, setConsent] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [waitlisted, setWaitlisted] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
-  const tickets: TicketTier[] = useMemo(
-    () => (Array.isArray((event as any)?.ticket_tiers) ? ((event as any).ticket_tiers as TicketTier[]) : []),
-    [event]
-  );
+
+  const [step, setStep] = useState<RegistrationStep>({ kind: "form" });
+
+  // Track whether a charge is in flight (for navigation safety)
+  const chargeInFlightRef = useRef(false);
+
+  const tickets: TicketTier[] = event?.ticket_tiers ?? [];
+
   // Auto-select single ticket
   useEffect(() => {
     if (tickets.length === 1 && !selectedTicketId) setSelectedTicketId(tickets[0].id);
   }, [tickets, selectedTicketId]);
-  const [searchParams] = useSearchParams();
-  const utm = useMemo(() => {
-    const keys = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "ref"];
-    const out: Record<string, string> = {};
-    keys.forEach(k => {
-      const v = searchParams.get(k);
-      if (v) out[k.replace("utm_", "")] = v;
-    });
-    const lid = searchParams.get("lid");
-    if (lid) out.lid = lid;
-    return Object.keys(out).length ? { ...out, landed_at: new Date().toISOString() } : null;
-  }, [searchParams]);
 
-  // Preserve tracking intent for later backend wiring.
+  // Navigation safety: warn if a charge is pending
   useEffect(() => {
-    const lid = searchParams.get("lid");
-    if (lid && /^[0-9a-f-]{36}$/i.test(lid)) {
-      console.log("TODO: track promoter link click", lid);
-    }
-  }, [searchParams]);
-
-  const handleFieldChange = useCallback((label: string, value: string) => {
-    setFormData(prev => ({ ...prev, [label]: value }));
+    const handler = (e: BeforeUnloadEvent) => {
+      if (!chargeInFlightRef.current) return;
+      e.preventDefault();
+      e.returnValue = "A payment is in progress. Are you sure you want to leave?";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
   }, []);
 
-  const eventMatchesSlug = !slug || slug === event.slug;
-  if (!eventMatchesSlug) {
-    return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-8 text-center">
-            <h1 className="text-2xl font-display font-bold mb-2">Event Not Found</h1>
-            <p className="text-muted-foreground">This event may have ended or the link is invalid.</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const formatSessionTime = (iso: string | null | undefined) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  };
+
+  const buildModules = (ui: PublicEventUiModel): any[] => {
+    const sessions = ui.sessions ?? [];
+    const speakers = ui.speakers ?? [];
+    const sponsors = ui.sponsors ?? [];
+
+    const scheduleItems =
+      sessions.length > 0
+        ? sessions
+            .slice()
+            .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+            .map((s) => ({
+              time: formatSessionTime(s.starts_at),
+              title: s.title || s.room || "Session",
+            }))
+        : [];
+
+    const people =
+      speakers.length > 0
+        ? speakers.map((sp) => ({
+            name: sp.name,
+            role: sp.title || sp.organization || "",
+            avatar: sp.photo_path ? getMediaUrl(sp.photo_path) : undefined,
+          }))
+        : [];
+
+    const logos =
+      sponsors.length > 0
+        ? sponsors
+            .map((s) => (s.logo_path ? getMediaUrl(s.logo_path) : undefined))
+            .filter(Boolean) as string[]
+        : [];
+
+    const galleryImageUrl = ui.images?.[0]?.path ? getMediaUrl(ui.images[0].path) : undefined;
+
+    const modulesOut: any[] = [
+      {
+        id: "why-attend",
+        type: "why_attend",
+        enabled: true,
+        position: 0,
+        title: "Why Attend",
+        content: {
+          heading: "Why attend",
+          bullets: [
+            "Meet founders, engineers, and operators across East Africa",
+            "Learn practical tactics from builders shipping real products",
+            "Find collaborators, customers, and your next career move",
+            "Leave with real next steps for your team",
+          ],
+        },
+      },
+    ];
+
+    if (scheduleItems.length > 0) {
+      modulesOut.push({
+        id: "schedule",
+        type: "schedule",
+        enabled: true,
+        position: 1,
+        title: "Schedule",
+        content: { heading: "What to expect", items: scheduleItems },
+      });
+    }
+
+    if (people.length > 0) {
+      modulesOut.push({
+        id: "speakers",
+        type: "speakers",
+        enabled: true,
+        position: 2,
+        title: "Speakers",
+        content: { heading: "Speakers", people },
+      });
+    }
+
+    if (logos.length > 0) {
+      modulesOut.push({
+        id: "sponsors",
+        type: "sponsors",
+        enabled: true,
+        position: 3,
+        title: "Partners",
+        content: { heading: "Our partners", logos },
+      });
+    }
+
+    modulesOut.push({
+      id: "location",
+      type: "location",
+      enabled: true,
+      position: 4,
+      title: "Location",
+      content: {
+        heading: "Where to find us",
+        venue: ui.city ?? undefined,
+        address: ui.location,
+      },
+    });
+
+    if (galleryImageUrl) {
+      modulesOut.push({
+        id: "gallery",
+        type: "custom",
+        enabled: true,
+        position: 5,
+        title: "Gallery",
+        content: {
+          heading: "Gallery",
+          body: "",
+          image_url: galleryImageUrl,
+        },
+      });
+    }
+
+    return modulesOut;
+  };
+
+  useEffect(() => {
+    if (!Number.isFinite(eventId)) {
+      setNotFound(true);
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+    setNotFound(false);
+    setLoadError(null);
+
+    Promise.all([
+      publicApi.get<PublicEventDetailResponse>(`/events/${eventId}`),
+      publicApi.get<PublicEventFormFieldResponse>(`/events/${eventId}/form-fields`),
+    ])
+      .then(([eventResp, formFieldsResp]) => {
+        if (cancelled) return;
+        const apiEvent = eventResp.data.data;
+        setEvent(adaptPublicEventDetailToUi(apiEvent));
+        setFormFields(adaptUiFormFields(formFieldsResp.data));
+        setModules(buildModules(adaptPublicEventDetailToUi(apiEvent)));
+      })
+      .catch((err: any) => {
+        if (cancelled) return;
+        const status = err?.response?.status;
+        if (status === 404) {
+          setNotFound(true);
+        } else {
+          setLoadError(getApiErrorMessage(err));
+        }
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [eventId, retryNonce]);
+
+  const registrationAllowed = event?.registration_gates?.allowed === true;
+
+  const registerLabel = (() => {
+    if (!event) return "Register";
+    if (registrationAllowed) {
+      const hasPaid = event.ticket_tiers.some((t) => t.price > 0);
+      return hasPaid ? "Get Tickets" : "Register";
+    }
+    if (event.status === "sold_out") return "Sold out";
+    if (event.status === "registration_closed") return "Registration closed";
+    if (event.registration_gates?.reason === "deadline_passed") return "Registration ended";
+    return "Registration unavailable";
+  })();
+
+  const submitDisabled = !registrationAllowed;
+
+  const handleFieldChange = useCallback((key: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [key]: value }));
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (event && event.status !== "live") {
-      toast.error("This event isn't published yet. Publish it from the dashboard to accept registrations.");
+
+    if (!event) return;
+    if (submitDisabled) {
+      toast.error(registerLabel);
+      return;
+    }
+    if (!user) {
+      navigate(`/auth?redirect=${encodeURIComponent(`/events/${event.id}`)}`);
       return;
     }
     if (!consent) {
       toast.error("Please accept the privacy policy to register.");
       return;
     }
-    const missing = formFields?.filter(f => f.required && !formData[f.label]?.trim());
-    if (missing && missing.length > 0) {
-      toast.error(`Please fill in: ${missing.map(f => f.label).join(", ")}`);
+
+    // Required field validation — use field.key for lookup but field.label for error message
+    const missing = formFields?.filter((f) => {
+      if (!f.required) return false;
+      if (f.field_type === "checkbox") return formData[f.key] !== "true";
+      return !formData[f.key]?.trim();
+    }) ?? [];
+    if (missing.length > 0) {
+      toast.error(`Please fill in: ${missing.map((f) => f.label).join(", ")}`);
       return;
     }
     if (tickets.length > 0 && !selectedTicketId) {
       toast.error("Please choose a ticket to continue.");
       return;
     }
-    const selectedTicket = tickets.find((t) => t.id === selectedTicketId);
-    const submitData: Record<string, any> = { ...formData };
-    if (selectedTicket) {
-      submitData["Ticket"] = selectedTicket.name;
-      submitData["ticket_tier_id"] = selectedTicket.id;
-      submitData["ticket_price"] = selectedTicket.price;
-      submitData["ticket_currency"] = selectedTicket.currency;
-      submitData["ticket_quantity"] = quantity;
-      submitData["ticket_subtotal"] = selectedTicket.price * quantity;
-      if (selectedTicket.is_vip) submitData["is_vip"] = true;
+
+    setIsSubmitting(true);
+
+    // Build custom_field_answers using backend key (not label)
+    const custom_field_answers: Record<string, unknown> = {};
+    for (const field of formFields ?? []) {
+      const val = formData[field.key];
+      if (val !== undefined && val !== "") {
+        custom_field_answers[field.key] =
+          field.field_type === "number" ? Number(val) :
+          field.field_type === "checkbox" ? val === "true" :
+          val;
+      }
     }
+
+    const selectedTicketNum = selectedTicketId ? Number(selectedTicketId) : null;
+
     try {
-      setIsSubmitting(true);
-      const result = { id: `${event.id}-mock-registration`, waitlisted: false };
-      console.log("TODO: submit registration", { event_id: event.id, data: submitData, utm });
-      setWaitlisted(!!result?.waitlisted);
-      setSubmitted(true);
+      const participation = await createParticipation({
+        event_id: event.id,
+        ticket_type_id: selectedTicketNum || undefined,
+        custom_field_answers: Object.keys(custom_field_answers).length > 0 ? custom_field_answers : undefined,
+      });
 
-      // Redirect confirmed (non-waitlisted) registrants to their ticket page
-      if (result?.id && !result.waitlisted) {
-        // Small delay so the success state isn't visually jarring during nav
-        setTimeout(() => navigate(`/ticket/${result.id}`, { replace: true }), 400);
+      if (participation.status === "waitlisted") {
+        setStep({ kind: "success", participation, waitlisted: true });
+        return;
       }
 
-
-      // Fire-and-forget confirmation email (only if event opted in)
-      const sendConfirm = (event as any).send_confirmation_email !== false;
-      if (sendConfirm) {
-        const email = (formData["Email Address"] || formData["Email"] || formData["email"] || "").toString().trim().toLowerCase();
-        const attendeeName = (formData["Full Name"] || formData["Name"] || formData["name"] || "").toString().trim();
-        if (email) {
-          const tz = event.timezone || "America/New_York";
-          // Email content is now rebuilt server-side from the registration row
-          // by the `notify` function. Client only passes the registration id.
-          console.log("TODO: enqueue registration email", { kind: "registration", registration_id: result.id });
-          void tz; // silence unused
-        }
-
+      if (
+        participation.payment_status === "not_required" ||
+        participation.payment_status === "paid"
+      ) {
+        setStep({ kind: "success", participation, waitlisted: false });
+        // Navigate to ticket after a brief moment
+        setTimeout(() => {
+          navigate(`/registrations/${participation.id}`);
+        }, 2200);
+        return;
       }
+
+      if (participation.payment_status === "pending") {
+        // Paid ticket — show WaafiPay phone step
+        setStep({ kind: "waafi", participation });
+        return;
+      }
+
+      // Unexpected state — treat as success
+      setStep({ kind: "success", participation, waitlisted: false });
     } catch (err: any) {
-      toast.error(err.message || "Registration failed");
+      const msg = getApiErrorMessage(err);
+      const status = err?.response?.status;
+      if (status === 422) {
+        // Laravel validation failure
+        const errors = err?.response?.data?.errors;
+        if (errors) {
+          const firstError = Object.values(errors).flat()[0] as string;
+          toast.error(firstError || msg);
+        } else {
+          toast.error(msg);
+        }
+      } else if (
+        msg.toLowerCase().includes("already has an active participation") ||
+        msg.toLowerCase().includes("duplicate")
+      ) {
+        toast.error("You're already registered for this event.");
+      } else if (
+        msg.toLowerCase().includes("deadline") ||
+        msg.toLowerCase().includes("deadline has passed")
+      ) {
+        toast.error("Registration deadline has passed.");
+      } else if (msg.toLowerCase().includes("closed") || msg.toLowerCase().includes("registration closed")) {
+        toast.error("Registration is closed for this event.");
+      } else if (msg.toLowerCase().includes("sold out") || msg.toLowerCase().includes("capacity reached")) {
+        toast.error("This event is sold out.");
+      } else if (msg.toLowerCase().includes("ticket type") && msg.toLowerCase().includes("invalid")) {
+        toast.error("The selected ticket is no longer available.");
+      } else if (msg.toLowerCase().includes("sales are disabled")) {
+        toast.error("This ticket type is no longer on sale.");
+      } else {
+        toast.error(msg || "Registration failed. Please try again.");
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // Handlers passed to WaafiPhoneStep
+  const handlePaymentSuccess = (participation: ApiParticipation) => {
+    chargeInFlightRef.current = false;
+    setStep({ kind: "success", participation, waitlisted: false });
+    setTimeout(() => {
+      navigate(`/registrations/${participation.id}`);
+    }, 2200);
+  };
+
+  const handlePaymentFailure = (reason: string) => {
+    chargeInFlightRef.current = false;
+    if (step.kind === "waafi") {
+      setStep({ kind: "payment_failed", participation: step.participation, reason });
+    }
+  };
+
+  const handlePaymentCancel = () => {
+    chargeInFlightRef.current = false;
+    // Return to form step; participation was already created (status=joined, payment_status=pending)
+    setStep({ kind: "form" });
+    toast("Payment cancelled. You can try again or contact the organizer.");
+  };
+
+  const handleRetryPayment = () => {
+    if (step.kind === "payment_failed") {
+      setStep({ kind: "waafi", participation: step.participation });
+    }
+  };
+
+  // Loading
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background overflow-x-hidden">
+        <div className="h-[40vh] bg-muted/40" />
+        <div className="px-4 py-10 space-y-4 max-w-3xl mx-auto">
+          <Skeleton className="h-10 w-2/3" />
+          <Skeleton className="h-5 w-full" />
+          <Skeleton className="h-5 w-5/6" />
+          <Skeleton className="h-10 w-full rounded-3xl" />
+          <Skeleton className="h-10 w-full rounded-3xl" />
+          <Skeleton className="h-10 w-full rounded-3xl" />
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-8 text-center">
+            <h1 className="text-2xl font-display font-bold mb-2">Couldn&apos;t load event</h1>
+            <p className="text-muted-foreground mb-6">{loadError}</p>
+            <Button className="rounded-full" onClick={() => setRetryNonce((n) => n + 1)}>
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (notFound || !event) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-8 text-center">
+            <h1 className="text-2xl font-display font-bold mb-2">Event Not Found</h1>
+            <p className="text-muted-foreground mb-6">This event may have ended or is not publicly available.</p>
+            <Button className="rounded-full" onClick={() => navigate("/")}>
+              Return to Home
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   const brandColor = event.primary_color || "#7C3AED";
   const isDark = (event as any).color_mode === "dark";
+
+  // Non-form steps are overlaid in place of the form slot inside PublicEventPage
+  if (step.kind === "waafi") {
+    const ticket = event.ticket_tiers.find((t) => t.id === String(step.participation.ticket_type_id));
+    chargeInFlightRef.current = true;
+    return (
+      <div className="overflow-x-hidden">
+        <PublicEventPage
+          event={event}
+          modules={modules}
+          brandColor={brandColor}
+          isDark={isDark}
+          formattedDate={event.event_date ? formatEventDateTime(event) : ""}
+          registerLabel={registerLabel}
+          registerDisabled={true}
+          formSlot={
+            <AuroraBackdrop brandColor={brandColor} isDark={isDark}>
+              <WaafiPhoneStep
+                participationId={step.participation.id}
+                eventName={event.name}
+                amount={ticket?.price ? String(ticket.price) : step.participation.ticket_type?.price ?? "0"}
+                currency={ticket?.currency || "USD"}
+                brandColor={brandColor}
+                isDark={isDark}
+                onSuccess={handlePaymentSuccess}
+                onFailure={handlePaymentFailure}
+                onCancel={handlePaymentCancel}
+              />
+              <PoweredBy />
+            </AuroraBackdrop>
+          }
+        />
+      </div>
+    );
+  }
+
+  if (step.kind === "success") {
+    return (
+      <div className="overflow-x-hidden">
+        <PublicEventPage
+          event={event}
+          modules={modules}
+          brandColor={brandColor}
+          isDark={isDark}
+          formattedDate={event.event_date ? formatEventDateTime(event) : ""}
+          registerLabel={registerLabel}
+          registerDisabled={true}
+          formSlot={
+            <AuroraBackdrop brandColor={brandColor} isDark={isDark}>
+              <SuccessCard
+                brandColor={brandColor}
+                eventName={event.name}
+                waitlisted={step.waitlisted}
+                participationId={step.participation.id}
+                isDark={isDark}
+              />
+              <PoweredBy />
+            </AuroraBackdrop>
+          }
+        />
+      </div>
+    );
+  }
+
+  if (step.kind === "payment_failed") {
+    return (
+      <div className="overflow-x-hidden">
+        <PublicEventPage
+          event={event}
+          modules={modules}
+          brandColor={brandColor}
+          isDark={isDark}
+          formattedDate={event.event_date ? formatEventDateTime(event) : ""}
+          registerLabel={registerLabel}
+          registerDisabled={true}
+          formSlot={
+            <AuroraBackdrop brandColor={brandColor} isDark={isDark}>
+              <PaymentFailCard
+                brandColor={brandColor}
+                reason={step.reason}
+                onRetry={handleRetryPayment}
+                isDark={isDark}
+              />
+              <PoweredBy />
+            </AuroraBackdrop>
+          }
+        />
+      </div>
+    );
+  }
 
   const formProps = {
     formFields,
@@ -633,6 +1340,8 @@ const Register = () => {
     onConsentChange: setConsent,
     onSubmit: handleSubmit,
     isPending: isSubmitting,
+    submitDisabled,
+    submitLabel: registerLabel,
     brandColor,
     tickets,
     selectedTicketId,
@@ -641,32 +1350,16 @@ const Register = () => {
     onQuantityChange: setQuantity,
   };
 
-  const isPreview = event.status !== "live";
-
-  if (submitted) {
-    return (
-      <div className={isDark ? "dark" : ""}>
-        <div className="min-h-screen relative flex items-center justify-center px-4 py-12 text-foreground overflow-hidden bg-background">
-          <AuroraBackdrop brandColor={brandColor} isDark={isDark} />
-          <SuccessCard brandColor={brandColor} eventName={event.name} waitlisted={waitlisted} isDark={isDark} />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="overflow-x-hidden">
-      {isPreview && (
-        <div className="sticky top-0 z-50 w-full bg-foreground text-background text-center text-xs sm:text-sm py-2 px-4 font-medium">
-          Preview mode — this event is a {event.status === "draft" ? "draft" : event.status}. Registrations are disabled until you publish.
-        </div>
-      )}
       <PublicEventPage
         event={event}
         modules={modules}
         brandColor={brandColor}
         isDark={isDark}
         formattedDate={event.event_date ? formatEventDateTime(event) : ""}
+        registerLabel={registerLabel}
+        registerDisabled={submitDisabled}
         formSlot={<RegistrationForm {...formProps} className="pb-24 sm:pb-0" />}
       />
     </div>
@@ -674,4 +1367,3 @@ const Register = () => {
 };
 
 export default Register;
-

@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Calendar, MapPin, Ticket, ArrowRight } from "lucide-react";
-import { mockEvents, mockOrganizer, mockParticipations } from "@/lib/mockData";
+import { mockEvents, mockParticipations } from "@/lib/mockData";
+import { useAuth } from "@/contexts/AuthContext";
 
 function formatDate(iso: string | null) {
   if (!iso) return "Date TBA";
@@ -16,7 +17,8 @@ function formatDate(iso: string | null) {
 }
 
 export default function AttendeeHome() {
-  const profile = { full_name: mockOrganizer.name };
+  const { user } = useAuth();
+  const profile = { full_name: user?.name || "" };
   const ticketsLoading = false;
   const browseLoading = false;
   const tickets = mockParticipations.map((entry) => ({
@@ -33,7 +35,6 @@ export default function AttendeeHome() {
     .filter((event) => !excludeIds.includes(event.id))
     .map((event) => ({
       id: event.id,
-      slug: event.slug,
       name: event.title,
       event_date: event.starts_at,
       location_value: event.address,
@@ -116,7 +117,7 @@ export default function AttendeeHome() {
             {browse.map((e) => (
               <li key={e.id} className="min-w-0">
                 <Link
-                  to={`/register/${e.slug}`}
+                  to={`/events/${e.id}`}
                   className="group block rounded-2xl bg-card hover:bg-muted/50 transition-colors overflow-hidden min-w-0"
                 >
                   <div

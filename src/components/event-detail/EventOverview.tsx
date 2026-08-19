@@ -116,7 +116,7 @@ export default function EventOverview({ event, onJumpTab }: Props) {
   const capacityPct = capacity ? Math.min(100, Math.round((stats.total / capacity) * 100)) : null;
 
   const handleCopyLink = async () => {
-    const ok = await copyToClipboard(getRegistrationUrl(event.slug));
+    const ok = await copyToClipboard(getRegistrationUrl(event.id));
     toast[ok ? "success" : "error"](ok ? "Registration link copied" : "Couldn't copy — select and copy manually.");
   };
 
@@ -363,7 +363,7 @@ export default function EventOverview({ event, onJumpTab }: Props) {
                 className="w-full bg-muted/50 hover:bg-muted rounded-full px-3 py-2 text-xs text-muted-foreground flex items-center gap-2 group transition-colors"
                 title="Click to customize your link"
               >
-                <span className="truncate flex-1 text-left">{getRegistrationUrl(event.slug)}</span>
+                <span className="truncate flex-1 text-left">{getRegistrationUrl(event.id)}</span>
                 <Pencil className="w-3 h-3 shrink-0 opacity-50 group-hover:opacity-100" />
               </button>
             )}
@@ -371,7 +371,7 @@ export default function EventOverview({ event, onJumpTab }: Props) {
               <Copy className="w-3.5 h-3.5 mr-2" /> Copy link
             </Button>
             <Button asChild variant="outline" size="sm" className="w-full rounded-full">
-              <Link to={`/register/${event.slug}`} target="_blank" rel="noopener noreferrer">
+              <Link to={`/events/${event.id}`} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="w-3.5 h-3.5 mr-2" /> Preview as attendee
               </Link>
             </Button>

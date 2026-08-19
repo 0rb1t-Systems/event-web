@@ -4,7 +4,7 @@ import { Logo } from "@/components/Logo";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { clearNewEventDraft } from "@/lib/eventDraft";
+import { getMediaUrl } from "@/lib/mediaUrl";
 import {
   CalendarDays,
   Users,
@@ -43,7 +44,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const mainRef = useRef<HTMLElement>(null);
   const { pathname } = useLocation();
   const { user, signOut } = useAuth();
-  const role = "organizer" as const;
+  const role = "attendee" as const;
   const roleLoading = false;
   const navigate = useNavigate();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -113,15 +114,16 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 className="rounded-full outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-opacity hover:opacity-80"
               >
                 <Avatar className="h-9 w-9">
+                  <AvatarImage src={getMediaUrl(user?.profile_image)} alt={user?.name || user?.email || "Account"} />
                   <AvatarFallback className="bg-foreground text-background text-xs font-semibold uppercase">
-                    {(user?.email?.[0] ?? "?").toUpperCase()}
+                    {(user?.name?.[0] ?? user?.email?.[0] ?? "?").toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52">
               {user && (
-                <div className="px-2 py-1.5 text-xs text-muted-foreground truncate">{user.email}</div>
+                <div className="px-2 py-1.5 text-xs text-muted-foreground truncate">{user.name || user.email}</div>
               )}
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
@@ -170,12 +172,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               {user && (
                 <div className="flex items-center gap-3 px-3 py-2">
                   <Avatar className="h-9 w-9">
+                    <AvatarImage src={getMediaUrl(user.profile_image)} alt={user.name || user.email} />
                     <AvatarFallback className="bg-foreground text-background text-xs font-semibold uppercase">
-                      {(user.email?.[0] ?? "?").toUpperCase()}
+                      {(user.name?.[0] ?? user.email?.[0] ?? "?").toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0 flex-1">
-                    <div className="text-xs text-muted-foreground truncate">{user.email}</div>
+                    <div className="text-xs text-muted-foreground truncate">{user.name || user.email}</div>
                   </div>
                 </div>
               )}

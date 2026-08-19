@@ -54,7 +54,9 @@ function attachExpiredSessionHandler(
       ) {
         options.clear();
 
-        if (typeof window !== "undefined") {
+        const skipRedirect = Boolean(error.config?.skipAuthRedirect);
+
+        if (!skipRedirect && typeof window !== "undefined") {
           window.location.assign(options.redirectTo);
         }
       }

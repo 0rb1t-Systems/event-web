@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { LANDING_DEFAULTS } from "@/lib/landing-defaults";
-import { mockEvents } from "@/lib/mockData";
+import { publicApi } from "@/lib/api";
+import type { PublicEventCatalogItem, PublicEventCatalogResponse, PublicEventCategory, PublicEventCategoriesResponse } from "@/lib/publicEventsAdapters";
+import { pickHeroBackgroundImage } from "@/lib/publicEventsAdapters";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import { Reveal, StaggerGroup, StaggerItem } from "@/components/motion/Reveal";
@@ -291,19 +293,7 @@ function ConfettiLayer({ size, opacity, count, spread }: { size: number; opacity
 }
 
 const Landing = () => {
-  const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const role = "organizer" as const;
-  const roleLoading = false;
-
-  // Authenticated users skip the marketing page and land on their role-based home.
-  useEffect(() => {
-    if (authLoading || !user) return;
-    if (roleLoading || !role) return;
-    navigate(role === "organizer" ? "/dashboard/events" : "/dashboard/home", { replace: true });
-  }, [user, authLoading, role, roleLoading, navigate]);
-
-  const redirectingAuthenticatedUser = !authLoading && !!user && (roleLoading || !!role);
 
   const landing = LANDING_DEFAULTS;
   const hero = landing.hero;
@@ -370,15 +360,77 @@ const Landing = () => {
     });
   }, [titleWeight]);
 
-  if (redirectingAuthenticatedUser) return null;
+  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [catalogEvents, setCatalogEvents] = useState<PublicEventCatalogItem[]>([]);
+  const [categories, setCategories] = useState<PublicEventCategory[]>([]);
 
-  const popularEvents = mockEvents.slice(0, 4).map((event, i) => ({
-    img: POPULAR_IMAGES[i % POPULAR_IMAGES.length],
-    title: event.title,
-    tag: event.monetized ? "$25" : "Free",
-    date: new Date(event.starts_at).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }),
-    city: event.city,
-  }));
+  // Prompt 2: keep public catalog filtering UX (search + category).
+  const [searchTerm, setSearchTerm] = useState("");
+  const [categoryId, setCategoryId] = useState<number | "">("");
+  const [retryNonce, setRetryNonce] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      setCatalogLoading(true);
+      setCatalogError(null);
+      try {
+        const [eventsResp, categoriesResp] = await Promise.all([
+          publicApi.get<PublicEventCatalogResponse>("/events", {
+            params: {
+              per_page: 4,
+              page: 1,
+              ...(searchTerm.trim() ? { q: searchTerm.trim() } : {}),
+              ...(categoryId !== "" ? { "filter[event_category_id]": categoryId } : {}),
+            },
+          }),
+          publicApi.get<PublicEventCategoriesResponse>("/event-categories", {
+            params: { per_page: 200, page: 1 },
+          }),
+        ]);
+
+        if (cancelled) return;
+        setCatalogEvents(eventsResp.data.data ?? []);
+        setCategories(categoriesResp.data.data ?? []);
+      } catch {
+        if (cancelled) return;
+        setCatalogError("Failed to load events. Please try again.");
+        setCatalogEvents([]);
+        setCategories([]);
+      } finally {
+        if (!cancelled) setCatalogLoading(false);
+      }
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [searchTerm, categoryId, retryNonce]);
+
+  const popularEvents = catalogEvents.map((event) => {
+    const img = pickHeroBackgroundImage(event);
+    const tickets = event.ticket_types ?? [];
+    const prices = tickets
+      .map((t) => (typeof t.price === "string" ? Number(t.price) : Number((t as any).price)))
+      .filter((n) => Number.isFinite(n));
+    const minPrice = prices.length ? Math.min(...prices) : 0;
+
+    const tag = minPrice > 0 ? `$${Math.round(minPrice)}` : "Free";
+    const date = event.starts_at
+      ? new Date(event.starts_at).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })
+      : "";
+
+    return {
+      id: event.id,
+      img,
+      title: event.title,
+      tag,
+      date,
+      city: event.city ?? "",
+    };
+  });
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
@@ -394,12 +446,22 @@ const Landing = () => {
             <Logo size="md" />
           </Link>
           <div className="flex items-center gap-3">
-            <Button variant="ghost" className="text-sm font-medium" asChild>
-              <Link to="/auth">Log in</Link>
-            </Button>
-            <Button className="hidden sm:inline-flex text-sm font-semibold" asChild>
-              <Link to="/auth">Sign up</Link>
-            </Button>
+            {authLoading ? (
+              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            ) : user ? (
+              <Button className="text-sm font-semibold" asChild>
+                <Link to="/dashboard">Dashboard</Link>
+              </Button>
+            ) : (
+              <>
+                <Button variant="ghost" className="text-sm font-medium" asChild>
+                  <Link to="/auth">Log in</Link>
+                </Button>
+                <Button className="hidden sm:inline-flex text-sm font-semibold" asChild>
+                  <Link to="/auth">Sign up</Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </motion.nav>
@@ -550,35 +612,96 @@ const Landing = () => {
               </span>
             </Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {popularEvents.map((event, i) => (
-              <motion.div
-                key={event.title}
-                initial={{ opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.2 }}
-                transition={{ duration: 0.55, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
-                whileHover={{ y: -6 }}
+          {/* Public catalog filters */}
+          <div className="mt-2 mb-10 flex flex-col md:flex-row md:items-end gap-4">
+            <div className="flex-1">
+              <label className="text-xs font-semibold tracking-[0.12em] uppercase text-muted-foreground">
+                Search events
+              </label>
+              <input
+                className="mt-2 w-full h-11 rounded-2xl bg-muted/40 border-0 px-4 text-sm placeholder:text-muted-foreground/60 focus-visible:ring-2 focus-visible:ring-offset-0"
+                placeholder="Search by title, city, or address…"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="w-full md:w-56">
+              <label className="text-xs font-semibold tracking-[0.12em] uppercase text-muted-foreground">
+                Category
+              </label>
+              <select
+                className="mt-2 w-full h-11 rounded-2xl bg-muted/40 border-0 px-4 text-sm focus-visible:ring-2 focus-visible:ring-offset-0"
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : "")}
               >
-                <div className="group cursor-pointer">
-                  <div className="relative rounded-3xl overflow-hidden mb-4 aspect-[4/5]">
-                    <img
-                      src={event.img}
-                      alt={event.title}
-                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-foreground/40 via-transparent to-transparent" />
-                    <span className="absolute top-4 left-4 bg-background/95 backdrop-blur text-foreground text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-[0.15em] shadow-sm">
-                      {event.tag}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-primary font-bold uppercase tracking-[0.18em] mb-1.5">{event.date}</p>
-                  <h3 className="font-display font-semibold text-lg text-foreground group-hover:text-primary transition-colors tracking-[-0.01em]">{event.title}</h3>
-                  <p className="text-sm text-muted-foreground mt-0.5">{event.city}</p>
-                </div>
-              </motion.div>
-            ))}
+                <option value="">All categories</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
+
+          {catalogLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {Array.from({ length: 4 }).map((_, idx) => (
+                <div key={idx} className="rounded-3xl overflow-hidden">
+                  <Skeleton className="mb-4 w-full aspect-[4/5]" />
+                  <Skeleton className="h-4 w-3/4 mb-3" />
+                  <Skeleton className="h-4 w-1/2" />
+                </div>
+              ))}
+            </div>
+          ) : catalogError ? (
+            <div className="py-14 text-center">
+              <p className="text-muted-foreground mb-4">{catalogError}</p>
+              <Button className="rounded-full" onClick={() => setRetryNonce((n) => n + 1)}>
+                Retry
+              </Button>
+            </div>
+          ) : popularEvents.length === 0 ? (
+            <div className="py-14 text-center">
+              <p className="text-muted-foreground">No events match your filters.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {popularEvents.map((event, i) => (
+                <motion.div
+                  key={event.id}
+                  initial={{ opacity: 0, y: 24 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.2 }}
+                  transition={{ duration: 0.55, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
+                  whileHover={{ y: -6 }}
+                >
+                  <Link to={`/events/${event.id}`} className="group cursor-pointer block">
+                    <div className="relative rounded-3xl overflow-hidden mb-4 aspect-[4/5]">
+                      {event.img ? (
+                        <img
+                          src={event.img}
+                          alt={event.title}
+                          className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-muted to-muted/80" />
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-foreground/40 via-transparent to-transparent" />
+                      <span className="absolute top-4 left-4 bg-background/95 backdrop-blur text-foreground text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-[0.15em] shadow-sm">
+                        {event.tag}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-primary font-bold uppercase tracking-[0.18em] mb-1.5">{event.date}</p>
+                    <h3 className="font-display font-semibold text-lg text-foreground group-hover:text-primary transition-colors tracking-[-0.01em]">
+                      {event.title}
+                    </h3>
+                    <p className="text-sm text-muted-foreground mt-0.5">{event.city}</p>
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
