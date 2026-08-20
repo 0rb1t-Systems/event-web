@@ -249,7 +249,7 @@ export default function OrganizerPayouts() {
           )}
         </TabsContent>
 
-        <TabsContent value="package" className="mt-0">
+        <TabsContent value="package" className="mt-0 space-y-3">
           <SubscriptionQuotaPanel />
         </TabsContent>
       </Tabs>

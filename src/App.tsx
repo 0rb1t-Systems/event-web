@@ -43,6 +43,7 @@ const OrganizerDashboard = lazy(() => import("./pages/organizer/OrganizerDashboa
 const OrganizerEventCreate = lazy(() => import("./pages/organizer/OrganizerEventCreate"));
 const OrganizerSettings = lazy(() => import("./pages/organizer/OrganizerSettings"));
 const OrganizerPayouts = lazy(() => import("./pages/organizer/OrganizerPayouts"));
+const OrganizerSubscription = lazy(() => import("./pages/organizer/OrganizerSubscription"));
 
 /** Cheap bookmark redirects — keep until traffic dies down. */
 const EventDetailEditRedirect = () => {
@@ -164,6 +165,8 @@ const App = () => (
                               </Route>
                               <Route path="attendees" element={<Attendees />} />
                               <Route path="analytics" element={<Analytics />} />
+                              <Route path="subscription" element={<OrganizerSubscription />} />
+                              <Route path="billing" element={<Navigate to="/organizer/subscription" replace />} />
                               <Route path="payouts" element={<OrganizerPayouts />} />
                               <Route path="settings" element={<OrganizerSettings />} />
                             </Routes>

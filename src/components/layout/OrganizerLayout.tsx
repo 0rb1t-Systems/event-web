@@ -16,6 +16,7 @@ import {
   LayoutDashboard,
   CalendarDays,
   Wallet,
+  Package,
   Settings,
   LogOut,
   Menu,
@@ -24,6 +25,7 @@ import {
 const organizerNavItems = [
   { title: "Dashboard", url: "/organizer/dashboard", icon: LayoutDashboard },
   { title: "Events", url: "/organizer/events", icon: CalendarDays },
+  { title: "Plans", url: "/organizer/subscription", icon: Package },
   { title: "Payouts", url: "/organizer/payouts", icon: Wallet },
   { title: "Settings", url: "/organizer/settings", icon: Settings },
 ];

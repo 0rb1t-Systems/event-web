@@ -134,6 +134,9 @@ export default function OrganizerDashboard() {
           ) : (
             <p className="text-sm text-muted-foreground">No active package quota on this account.</p>
           )}
+          <Link to="/organizer/subscription" className="inline-block text-sm font-medium hover:underline pt-1">
+            {quota?.can_create_event === false || !quota ? "Choose a plan" : "Manage plan"}
+          </Link>
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 # EventHub Web App — Agent Context
 
-Last updated: 2026-08-20 — Prompt 14: Final quality audit (core complete)
+Last updated: 2026-08-20 — Organizer Plans & billing Web UI (self-subscribe / upgrade)
 Repository: C:\Users\Hp\Documents\personal\event-web
 Default branch: master
 
@@ -293,7 +293,7 @@ PARTICIPANT (`ProtectedRoute` + `participant_token` + `/auth/me`; `DashboardLayo
 
 ORGANIZER (`OrganizerProtectedRoute` + `organizer_token` + `/organizer-auth/me`; `OrganizerLayout`):
 
-Top nav only: Dashboard, Events, Payouts, Settings.
+Top nav: Dashboard, Events, Plans, Payouts, Settings.
 
 - `/organizer` → `/organizer/dashboard`
 - `/organizer/dashboard` → OrganizerDashboard
@@ -315,7 +315,9 @@ Top nav only: Dashboard, Events, Payouts, Settings.
 - `/organizer/events/:id/edit` → `/organizer/events/:id`
 - `/organizer/attendees` → Attendees (secondary; event picker — not top nav)
 - `/organizer/analytics` → Analytics (secondary; event picker — not top nav)
-- `/organizer/payouts` → finance + all payout requests + package/quota
+- `/organizer/subscription` → Plans & billing (self-subscribe / upgrade + history)
+- `/organizer/billing` → redirect → `/organizer/subscription`
+- `/organizer/payouts` → finance + all payout requests + compact package tab
 - `/organizer/settings` → OrganizerSettings
 
 Legacy redirects: `/dashboard/events*`, `/dashboard/attendees`, `/dashboard/analytics` → organizer equivalents.
@@ -350,12 +352,13 @@ Guards:
 | Announcements | Event Studio attendees tab | announcements GET/POST | Yes | toast includes recipient count |
 | Analytics | `/organizer/analytics` + Recharts | `GET …/analytics` | Yes | scalars only — no fabricated series |
 | QR check-in scanner | Event Studio `/scanner` (`CheckInScanner`) | `POST /organizer/qr-scan-logs/validate`; `GET …/qr-scan-logs`; `GET …/check-in-stats` | Yes | body `{ token, gate? }` only; results valid/already_used/invalid; network ≠ invalid; Wake Lock; manual token; lazy-loaded |
-| Organizer finance / payouts | EventFinancePanel on `/organizer/payouts` + `/finance` | finance + payout-requests + packages | Yes | per-event only; no admin approve/pay; package informational |
+| Organizer finance / payouts | EventFinancePanel on `/organizer/payouts` + `/finance` | finance + payout-requests | Yes | per-event only; no admin approve/pay |
+| Organizer plans / billing | `/organizer/subscription` + compact Payouts tab | packages + POST subscriptions + orders/history | Yes | free activate / paid Waafi dialog; backend tier rules; no client amount |
 | Settings | participant SettingsPage | profile + password; theme local | Yes | |
 | Organizer login/register | Auth card primitives | `/organizer-auth/*` (publicApi for login/register) | Yes | no email verify on register |
-| Organizer dashboard | metric cards | `GET /organizer/dashboard` | Yes | |
+| Organizer dashboard | metric cards | `GET /organizer/dashboard` | Yes | link to Plans when quota missing/exhausted |
 | Organizer settings | tabs | profile + change-password | Yes | |
-| Organizer payouts | tabs | finance + requests + package/quota | Yes | no online package purchase |
+| Organizer payouts | tabs | finance + requests + compact package | Yes | Full checkout on Plans page |
 
 Update this table whenever module status/data source changes.
 
@@ -409,7 +412,6 @@ When adding screens: wire Laravel contracts or show honest empty/error/deferred 
 
 Do not build unless explicitly requested after Prompt 14:
 
-- ~~Organizer online package purchase / self-serve checkout~~ — **backend done in Prompt 15**; Web App UI still deferred
 - Apple/Google Wallet passes
 - Push notifications
 - Multi-language
@@ -421,15 +423,16 @@ Do not build unless explicitly requested after Prompt 14:
 - Richer email campaign tooling beyond announcements
 - Certificate issuance (participant read-only when `available: false`)
 
-## Organizer Package Self-Subscription (Backend — Prompt 15)
+## Organizer Package Self-Subscription (Web + Backend)
 
-Laravel now supports organizer self-subscribe/upgrade. Web App still only GETs packages/subscription/quota until a later prompt wires checkout UI.
+Laravel Prompt 15 + Web App checkout UI:
 
-- `POST /api/v1/organizer/subscriptions` `{ package_id, payer_phone? }` — server derives subscribe vs upgrade; never accept client amount
-- `GET /api/v1/organizer/subscriptions/history`
-- `GET /api/v1/organizer/subscription-orders`, `GET .../subscription-orders/{id}`
-- Catalog exposes `duration_*`, `tier_rank`, `selectable`, `upgrade_allowed`, `blocked_reason`
-- Rank rule: `tier_rank` only. No proration. Free = no Waafi. Failed upgrade leaves old plan.
+- Route `/organizer/subscription` (alias `/organizer/billing`) — Plans & billing
+- Top nav: Dashboard, Events, Plans, Payouts, Settings
+- Service `organizerPackages.ts`: list/subscribe/history/orders; POST body only `{ package_id, payer_phone? }`; subscribe timeout 190s
+- UI: `SubscriptionQuotaPanel` + `PackageSubscribeDialog` (free activate / paid EVC phone); compact embed on Payouts → Package tab
+- Catalog uses backend `selectable` / `upgrade_allowed` / `blocked_reason` (no client-side tier rules)
+- Dashboard + event-create quota errors link to Plans
 
 ## Prompt 14 Quality Notes
 
@@ -489,7 +492,7 @@ Do not allow Web App architecture to accidentally use admin-panel tokens.
 - organizer event studio must not PATCH `status`, `featured`, `monetized`, or `organizer_id`
 - event status changes only via `POST /organizer/events/{id}/transition` using EventStatusMachine targets
 - other organizers' events return 404 "Event not found"; UI must show "You don't have access to this event." and must not render leaked details
-- create quota failures are 403 with package messages; show dashboard quota, do not invent upgrade checkout
+- create quota failures are 403 with package messages; link organizers to `/organizer/subscription` for self-serve subscribe/upgrade (Prompt 15 backend + Web UI)
 - gallery upload field name is `image`; jpeg/png/jpg/gif/webp; max 4096 KB
 - form field `key` is immutable after create; delete deactivates the field when answers exist
 - ticket type delete is soft trash even when quantity_sold > 0
@@ -615,7 +618,7 @@ Side nav: Overview, Tickets, Registration form, Speakers & agenda, Invitation, A
 
 Reusable UI lives in `src/components/event-studio/` (`TicketTypeCard`, `TicketTypeForm`, `DiscountCodeForm`, `FormFieldCard`, `FormFieldEditor`, `SpeakerCard`, `SpeakerForm`, `SponsorCard`, `SponsorForm`, `SessionTimeline`, `SessionForm`, `InvitationDesigner`, `EventRegistrationsPanel`, `AnnouncementsPanel`, `EventFinancePanel`, `SubscriptionQuotaPanel`). Scanner UI: `src/components/event-detail/CheckInScanner.tsx` via `EventStudioScanner`. Shared ticket canvas: `src/components/invitation/InvitationCanvasPreview.tsx`. Overlay drag layer: `InvitationOverlayEditor.tsx`. Coordinate helpers: `src/lib/invitationCanvas.ts`.
 
-Organizer top nav (`OrganizerLayout`): Dashboard, Events, Payouts, Settings only. Attendees and Analytics remain reachable by URL / deep links / secondary pages — not top-nav items.
+Organizer top nav (`OrganizerLayout`): Dashboard, Events, Plans (`/organizer/subscription`), Payouts, Settings. Attendees and Analytics remain secondary URLs.
 
 ## Organizer Event Studio API Contracts Confirmed
 
@@ -713,7 +716,7 @@ Packages (read-only — no purchase):
 - `POST /organizer/subscriptions` — body `{ package_id, payer_phone? }` only (backend Prompt 15; Web UI not wired yet)
 - `GET /organizer/subscriptions/history`, `GET /organizer/subscription-orders`, `GET /organizer/subscription-orders/{id}`
 
-UI: one shared `EventFinancePanel` for Event Studio Finance tab and `/organizer/payouts` event tab. `/organizer/payouts` also lists all requests and shows `SubscriptionQuotaPanel` (contact support for plan changes).
+UI: one shared `EventFinancePanel` for Event Studio Finance tab and `/organizer/payouts` event tab. `/organizer/payouts` package tab embeds compact `SubscriptionQuotaPanel`; full Plans & billing is `/organizer/subscription`.
 
 ## Organizer QR Check-In API Contracts Confirmed
 
@@ -726,6 +729,18 @@ All under `/api/v1`, `organizerApi` (X-API-Key + Bearer `organizer_token`). Serv
 Route: `/organizer/events/:id/scanner` (lazy). Camera via `html5-qrcode`; manual token entry; optional Wake Lock; accessible control names.
 
 ## Change Log
+
+### 2026-08-20 — Organizer Plans pricing UI redesign
+
+Replaced basic package list on `/organizer/subscription` with a pricing-page layout: atmospheric hero, dark current-plan strip with quota metrics, tier comparison cards (price / duration / feature checks / CTAs), history + purchases panels. Payouts tab keeps a compact summary linking to Plans.
+
+### 2026-08-20 — Organizer Plans & billing Web UI
+
+Wired organizer self-subscribe/upgrade to Prompt 15 APIs. New `/organizer/subscription` page, Plans top-nav item, `PackageSubscribeDialog` (free activate / paid EVC phone, 190s timeout), enhanced `SubscriptionQuotaPanel` with catalog actions + history/orders. Dashboard and event-create quota blocks link to Plans. Browser never sends amount.
+
+Files: `organizerPackages.ts`, `PackageSubscribeDialog.tsx`, `SubscriptionQuotaPanel.tsx`, `OrganizerSubscription.tsx`, `App.tsx`, `OrganizerLayout.tsx`, `OrganizerDashboard.tsx`, `OrganizerEventCreate.tsx`, `OrganizerPayouts.tsx`, `.agent`.
+
+Verification: `npx tsc --noEmit`; `npm run build`.
 
 ### 2026-08-20 — Prompt 14: Final quality, a11y, responsive, performance audit
 

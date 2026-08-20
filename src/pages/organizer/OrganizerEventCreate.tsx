@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -95,7 +95,7 @@ export default function OrganizerEventCreate() {
       </div>
 
       {quotaBlock && (
-        <div className="bg-destructive/10 rounded-xl p-5 space-y-2">
+        <div className="bg-destructive/10 rounded-xl p-5 space-y-3">
           <h2 className="font-display font-semibold">Event quota reached</h2>
           <p className="text-sm">{quotaBlock.message}</p>
           {quotaBlock.quota ? (
@@ -109,9 +109,12 @@ export default function OrganizerEventCreate() {
             </p>
           ) : (
             <p className="text-sm text-muted-foreground">
-              No active package quota is available on this account. Contact support to change your plan.
+              No active package quota is available on this account.
             </p>
           )}
+          <Button asChild className="rounded-full" variant="outline" size="sm">
+            <Link to="/organizer/subscription">View plans &amp; upgrade</Link>
+          </Button>
         </div>
       )}
 
