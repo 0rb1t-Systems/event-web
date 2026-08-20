@@ -1,6 +1,6 @@
 # EventHub Web App — Agent Context
 
-Last updated: 2026-08-20 — Continue with Google (participant)
+Last updated: 2026-08-20 — Organizer Continue with Google
 Repository: C:\Users\Hp\Documents\personal\event-web
 Default branch: master
 
@@ -363,7 +363,7 @@ Guards:
 | Organizer finance / payouts | EventFinancePanel on `/organizer/payouts` + `/finance` | finance + payout-requests | Yes | per-event only; no admin approve/pay |
 | Organizer plans / billing | `/organizer/subscription` + compact Payouts tab | packages + POST subscriptions + orders/history | Yes | free activate / paid Waafi dialog; backend tier rules; no client amount |
 | Settings | participant SettingsPage | profile + password; theme local | Yes | |
-| Organizer login/register | Auth card primitives | `/organizer-auth/*` (publicApi for login/register) | Yes | no email verify on register |
+| Organizer login/register | Auth card primitives + Continue with Google | `/organizer-auth/*` incl. `POST /organizer-auth/google/login` (publicApi) | Yes | no email verify on register; Google uses same client ID as participant |
 | Organizer dashboard | metric cards | `GET /organizer/dashboard` | Yes | link to Plans when quota missing/exhausted |
 | Organizer settings | tabs | profile + change-password | Yes | |
 | Organizer payouts | tabs | finance + requests + compact package | Yes | Full checkout on Plans page |
@@ -737,6 +737,10 @@ All under `/api/v1`, `organizerApi` (X-API-Key + Bearer `organizer_token`). Serv
 Route: `/organizer/events/:id/scanner` (lazy). Camera via `html5-qrcode`; manual token entry; optional Wake Lock; accessible control names.
 
 ## Change Log
+
+### 2026-08-20 — Organizer Continue with Google
+
+Added `POST /organizer-auth/google/login` and Continue with Google on `/organizer/login` + `/organizer/register`. New Google emails create an organizer (`business_name`/`contact_name` from Google name); existing email signs in; suspended → 403. Same `VITE_GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_ID` as participant.
 
 ### 2026-08-20 — Continue with Google (participant)
 

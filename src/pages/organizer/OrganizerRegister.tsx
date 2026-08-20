@@ -10,10 +10,11 @@ import { motion } from "framer-motion";
 import { staggerContainer, staggerItem } from "@/components/motion/Reveal";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { DEFAULT_ORGANIZER_HOME } from "@/lib/authRedirect";
+import { ContinueWithGoogleButton } from "@/components/auth/ContinueWithGoogleButton";
 
 export default function OrganizerRegister() {
   const navigate = useNavigate();
-  const { isAuthenticated, isLoading, register } = useOrganizer();
+  const { isAuthenticated, isLoading, register, loginWithGoogle } = useOrganizer();
   const [loading, setLoading] = useState(false);
   const [businessName, setBusinessName] = useState("");
   const [contactName, setContactName] = useState("");
@@ -47,6 +48,19 @@ export default function OrganizerRegister() {
       navigate(DEFAULT_ORGANIZER_HOME, { replace: true });
     } catch (error) {
       toast.error(getApiErrorMessage(error, "Could not create your organizer account."));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogle = async () => {
+    setLoading(true);
+    try {
+      await loginWithGoogle();
+      toast.success("Signed in with Google.");
+      navigate(DEFAULT_ORGANIZER_HOME, { replace: true });
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Google sign-in failed."));
     } finally {
       setLoading(false);
     }
@@ -152,6 +166,21 @@ export default function OrganizerRegister() {
                 {loading ? "Creating account…" : "Create organizer account"}
               </Button>
             </form>
+          )}
+
+          {!isLoading && (
+            <>
+              <div className="mt-5 relative">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-3 text-muted-foreground">Or</span>
+                </div>
+              </div>
+              <ContinueWithGoogleButton onClick={handleGoogle} disabled={loading} />
+              <p className="text-center text-[11px] text-muted-foreground mt-3 leading-relaxed">
+                Google creates your organizer account using your Google name. You can edit business details later in Settings.
+              </p>
+            </>
           )}
 
           <p className="text-center text-sm text-muted-foreground mt-6">

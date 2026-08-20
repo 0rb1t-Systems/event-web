@@ -80,6 +80,22 @@ export const organizerAuthService = {
     };
   },
 
+  googleLogin: async (accessToken: string): Promise<LoginPayload> => {
+    const { data } = await publicApi.post<Envelope<LoginPayload>>(
+      "/organizer-auth/google/login",
+      { access_token: accessToken },
+    );
+    const inner = data.data;
+    if (!inner?.token) {
+      throw new Error("Google login did not return a session token.");
+    }
+    return {
+      organizer: pickOrganizer(inner.organizer),
+      token: inner.token,
+      token_ability: inner.token_ability,
+    };
+  },
+
   me: async (): Promise<Organizer> => {
     const { data } = await organizerApi.get<Envelope<{ organizer: Organizer }>>(
       "/organizer-auth/me",

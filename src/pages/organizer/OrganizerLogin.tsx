@@ -10,12 +10,13 @@ import { motion } from "framer-motion";
 import { staggerContainer, staggerItem } from "@/components/motion/Reveal";
 import { getApiErrorMessage, isOrganizerSuspendedError } from "@/lib/apiError";
 import { getSafeOrganizerInternalPath } from "@/lib/authRedirect";
+import { ContinueWithGoogleButton } from "@/components/auth/ContinueWithGoogleButton";
 
 export default function OrganizerLogin() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirectTo = getSafeOrganizerInternalPath(searchParams.get("redirect"));
-  const { isAuthenticated, isLoading, login } = useOrganizer();
+  const { isAuthenticated, isLoading, login, loginWithGoogle } = useOrganizer();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -50,6 +51,29 @@ export default function OrganizerLogin() {
         toast.error(msg, { duration: 8000 });
       } else {
         toast.error(getApiErrorMessage(error, "Invalid email or password."));
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogle = async () => {
+    setLoading(true);
+    setSuspendedMessage(null);
+    try {
+      await loginWithGoogle();
+      toast.success("Signed in with Google.");
+      navigate(redirectTo, { replace: true });
+    } catch (error) {
+      if (isOrganizerSuspendedError(error)) {
+        const msg = getApiErrorMessage(
+          error,
+          "This organizer account is suspended. Contact support or wait for reactivation.",
+        );
+        setSuspendedMessage(msg);
+        toast.error(msg, { duration: 8000 });
+      } else {
+        toast.error(getApiErrorMessage(error, "Google sign-in failed."));
       }
     } finally {
       setLoading(false);
@@ -131,6 +155,18 @@ export default function OrganizerLogin() {
                 {loading ? "Signing in…" : "Sign in"}
               </Button>
             </form>
+          )}
+
+          {!isLoading && (
+            <>
+              <div className="mt-5 relative">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-3 text-muted-foreground">Or</span>
+                </div>
+              </div>
+              <ContinueWithGoogleButton onClick={handleGoogle} disabled={loading} />
+            </>
           )}
 
           <p className="text-center text-sm text-muted-foreground mt-6">

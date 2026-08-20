@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 import { organizerSessionStorage } from "@/lib/authStorage";
+import { requestGoogleAccessToken } from "@/lib/googleSignIn";
 import { organizerAuthService } from "@/services/organizerAuth";
 import type {
   Organizer,
@@ -16,6 +17,7 @@ interface OrganizerContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
   register: (payload: OrganizerRegisterBody) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (payload: OrganizerProfileUpdate) => Promise<Organizer>;
@@ -109,6 +111,22 @@ export function OrganizerProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const loginWithGoogle = useCallback(async () => {
+    const accessToken = await requestGoogleAccessToken();
+    const result = await organizerAuthService.googleLogin(accessToken);
+    persistOrganizer(result.token, result.organizer);
+    setToken(result.token);
+    setOrganizer(result.organizer);
+
+    try {
+      const me = await organizerAuthService.me();
+      persistOrganizer(result.token, me);
+      setOrganizer(me);
+    } catch {
+      // Login payload is enough to start the session.
+    }
+  }, []);
+
   const register = useCallback(async (payload: OrganizerRegisterBody) => {
     const result = await organizerAuthService.register(payload);
     persistOrganizer(result.token, result.organizer);
@@ -150,13 +168,14 @@ export function OrganizerProvider({ children }: { children: ReactNode }) {
       isLoading,
       isAuthenticated: Boolean(organizer && token),
       login,
+      loginWithGoogle,
       register,
       logout,
       updateProfile,
       changePassword,
       refreshOrganizer,
     }),
-    [organizer, token, isLoading, login, register, logout, updateProfile, changePassword, refreshOrganizer],
+    [organizer, token, isLoading, login, loginWithGoogle, register, logout, updateProfile, changePassword, refreshOrganizer],
   );
 
   return <OrganizerContext.Provider value={value}>{children}</OrganizerContext.Provider>;
