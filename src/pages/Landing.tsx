@@ -13,7 +13,6 @@ import { Logo } from "@/components/Logo";
 import { PublicSiteHeader } from "@/components/layout/PublicSiteHeader";
 import { useBranding } from "@/contexts/BrandingContext";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
@@ -23,7 +22,6 @@ import {
   Puzzle,
   ArrowRight,
   Zap,
-  Star,
   ChevronUp,
   ChevronDown,
   Sparkles,
@@ -37,9 +35,6 @@ import eventHackathon from "@/assets/event-hackathon-ai.jpg";
 import eventJam from "@/assets/event-late-night-jam.jpg";
 import eventStartup from "@/assets/event-startup-weekend.jpg";
 import eventSummit from "@/assets/event-vibe-coding-summit.jpg";
-import avatarSarah from "@/assets/avatar-sarah.jpg";
-import avatarMarcus from "@/assets/avatar-marcus.jpg";
-import avatarPriya from "@/assets/avatar-priya.jpg";
 
 
 // Feature illustration colors live here; titles/descriptions come from useLandingContent.
@@ -314,13 +309,6 @@ const Landing = () => {
     title_line_1: applyBrandName(landing.features.title_line_1, brandName),
     title_line_2: applyBrandName(landing.features.title_line_2, brandName),
     subhead: applyBrandName(landing.features.subhead, brandName),
-  };
-  const testimonialsContent = {
-    ...landing.testimonials,
-    items: landing.testimonials.items.map((item) => ({
-      ...item,
-      quote: applyBrandName(item.quote, brandName),
-    })),
   };
   const ctaContent = {
     ...landing.cta,
@@ -821,60 +809,6 @@ const Landing = () => {
               </div>
             );
           })()}
-        </div>
-      </section>
-
-      {/* Social proof */}
-      <section className="py-20 lg:py-28">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <motion.div
-            className="text-center mb-14"
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
-            <h2 className="text-3xl sm:text-4xl font-display mb-4 text-foreground tracking-[-0.02em]" style={{ fontWeight: titleWeight }}>
-              {testimonialsContent.title}
-            </h2>
-          </motion.div>
-
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
-            {(() => {
-              const fallbackAvatars = [avatarSarah, avatarMarcus, avatarPriya, "https://i.pravatar.cc/300?img=33", "https://i.pravatar.cc/300?img=47"];
-              return testimonialsContent.items.map((testimonial, i) => {
-                const avatar = fallbackAvatars[i] ?? fallbackAvatars[fallbackAvatars.length - 1];
-                return (
-                  <motion.div
-                    key={`${testimonial.name}-${i}`}
-                    initial={{ opacity: 0, y: 24 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, amount: 0.15 }}
-                    transition={{ duration: 0.55, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
-                    whileHover={{ y: -4 }}
-                  >
-                    <Card className="h-full border-0 shadow-sm overflow-hidden rounded-2xl">
-                      <div className="h-[180px] overflow-hidden">
-                        <img src={avatar} alt={testimonial.name} className="w-full h-full object-cover object-center" />
-                      </div>
-                      <CardContent className="p-6">
-                        <div className="flex gap-0.5 mb-4">
-                          {[...Array(5)].map((_, j) => (
-                            <Star key={j} className="w-4 h-4 fill-primary text-primary" />
-                          ))}
-                        </div>
-                        <p className="text-foreground text-sm leading-relaxed mb-5">"{testimonial.quote}"</p>
-                        <div>
-                          <p className="font-display font-semibold text-sm text-foreground">{testimonial.name}</p>
-                          <p className="text-xs text-muted-foreground">{testimonial.role}</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                );
-              });
-            })()}
-          </div>
         </div>
       </section>
 

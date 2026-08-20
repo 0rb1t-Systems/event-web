@@ -1,11 +1,11 @@
 // Default copy for each Landing section. Use `{brand}` where the platform
 // name should appear — Landing interpolates via `applyBrandName`.
+// Fake Lovable testimonials were removed (no real quotes yet; do not invent a CMS).
 
 export type LandingSectionKey =
   | "hero"
   | "popular_events"
   | "features"
-  | "testimonials"
   | "cta";
 
 export interface HeroContent {
@@ -29,11 +29,6 @@ export interface FeaturesContent {
   title_line_2: string;
   subhead: string;
   items: { tag: string; title: string; description: string }[];
-}
-
-export interface TestimonialsContent {
-  title: string;
-  items: { quote: string; name: string; role: string }[];
 }
 
 export interface CtaContent {
@@ -77,16 +72,6 @@ export const LANDING_DEFAULTS = {
       { tag: "Audience", title: "One hub for everyone", description: "Manage, message, and track every attendee from a single beautiful dashboard." },
     ],
   } as FeaturesContent,
-  testimonials: {
-    title: "Loved by organizers",
-    items: [
-      { quote: "{brand} cut our setup time by 80%. We went from spending hours on registration to minutes.", name: "Sarah Chen", role: "Community manager" },
-      { quote: "The analytics alone are worth it. We finally know where our attendees are coming from.", name: "Marcus Williams", role: "Event coordinator" },
-      { quote: "Clean, professional, and easy to use. Our attendees always compliment the registration experience.", name: "Priya Patel", role: "Startup founder" },
-      { quote: "We switched from three different tools to just {brand}. Everything in one place is a game changer.", name: "James Liu", role: "Tech meetup organizer" },
-      { quote: "Our registrations doubled after switching. The pages just look so much more professional.", name: "Amara Osei", role: "Conference director" },
-    ],
-  } as TestimonialsContent,
   cta: {
     title_line_1: "Ready to launch",
     title_line_2: "your next event?",
@@ -99,7 +84,6 @@ export type LandingContentMap = {
   hero: HeroContent;
   popular_events: PopularEventsContent;
   features: FeaturesContent;
-  testimonials: TestimonialsContent;
   cta: CtaContent;
 };
 
@@ -107,6 +91,5 @@ export const LANDING_SECTION_LABELS: Record<LandingSectionKey, string> = {
   hero: "Hero",
   popular_events: "Popular events heading",
   features: "Features grid",
-  testimonials: "Testimonials",
   cta: "Final call to action",
 };
