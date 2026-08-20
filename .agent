@@ -730,6 +730,10 @@ Route: `/organizer/events/:id/scanner` (lazy). Camera via `html5-qrcode`; manual
 
 ## Change Log
 
+### 2026-08-20 — Organizer Dashboard + Payouts UI polish
+
+Aligned Dashboard and Payouts with Plans visual language: atmospheric heroes, dark metric strips, rounded-3xl surfaces, clearer CTAs, mobile request cards on Payouts, plan-quota callout on Dashboard when creation is blocked.
+
 ### 2026-08-20 — Organizer Plans pricing UI redesign
 
 Replaced basic package list on `/organizer/subscription` with a pricing-page layout: atmospheric hero, dark current-plan strip with quota metrics, tier comparison cards (price / duration / feature checks / CTAs), history + purchases panels. Payouts tab keeps a compact summary linking to Plans.
