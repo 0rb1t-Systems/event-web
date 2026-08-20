@@ -44,7 +44,7 @@ function deriveTicketData(p: ApiParticipation) {
     end_date: p.event?.ends_at ?? null,
     timezone: "Africa/Mogadishu" as const,
     location: p.event?.address ?? null,
-    cover_image_url: p.event?.banner_path ? getMediaUrl(p.event.banner_path) : null,
+    cover_image_url: p.event?.banner_url ?? (p.event?.banner_path ? getMediaUrl(p.event.banner_path) : null),
     primary_color: BRAND_DEFAULT,
   };
 }

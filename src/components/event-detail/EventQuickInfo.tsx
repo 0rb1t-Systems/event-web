@@ -1,30 +1,189 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarDays, MapPin, Type, FileText, Globe, CalendarX, Users, Video } from "lucide-react";
+import { CalendarDays, MapPin, Type, FileText, Globe, CalendarX, Users, Video, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { asEventMode, eventModeRequiresUrl, formatWhyAttend, parseWhyAttendInput } from "@/lib/eventMode";
+import { getApiErrorMessage, getLaravelFieldErrors } from "@/lib/apiError";
+import { asEventMode, eventModeRequiresUrl, formatWhyAttend, parseWhyAttendInput, type EventMode } from "@/lib/eventMode";
 import SmartImageField from "./SmartImageField";
 
 type Event = any;
 
+type OverviewDraft = {
+  name: string;
+  description: string;
+  why_attend_text: string;
+  event_date: string;
+  event_end_date: string;
+  event_category_id: number | null;
+  event_mode: EventMode;
+  online_url: string;
+  city: string;
+  address: string;
+  capacity: string;
+  registration_deadline: string;
+  /** When true, Save will send banner_path: null */
+  clear_banner: boolean;
+  cover_preview: string | null;
+};
+
+function toDatetimeLocal(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toISOString().slice(0, 16);
+}
+
+function fromDatetimeLocal(value: string): string | null {
+  if (!value.trim()) return null;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString();
+}
+
+function eventToDraft(event: Event): OverviewDraft {
+  return {
+    name: event.name ?? "",
+    description: event.description ?? "",
+    why_attend_text: formatWhyAttend(event.why_attend),
+    event_date: toDatetimeLocal(event.event_date),
+    event_end_date: toDatetimeLocal(event.event_end_date),
+    event_category_id: event.event_category_id ?? null,
+    event_mode: asEventMode(event.event_mode),
+    online_url: event.online_url ?? "",
+    city: event.city ?? "",
+    address: event.address || event.location_value || "",
+    capacity: event.capacity == null ? "" : String(event.capacity),
+    registration_deadline: toDatetimeLocal(event.registration_deadline),
+    clear_banner: false,
+    cover_preview: event.background_image_url ?? null,
+  };
+}
+
+function draftsEqual(a: OverviewDraft, b: OverviewDraft): boolean {
+  return (
+    a.name === b.name &&
+    a.description === b.description &&
+    a.why_attend_text === b.why_attend_text &&
+    a.event_date === b.event_date &&
+    a.event_end_date === b.event_end_date &&
+    a.event_category_id === b.event_category_id &&
+    a.event_mode === b.event_mode &&
+    a.online_url === b.online_url &&
+    a.city === b.city &&
+    a.address === b.address &&
+    a.capacity === b.capacity &&
+    a.registration_deadline === b.registration_deadline &&
+    a.clear_banner === b.clear_banner
+  );
+}
+
+/** Map Laravel validation keys onto overview form keys. */
+function mapFieldErrors(raw: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = { ...raw };
+  if (raw.title && !out.name) out.name = raw.title;
+  if (raw.starts_at && !out.event_date) out.event_date = raw.starts_at;
+  if (raw.ends_at && !out.event_end_date) out.event_end_date = raw.ends_at;
+  return out;
+}
+
 interface Props {
   event: Event;
-  onUpdate: (fields: Partial<Event>) => void;
+  onUpdate: (fields: Record<string, unknown>) => Promise<void>;
   categories?: Array<{ id: number; name: string }>;
   onUploadCover?: (file: File) => Promise<string | null>;
 }
 
 export default function EventQuickInfo({ event, onUpdate, categories = [], onUploadCover }: Props) {
+  const baseline = useMemo(() => eventToDraft(event), [event]);
+  const [draft, setDraft] = useState<OverviewDraft>(baseline);
+  const [saving, setSaving] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    setDraft(eventToDraft(event));
+    setFieldErrors({});
+  }, [event]);
+
+  const dirty = !draftsEqual(draft, baseline) || draft.clear_banner;
+  const needsUrl = eventModeRequiresUrl(draft.event_mode);
+
+  const patchDraft = useCallback((partial: Partial<OverviewDraft>) => {
+    setDraft((prev) => ({ ...prev, ...partial }));
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      for (const key of Object.keys(partial)) {
+        delete next[key];
+        if (key === "online_url") delete next.online_url;
+        if (key === "event_mode") delete next.event_mode;
+        if (key === "name") delete next.title;
+      }
+      return next;
+    });
+  }, []);
+
+  const handleSave = async () => {
+    const name = draft.name.trim();
+    if (!name) {
+      setFieldErrors({ name: "Event name is required." });
+      toast.error("Event name is required.");
+      return;
+    }
+    if (needsUrl && !draft.online_url.trim()) {
+      setFieldErrors({ online_url: "Online URL is required for online and hybrid events." });
+      toast.error("Online URL is required for online and hybrid events.");
+      return;
+    }
+
+    const fields: Record<string, unknown> = {
+      name,
+      description: draft.description.trim() || null,
+      why_attend: parseWhyAttendInput(draft.why_attend_text),
+      event_date: fromDatetimeLocal(draft.event_date),
+      event_end_date: fromDatetimeLocal(draft.event_end_date),
+      event_category_id: draft.event_category_id,
+      event_mode: draft.event_mode,
+      online_url: needsUrl ? draft.online_url.trim() : null,
+      city: draft.city.trim() || null,
+      address: draft.address.trim() || null,
+      location_value: draft.address.trim() || null,
+      capacity: draft.capacity === "" ? null : Number(draft.capacity),
+      registration_deadline: fromDatetimeLocal(draft.registration_deadline),
+    };
+    if (draft.clear_banner) {
+      fields.banner_path = null;
+      fields.background_image_url = null;
+    }
+
+    setSaving(true);
+    setFieldErrors({});
+    try {
+      await onUpdate(fields);
+      toast.success("Changes saved");
+    } catch (err) {
+      setFieldErrors(mapFieldErrors(getLaravelFieldErrors(err)));
+      toast.error(getApiErrorMessage(err, "Couldn't save event"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const fieldError = (key: string) =>
+    fieldErrors[key] ? <p className="text-[11px] text-destructive mt-1">{fieldErrors[key]}</p> : null;
+
   return (
-    <div className="bg-card rounded-xl p-4 sm:p-6">
+    <div className="bg-card rounded-xl p-4 sm:p-6 space-y-4">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <div className="space-y-2">
           <SmartImageField
-            value={event.background_image_url ?? null}
+            value={draft.cover_preview}
             onChange={(url) => {
-              if (!url) onUpdate({ banner_path: null, background_image_url: null });
+              if (!url) {
+                patchDraft({ clear_banner: true, cover_preview: null });
+              }
             }}
             eventId={String(event.id)}
             tag="cover"
@@ -33,6 +192,9 @@ export default function EventQuickInfo({ event, onUpdate, categories = [], onUpl
             emptyLabel="Drop or click to upload the event cover"
             onUploadFile={onUploadCover}
           />
+          <p className="text-[10px] text-muted-foreground">
+            Cover upload saves immediately. Other fields save only when you click Save changes.
+          </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 content-start">
@@ -42,14 +204,11 @@ export default function EventQuickInfo({ event, onUpdate, categories = [], onUpl
             </Label>
             <Input
               className="h-9 text-sm font-medium rounded-full"
-              defaultValue={event.name}
-              key={`name-${event.id}-${event.name}`}
-              onBlur={(e) => {
-                if (e.target.value.trim() && e.target.value !== event.name) {
-                  onUpdate({ name: e.target.value.trim() });
-                }
-              }}
+              value={draft.name}
+              onChange={(e) => patchDraft({ name: e.target.value })}
             />
+            {fieldError("name")}
+            {fieldError("title")}
           </div>
           <div className="space-y-1.5 sm:col-span-2">
             <Label className="text-xs flex items-center gap-1">
@@ -57,11 +216,11 @@ export default function EventQuickInfo({ event, onUpdate, categories = [], onUpl
             </Label>
             <Textarea
               className="text-sm min-h-[120px] resize-y rounded-2xl"
-              defaultValue={event.description || ""}
-              key={`desc-${event.id}`}
+              value={draft.description}
               rows={5}
-              onBlur={(e) => onUpdate({ description: e.target.value || null })}
+              onChange={(e) => patchDraft({ description: e.target.value })}
             />
+            {fieldError("description")}
           </div>
           <div className="space-y-1.5 sm:col-span-2">
             <Label className="text-xs flex items-center gap-1">
@@ -70,11 +229,11 @@ export default function EventQuickInfo({ event, onUpdate, categories = [], onUpl
             <Textarea
               className="text-sm min-h-[96px] resize-y rounded-2xl"
               placeholder="One reason per line (max 6)"
-              defaultValue={formatWhyAttend(event.why_attend)}
-              key={`why-${event.id}-${(event.why_attend ?? []).join("|")}`}
+              value={draft.why_attend_text}
               rows={4}
-              onBlur={(e) => onUpdate({ why_attend: parseWhyAttendInput(e.target.value) })}
+              onChange={(e) => patchDraft({ why_attend_text: e.target.value })}
             />
+            {fieldError("why_attend")}
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs flex items-center gap-1">
@@ -83,9 +242,11 @@ export default function EventQuickInfo({ event, onUpdate, categories = [], onUpl
             <Input
               type="datetime-local"
               className="h-9 text-sm rounded-full"
-              defaultValue={event.event_date ? new Date(event.event_date).toISOString().slice(0, 16) : ""}
-              onBlur={(e) => onUpdate({ event_date: e.target.value ? new Date(e.target.value).toISOString() : null })}
+              value={draft.event_date}
+              onChange={(e) => patchDraft({ event_date: e.target.value })}
             />
+            {fieldError("event_date")}
+            {fieldError("starts_at")}
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs flex items-center gap-1">
@@ -94,17 +255,19 @@ export default function EventQuickInfo({ event, onUpdate, categories = [], onUpl
             <Input
               type="datetime-local"
               className="h-9 text-sm rounded-full"
-              defaultValue={event.event_end_date ? new Date(event.event_end_date).toISOString().slice(0, 16) : ""}
-              onBlur={(e) => onUpdate({ event_end_date: e.target.value ? new Date(e.target.value).toISOString() : null })}
+              value={draft.event_end_date}
+              onChange={(e) => patchDraft({ event_end_date: e.target.value })}
             />
+            {fieldError("event_end_date")}
+            {fieldError("ends_at")}
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs flex items-center gap-1">
               <Globe className="w-3 h-3" /> Category
             </Label>
             <Select
-              value={event.event_category_id ? String(event.event_category_id) : "none"}
-              onValueChange={(v) => onUpdate({ event_category_id: v === "none" ? null : Number(v) })}
+              value={draft.event_category_id ? String(draft.event_category_id) : "none"}
+              onValueChange={(v) => patchDraft({ event_category_id: v === "none" ? null : Number(v) })}
             >
               <SelectTrigger className="h-9 text-sm rounded-full"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -114,21 +277,20 @@ export default function EventQuickInfo({ event, onUpdate, categories = [], onUpl
                 ))}
               </SelectContent>
             </Select>
+            {fieldError("event_category_id")}
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs flex items-center gap-1">
               <Video className="w-3 h-3" /> Event mode
             </Label>
             <Select
-              value={asEventMode(event.event_mode)}
+              value={draft.event_mode}
               onValueChange={(v) => {
                 const mode = asEventMode(v);
-                if (eventModeRequiresUrl(mode) && !String(event.online_url || "").trim()) {
-                  toast.error("Online URL is required for online and hybrid events");
-                }
-                const patch: Record<string, unknown> = { event_mode: mode };
-                if (eventModeRequiresUrl(mode) && event.online_url) patch.online_url = event.online_url;
-                onUpdate(patch);
+                patchDraft({
+                  event_mode: mode,
+                  online_url: eventModeRequiresUrl(mode) ? draft.online_url : "",
+                });
               }}
             >
               <SelectTrigger className="h-9 text-sm rounded-full"><SelectValue /></SelectTrigger>
@@ -138,8 +300,9 @@ export default function EventQuickInfo({ event, onUpdate, categories = [], onUpl
                 <SelectItem value="hybrid">Hybrid</SelectItem>
               </SelectContent>
             </Select>
+            {fieldError("event_mode")}
           </div>
-          {eventModeRequiresUrl(event.event_mode) && (
+          {needsUrl && (
             <div className="space-y-1.5 sm:col-span-2">
               <Label className="text-xs flex items-center gap-1">
                 <Globe className="w-3 h-3" /> Online URL
@@ -148,13 +311,10 @@ export default function EventQuickInfo({ event, onUpdate, categories = [], onUpl
                 type="url"
                 className="h-9 text-sm rounded-full"
                 placeholder="https://"
-                defaultValue={event.online_url || ""}
-                key={`url-${event.id}-${event.online_url ?? ""}`}
-                onBlur={(e) => onUpdate({
-                  event_mode: asEventMode(event.event_mode),
-                  online_url: e.target.value.trim() || null,
-                })}
+                value={draft.online_url}
+                onChange={(e) => patchDraft({ online_url: e.target.value })}
               />
+              {fieldError("online_url")}
             </div>
           )}
           <div className="space-y-1.5">
@@ -163,9 +323,10 @@ export default function EventQuickInfo({ event, onUpdate, categories = [], onUpl
             </Label>
             <Input
               className="h-9 text-sm rounded-full"
-              defaultValue={event.city || ""}
-              onBlur={(e) => onUpdate({ city: e.target.value || null })}
+              value={draft.city}
+              onChange={(e) => patchDraft({ city: e.target.value })}
             />
+            {fieldError("city")}
           </div>
           <div className="space-y-1.5 sm:col-span-2">
             <Label className="text-xs flex items-center gap-1">
@@ -174,9 +335,10 @@ export default function EventQuickInfo({ event, onUpdate, categories = [], onUpl
             <Input
               className="h-9 text-sm rounded-full"
               placeholder="Venue address"
-              defaultValue={event.address || event.location_value || ""}
-              onBlur={(e) => onUpdate({ address: e.target.value || null, location_value: e.target.value || null })}
+              value={draft.address}
+              onChange={(e) => patchDraft({ address: e.target.value })}
             />
+            {fieldError("address")}
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs flex items-center gap-1">
@@ -187,9 +349,10 @@ export default function EventQuickInfo({ event, onUpdate, categories = [], onUpl
               min={0}
               className="h-9 text-sm rounded-full"
               placeholder="Unlimited"
-              defaultValue={event.capacity ?? ""}
-              onBlur={(e) => onUpdate({ capacity: e.target.value ? parseInt(e.target.value, 10) : null })}
+              value={draft.capacity}
+              onChange={(e) => patchDraft({ capacity: e.target.value })}
             />
+            {fieldError("capacity")}
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs flex items-center gap-1">
@@ -198,12 +361,30 @@ export default function EventQuickInfo({ event, onUpdate, categories = [], onUpl
             <Input
               type="datetime-local"
               className="h-9 text-sm rounded-full"
-              defaultValue={event.registration_deadline ? new Date(event.registration_deadline).toISOString().slice(0, 16) : ""}
-              onBlur={(e) => onUpdate({ registration_deadline: e.target.value ? new Date(e.target.value).toISOString() : null })}
+              value={draft.registration_deadline}
+              onChange={(e) => patchDraft({ registration_deadline: e.target.value })}
             />
             <p className="text-[10px] text-muted-foreground">Blank = no deadline</p>
+            {fieldError("registration_deadline")}
           </div>
         </div>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-end gap-2 pt-1 border-t border-border/60">
+        <Button
+          type="button"
+          className="rounded-full"
+          disabled={saving || !dirty}
+          onClick={() => void handleSave()}
+        >
+          {saving ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving…
+            </>
+          ) : (
+            "Save changes"
+          )}
+        </Button>
       </div>
     </div>
   );

@@ -15,6 +15,8 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   LayoutDashboard,
   CalendarDays,
+  Users,
+  BarChart3,
   Wallet,
   Settings,
   LogOut,
@@ -24,6 +26,8 @@ import {
 const organizerNavItems = [
   { title: "Dashboard", url: "/organizer/dashboard", icon: LayoutDashboard },
   { title: "Events", url: "/organizer/events", icon: CalendarDays },
+  { title: "Attendees", url: "/organizer/attendees", icon: Users },
+  { title: "Analytics", url: "/organizer/analytics", icon: BarChart3 },
   { title: "Payouts", url: "/organizer/payouts", icon: Wallet },
   { title: "Settings", url: "/organizer/settings", icon: Settings },
 ];

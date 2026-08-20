@@ -21,6 +21,7 @@ export type OrganizerEventImage = {
 export type OrganizerEventTicketType = {
   id: number;
   name: string;
+  is_vip?: boolean;
   price: string;
   currency?: string | null;
 };
@@ -39,6 +40,8 @@ export type OrganizerEvent = {
   latitude: string | number | null;
   longitude: string | number | null;
   banner_path: string | null;
+  /** Absolute URL when Laravel appends the accessor (prefer for <img src>). */
+  banner_url?: string | null;
   featured: boolean;
   monetized: boolean;
   status: OrganizerEventStatus | string;
@@ -168,6 +171,17 @@ export async function uploadOrganizerEventImage(eventId: number, file: File): Pr
   body.append("image", file);
   const { data } = await organizerApi.post<ImageResponse>(
     `/organizer/events/${eventId}/images`,
+    body,
+  );
+  return data.data;
+}
+
+/** Cover/banner only — multipart field `banner` (not gallery `image`). */
+export async function uploadOrganizerEventBanner(eventId: number, file: File): Promise<OrganizerEvent> {
+  const body = new FormData();
+  body.append("banner", file);
+  const { data } = await organizerApi.post<EventResponse>(
+    `/organizer/events/${eventId}/banner`,
     body,
   );
   return data.data;

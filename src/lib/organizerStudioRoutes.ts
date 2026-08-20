@@ -7,7 +7,6 @@ export const STUDIO_PATH_BY_SECTION: Record<EventSection, string> = {
   form: "form",
   content: "content",
   branding: "branding",
-  promotion: "promotion",
   attendees: "attendees",
   checkin: "checkin",
   settings: "settings",
@@ -25,6 +24,8 @@ export function sectionFromPathname(pathname: string): EventSection {
   if (slug === "page") return "content";
   if (slug === "edit") return "overview";
   if (slug === "invitation") return "branding";
+  // Removed Lovable promotion — treat as overview if somehow visited before redirect
+  if (slug === "promotion") return "overview";
   if ((Object.keys(STUDIO_PATH_BY_SECTION) as EventSection[]).some((k) => STUDIO_PATH_BY_SECTION[k] === slug)) {
     return slug as EventSection;
   }

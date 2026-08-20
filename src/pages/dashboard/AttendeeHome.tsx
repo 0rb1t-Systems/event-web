@@ -148,7 +148,7 @@ export default function AttendeeHome() {
             {displayTickets.map((p) => {
               const badge = statusBadge(p);
               const coverPath = p.event?.banner_path;
-              const coverUrl = coverPath ? getMediaUrl(coverPath) : null;
+              const coverUrl = p.event?.banner_url ?? (coverPath ? getMediaUrl(coverPath) : null);
               const isCancelled = p.status === "cancelled";
               return (
                 <li key={p.id} className="min-w-0">
@@ -207,7 +207,10 @@ export default function AttendeeHome() {
         ) : browseEvents.length > 0 ? (
           <ul className="grid sm:grid-cols-2 gap-3">
             {browseEvents.map((e) => {
-              const bg = e.banner_path ? getMediaUrl(e.banner_path) : (e.images?.[0]?.path ? getMediaUrl(e.images[0].path) : null);
+              const bg =
+                e.banner_url ??
+                (e.banner_path ? getMediaUrl(e.banner_path) : null) ??
+                (e.images?.[0]?.path ? getMediaUrl(e.images[0].path) : null);
               return (
                 <li key={e.id} className="min-w-0">
                   <Link

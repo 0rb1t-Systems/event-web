@@ -2,10 +2,9 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Crown, Ticket, Plus, Pencil, Trash2 } from "lucide-react";
+import { Ticket, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export type TicketTier = {
@@ -15,6 +14,7 @@ export type TicketTier = {
   price: number; // in main currency units (e.g. dollars)
   currency: string;
   capacity: number | null;
+  /** From Laravel `ticket_types.is_vip` only — never from name. */
   is_vip: boolean;
 };
 
@@ -105,15 +105,12 @@ export default function TicketTiersManager({ tiers, currency = "USD", onChange }
               key={t.id}
               className="flex items-center gap-3 p-3 rounded-xl bg-muted/40"
             >
-              <div className={`shrink-0 w-9 h-9 rounded-xl inline-flex items-center justify-center ${t.is_vip ? "bg-primary/15 text-primary" : "bg-muted text-foreground"}`}>
-                {t.is_vip ? <Crown className="w-4 h-4" /> : <Ticket className="w-4 h-4" />}
+              <div className="shrink-0 w-9 h-9 rounded-xl inline-flex items-center justify-center bg-muted text-foreground">
+                <Ticket className="w-4 h-4" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium truncate">{t.name || "Untitled"}</span>
-                  {t.is_vip && (
-                    <span className="text-[9px] uppercase tracking-widest text-primary font-semibold">VIP</span>
-                  )}
                 </div>
                 {t.description && (
                   <p className="text-xs text-muted-foreground truncate">{t.description}</p>
@@ -196,15 +193,6 @@ export default function TicketTiersManager({ tiers, currency = "USD", onChange }
                     })
                   }
                   className="rounded-full"
-                />
-              </div>
-              <div className="flex items-center justify-between rounded-xl bg-muted/50 px-4 h-11">
-                <div className="flex items-center gap-2 text-sm">
-                  <Crown className="w-4 h-4 text-primary" /> VIP tier
-                </div>
-                <Switch
-                  checked={editing.is_vip}
-                  onCheckedChange={(v) => setEditing({ ...editing, is_vip: v })}
                 />
               </div>
             </div>

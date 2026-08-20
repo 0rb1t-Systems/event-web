@@ -38,7 +38,8 @@ import EventStudioForm from "./pages/dashboard/event-studio/EventStudioForm";
 import EventStudioContent from "./pages/dashboard/event-studio/EventStudioContent";
 import EventStudioBranding from "./pages/dashboard/event-studio/EventStudioBranding";
 import EventStudioSettings from "./pages/dashboard/event-studio/EventStudioSettings";
-import EventStudioPlaceholder, { EventStudioAttendeesPlaceholder } from "./pages/dashboard/event-studio/EventStudioPlaceholder";
+import EventStudioAttendees from "./pages/dashboard/event-studio/EventStudioAttendees";
+import { EventStudioCheckInPlaceholder } from "./pages/dashboard/event-studio/EventStudioPlaceholder";
 import AttendeeHome from "./pages/dashboard/AttendeeHome";
 import Attendees from "./pages/dashboard/Attendees";
 import Analytics from "./pages/dashboard/Analytics";
@@ -119,9 +120,9 @@ const App = () => (
                         <Route path="page" element={<EventStudioPageRedirect />} />
                         <Route path="branding" element={<EventStudioBranding />} />
                         <Route path="invitation" element={<EventStudioInvitationRedirect />} />
-                        <Route path="promotion" element={<EventStudioPlaceholder title="Promotion" body="Promotion / tracking was removed in cleanup." />} />
-                        <Route path="attendees" element={<EventStudioAttendeesPlaceholder />} />
-                        <Route path="checkin" element={<EventStudioPlaceholder title="Check-in" body="Check-in is not wired yet." />} />
+                        <Route path="promotion" element={<Navigate to=".." relative="path" replace />} />
+                        <Route path="attendees" element={<EventStudioAttendees />} />
+                        <Route path="checkin" element={<EventStudioCheckInPlaceholder />} />
                         <Route path="settings" element={<EventStudioSettings />} />
                       </Route>
                       <Route path="attendees" element={<Attendees />} />

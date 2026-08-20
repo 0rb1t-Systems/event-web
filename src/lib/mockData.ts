@@ -77,15 +77,6 @@ export type MockParticipation = {
   registered_at: string
 }
 
-export type MockAttendee = {
-  id: string
-  name: string
-  email: string
-  ticket_type: string
-  status: string
-  registered_at: string
-}
-
 export const mockEvent: MockEvent = {
   id: "1",
   title: "Tech Summit 2026",
@@ -224,68 +215,6 @@ export const mockParticipations: MockParticipation[] = [
     qr_token: "EVH-MOCK-TOKEN-DEF456",
   },
 ]
-
-export const mockAttendees: MockAttendee[] = [
-  {
-    id: "1",
-    name: "Fatima Omar",
-    email: "fatima@example.com",
-    ticket_type: "Standard",
-    status: "paid",
-    registered_at: "2026-08-01T10:00:00Z",
-  },
-  {
-    id: "2",
-    name: "Mohamed Ali",
-    email: "mohamed@example.com",
-    ticket_type: "VIP",
-    status: "checked_in",
-    registered_at: "2026-08-02T11:00:00Z",
-  },
-  {
-    id: "3",
-    name: "Hodan Yusuf",
-    email: "hodan@example.com",
-    ticket_type: "Standard",
-    status: "waitlisted",
-    registered_at: "2026-08-03T09:00:00Z",
-  },
-  {
-    id: "4",
-    name: "Abdi Warsame",
-    email: "abdi@example.com",
-    ticket_type: "Standard",
-    status: "paid",
-    registered_at: "2026-08-04T14:00:00Z",
-  },
-  {
-    id: "5",
-    name: "Sahra Ahmed",
-    email: "sahra@example.com",
-    ticket_type: "VIP",
-    status: "paid",
-    registered_at: "2026-08-05T09:30:00Z",
-  },
-]
-
-export const mockAnalytics = {
-  total_registrations: 165,
-  total_revenue: 6375.0,
-  checked_in: 89,
-  views: 1240,
-  conversion_rate: 13.3,
-  attendance_rate: 53.9,
-  average_rating: 4.2,
-  registrations_by_day: [
-    { date: "2026-08-01", count: 12 },
-    { date: "2026-08-02", count: 18 },
-    { date: "2026-08-03", count: 25 },
-    { date: "2026-08-04", count: 31 },
-    { date: "2026-08-05", count: 22 },
-    { date: "2026-08-06", count: 28 },
-    { date: "2026-08-07", count: 29 },
-  ],
-}
 
 export const mockOrganizer = {
   id: "1",

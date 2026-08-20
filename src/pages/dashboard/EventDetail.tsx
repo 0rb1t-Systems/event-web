@@ -19,7 +19,7 @@ import {
   listEventCategories,
   transitionOrganizerEvent,
   updateOrganizerEvent,
-  uploadOrganizerEventImage,
+  uploadOrganizerEventBanner,
   validateGalleryFile,
   type OrganizerEvent,
   type OrganizerEventImage,
@@ -102,9 +102,8 @@ const EventDetail = () => {
     } catch (err) {
       if (isOrganizerEventAccessError(err)) {
         handleDenied();
-        return;
       }
-      toast.error(getApiErrorMessage(err, "Couldn't save event"));
+      throw err;
     }
   }, [raw, handleDenied]);
 
@@ -116,11 +115,10 @@ const EventDetail = () => {
       return null;
     }
     try {
-      const image = await uploadOrganizerEventImage(raw.id, file);
-      const updated = await updateOrganizerEvent(raw.id, { banner_path: image.path });
-      setRaw({ ...updated, images: [...(updated.images ?? raw.images ?? []), image] });
+      const updated = await uploadOrganizerEventBanner(raw.id, file);
+      setRaw(updated);
       toast.success("Cover uploaded");
-      return getMediaUrl(image.path) ?? image.path;
+      return updated.banner_url ?? getMediaUrl(updated.banner_path) ?? null;
     } catch (err) {
       if (isOrganizerEventAccessError(err)) {
         handleDenied();

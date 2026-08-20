@@ -22,6 +22,8 @@ export type PublicEventCatalogItem = {
   online_url?: string | null;
   why_attend?: string[] | null;
   banner_path?: string | null;
+  /** Absolute URL from Laravel `banner_url` accessor when present. */
+  banner_url?: string | null;
   featured: boolean;
   monetized: boolean;
   status: string;
@@ -39,6 +41,7 @@ export type PublicEventCatalogItem = {
     id: number;
     event_id: number;
     name: string;
+    is_vip?: boolean;
     price: string; // decimal as string
     quantity_limit: number | null;
     quantity_sold: number;
@@ -162,7 +165,6 @@ export function adaptTicketTypes(apiTickets: PublicEventCatalogItem["ticket_type
     const price = Number.isFinite(rawPrice) ? rawPrice : 0;
 
     const capacity = t.quantity_limit ?? null;
-    const isVip = (t.name || "").toLowerCase().includes("vip");
 
     return {
       id: String(t.id),
@@ -171,22 +173,27 @@ export function adaptTicketTypes(apiTickets: PublicEventCatalogItem["ticket_type
       price,
       currency: "USD",
       capacity,
-      is_vip: isVip,
+      is_vip: t.is_vip === true,
     };
   });
 }
 
+function resolveBannerSrc(api: PublicEventDetail | PublicEventCatalogItem): string | undefined {
+  if (api.banner_url) return api.banner_url;
+  if (api.banner_path) return getMediaUrl(api.banner_path);
+  return undefined;
+}
+
 export function pickBackgroundImage(api: PublicEventDetail | PublicEventCatalogItem): string | undefined {
-  const banner = api.banner_path || undefined;
+  const banner = resolveBannerSrc(api);
   if (banner) return banner;
   const firstImage = api.images?.[0]?.path;
   return firstImage ? getMediaUrl(firstImage) : undefined;
 }
 
 export function pickHeroBackgroundImage(api: PublicEventDetail | PublicEventCatalogItem): string | undefined {
-  // Laravel may return full URLs; `getMediaUrl` is safe for relative paths too.
-  const banner = api.banner_path;
-  if (banner) return getMediaUrl(banner);
+  const banner = resolveBannerSrc(api);
+  if (banner) return banner;
   const firstImagePath = api.images?.[0]?.path;
   return firstImagePath ? getMediaUrl(firstImagePath) : undefined;
 }

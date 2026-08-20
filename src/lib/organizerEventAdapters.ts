@@ -38,6 +38,7 @@ export type OrganizerEventStudio = {
 };
 
 function coverUrl(event: OrganizerEvent): string | null {
+  if (event.banner_url) return event.banner_url;
   const first = event.images?.[0]?.path;
   return getMediaUrl(event.banner_path) ?? getMediaUrl(first) ?? null;
 }

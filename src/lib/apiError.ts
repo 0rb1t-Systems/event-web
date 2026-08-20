@@ -181,3 +181,20 @@ export function isEventQuotaError(error: unknown): boolean {
   const message = getApiErrorMessage(error, "");
   return /quota|no active subscription package/i.test(message);
 }
+
+/** Laravel `errors` object → first message per field key (e.g. online_url, title). */
+export function getLaravelFieldErrors(error: unknown): Record<string, string> {
+  if (!axios.isAxiosError(error) || !error.response?.data || typeof error.response.data !== "object") {
+    return {};
+  }
+  const errors = (error.response.data as { errors?: unknown }).errors;
+  if (!errors || typeof errors !== "object" || Array.isArray(errors)) return {};
+
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(errors as Record<string, unknown>)) {
+    if (key === "error_code") continue;
+    if (typeof value === "string" && value.trim()) out[key] = value;
+    else if (Array.isArray(value) && typeof value[0] === "string" && value[0].trim()) out[key] = value[0];
+  }
+  return out;
+}

@@ -20,6 +20,10 @@ export type ApiParticipation = {
   custom_field_answers: Record<string, unknown> | null;
   qr_token: string | null;
   created_at: string;
+  discount_code_id?: number | null;
+  original_amount?: string | null;
+  discount_amount?: string | null;
+  final_amount?: string | null;
   event?: {
     id: number;
     title: string;
@@ -28,6 +32,7 @@ export type ApiParticipation = {
     address?: string | null;
     city?: string | null;
     banner_path?: string | null;
+    banner_url?: string | null;
   };
   ticket_type?: {
     id: number;
@@ -60,6 +65,8 @@ export type CreateParticipationBody = {
   event_id: number;
   ticket_type_id?: number | null;
   custom_field_answers?: Record<string, unknown>;
+  /** Optional code string; Laravel quotes and snapshots on join. */
+  discount_code?: string | null;
 };
 
 export type ChargeBody = {

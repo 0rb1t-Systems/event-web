@@ -26,11 +26,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import { AuroraBackdrop, GlassCard } from "@/components/register/AuroraBackdrop";
 import { getMediaUrl } from "@/lib/mediaUrl";
 import type { TicketTier } from "@/components/event-detail/TicketTiersManager";
-import { Crown, Ticket as TicketIcon, Check, Minus, Plus } from "lucide-react";
+import { Ticket as TicketIcon, Crown, Check, Minus, Plus } from "lucide-react";
 import {
   createParticipation,
   type ApiParticipation,
 } from "@/services/participationService";
+import {
+  validateParticipantDiscountCode,
+  type DiscountQuote,
+} from "@/services/participantDiscounts";
 import { ParticipantWaafiPayment } from "@/components/participant/ParticipantWaafiPayment";
 
 type FormField = UiFormField;
@@ -38,10 +42,16 @@ type FormField = UiFormField;
 const formatTicketPrice = (price: number, currency = "USD") => {
   if (!price) return "Free";
   try {
-    return new Intl.NumberFormat(undefined, { style: "currency", currency, maximumFractionDigits: 0 }).format(price);
+    return new Intl.NumberFormat(undefined, { style: "currency", currency, maximumFractionDigits: 2 }).format(price);
   } catch {
     return `${currency} ${price}`;
   }
+};
+
+const formatMoneyString = (amount: string, currency = "USD") => {
+  const n = Number(amount);
+  if (!Number.isFinite(n)) return `${currency} ${amount}`;
+  return formatTicketPrice(n, currency);
 };
 
 const QuantityStepper = ({
@@ -127,13 +137,21 @@ const TicketPicker = ({
             <div className="flex items-center gap-3.5">
               <div
                 className={`shrink-0 w-10 h-10 rounded-full inline-flex items-center justify-center transition ${
-                  selected && !soldOut ? "text-white" : t.is_vip ? "text-foreground bg-background" : "bg-background text-muted-foreground"
+                  selected && !soldOut
+                    ? "text-white"
+                    : t.is_vip
+                      ? "text-foreground bg-background"
+                      : "bg-background text-muted-foreground"
                 }`}
-                style={selected && !soldOut ? {
-                  background: t.is_vip
-                    ? `linear-gradient(135deg, ${brandColor}, hsl(265 90% 62%))`
-                    : brandColor,
-                } : undefined}
+                style={
+                  selected && !soldOut
+                    ? {
+                        background: t.is_vip
+                          ? `linear-gradient(135deg, ${brandColor}, hsl(265 90% 62%))`
+                          : brandColor,
+                      }
+                    : undefined
+                }
               >
                 {t.is_vip ? <Crown className="w-4 h-4" /> : <TicketIcon className="w-4 h-4" />}
               </div>
@@ -478,6 +496,13 @@ const RegistrationForm = ({
   onSelectTicket,
   quantity,
   onQuantityChange,
+  discountCode,
+  onDiscountCodeChange,
+  discountQuote,
+  discountApplying,
+  discountError,
+  onApplyDiscount,
+  onClearDiscount,
   className = "",
 }: {
   formFields: FormField[] | undefined;
@@ -495,15 +520,27 @@ const RegistrationForm = ({
   onSelectTicket: (id: string) => void;
   quantity: number;
   onQuantityChange: (n: number) => void;
+  discountCode: string;
+  onDiscountCodeChange: (v: string) => void;
+  discountQuote: DiscountQuote | null;
+  discountApplying: boolean;
+  discountError: string | null;
+  onApplyDiscount: () => void;
+  onClearDiscount: () => void;
   className?: string;
 }) => {
   const selectedTicket = tickets.find((t) => t.id === selectedTicketId);
-  const subtotal = selectedTicket ? selectedTicket.price * quantity : 0;
-  const isPaid = !!selectedTicket && selectedTicket.price > 0;
+  const unitPrice = selectedTicket?.price ?? 0;
+  const isPaid = !!selectedTicket && unitPrice > 0;
+  const quoteFinal = discountQuote ? Number(discountQuote.final_amount) : null;
+  const displayTotal =
+    quoteFinal != null && Number.isFinite(quoteFinal)
+      ? quoteFinal
+      : unitPrice * quantity;
   const ctaLabel = isPending
     ? "Processing…"
     : isPaid
-      ? `Get ${quantity} ticket${quantity > 1 ? "s" : ""} · ${formatTicketPrice(subtotal, selectedTicket.currency || "USD")}`
+      ? `Get ticket · ${formatTicketPrice(displayTotal, selectedTicket.currency || "USD")}`
       : selectedTicket
         ? `Reserve ${quantity > 1 ? `${quantity} spots` : "my spot"}`
         : "Register now";
@@ -521,6 +558,54 @@ const RegistrationForm = ({
           onQuantityChange={onQuantityChange}
           brandColor={brandColor}
         />
+      )}
+
+      {isPaid && selectedTicketId && (
+        <div className="space-y-2">
+          <Label className="text-xs font-semibold tracking-[0.12em] uppercase text-muted-foreground">
+            Discount code
+          </Label>
+          <div className="flex gap-2">
+            <Input
+              value={discountCode}
+              onChange={(e) => onDiscountCodeChange(e.target.value.toUpperCase())}
+              placeholder="SAVE10"
+              className="rounded-full uppercase"
+              autoComplete="off"
+              disabled={!!discountQuote || discountApplying}
+            />
+            {discountQuote ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-full shrink-0"
+                onClick={onClearDiscount}
+              >
+                Remove
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-full shrink-0"
+                onClick={onApplyDiscount}
+                disabled={discountApplying || !discountCode.trim()}
+              >
+                {discountApplying ? <Loader2 className="w-4 h-4 animate-spin" /> : "Apply"}
+              </Button>
+            )}
+          </div>
+          {discountError && (
+            <p className="text-xs text-destructive">{discountError}</p>
+          )}
+          {discountQuote && (
+            <p className="text-xs text-muted-foreground">
+              Code <span className="font-medium text-foreground">{discountQuote.code}</span> applied
+              {" — "}
+              save {formatMoneyString(discountQuote.discount_amount, selectedTicket?.currency || "USD")}
+            </p>
+          )}
+        </div>
       )}
 
       {(formFields?.length ?? 0) > 0 && (
@@ -558,11 +643,21 @@ const RegistrationForm = ({
           <div>
             <p className="text-[10px] uppercase tracking-[0.18em] font-bold text-muted-foreground">Order total</p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {quantity} × {selectedTicket!.name} @ {formatTicketPrice(selectedTicket!.price, selectedTicket!.currency)}
+              {selectedTicket!.name}
+              {discountQuote
+                ? ` · was ${formatMoneyString(discountQuote.original_amount, selectedTicket!.currency || "USD")}`
+                : ` @ ${formatTicketPrice(selectedTicket!.price, selectedTicket!.currency)}`}
             </p>
           </div>
-          <div className="text-2xl font-display font-bold tabular-nums tracking-[-0.02em]" style={{ color: brandColor }}>
-            {formatTicketPrice(subtotal, selectedTicket!.currency || "USD")}
+          <div className="text-right">
+            {discountQuote && (
+              <div className="text-xs text-muted-foreground line-through tabular-nums">
+                {formatMoneyString(discountQuote.original_amount, selectedTicket!.currency || "USD")}
+              </div>
+            )}
+            <div className="text-2xl font-display font-bold tabular-nums tracking-[-0.02em]" style={{ color: brandColor }}>
+              {formatTicketPrice(displayTotal, selectedTicket!.currency || "USD")}
+            </div>
           </div>
         </motion.div>
       )}
@@ -636,6 +731,10 @@ const Register = () => {
   const [consent, setConsent] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
+  const [discountCode, setDiscountCode] = useState("");
+  const [discountQuote, setDiscountQuote] = useState<DiscountQuote | null>(null);
+  const [discountApplying, setDiscountApplying] = useState(false);
+  const [discountError, setDiscountError] = useState<string | null>(null);
 
   const [step, setStep] = useState<RegistrationStep>({ kind: "form" });
 
@@ -648,6 +747,42 @@ const Register = () => {
   useEffect(() => {
     if (tickets.length === 1 && !selectedTicketId) setSelectedTicketId(tickets[0].id);
   }, [tickets, selectedTicketId]);
+
+  const clearDiscount = useCallback(() => {
+    setDiscountQuote(null);
+    setDiscountError(null);
+    setDiscountCode("");
+  }, []);
+
+  const handleSelectTicket = useCallback((id: string) => {
+    setSelectedTicketId(id);
+    setDiscountQuote(null);
+    setDiscountError(null);
+  }, []);
+
+  const handleApplyDiscount = useCallback(async () => {
+    if (!event || !selectedTicketId || !discountCode.trim()) return;
+    if (!user) {
+      navigate(`/auth?redirect=${encodeURIComponent(`/events/${event.id}`)}`);
+      return;
+    }
+    setDiscountApplying(true);
+    setDiscountError(null);
+    try {
+      const quote = await validateParticipantDiscountCode(event.id, {
+        code: discountCode.trim(),
+        ticket_type_id: Number(selectedTicketId),
+      });
+      setDiscountQuote(quote);
+      setDiscountCode(quote.code);
+      toast.success(`Code ${quote.code} applied`);
+    } catch (err) {
+      setDiscountQuote(null);
+      setDiscountError(getApiErrorMessage(err, "This discount code can't be used."));
+    } finally {
+      setDiscountApplying(false);
+    }
+  }, [discountCode, event, navigate, selectedTicketId, user]);
 
   // Navigation safety: warn if a charge is pending
   useEffect(() => {
@@ -902,6 +1037,7 @@ const Register = () => {
         event_id: event.id,
         ticket_type_id: selectedTicketNum || undefined,
         custom_field_answers: Object.keys(custom_field_answers).length > 0 ? custom_field_answers : undefined,
+        discount_code: discountQuote?.code || undefined,
       });
 
       if (participation.status === "waitlisted") {
@@ -962,6 +1098,13 @@ const Register = () => {
         toast.error("The selected ticket is no longer available.");
       } else if (msg.toLowerCase().includes("sales are disabled")) {
         toast.error("This ticket type is no longer on sale.");
+      } else if (
+        msg.toLowerCase().includes("discount") ||
+        String(err?.response?.data?.errors?.error_code?.[0] || "").startsWith("discount_")
+      ) {
+        toast.error(msg || "This discount code can't be used.");
+        setDiscountQuote(null);
+        setDiscountError(msg);
       } else {
         toast.error(msg || "Registration failed. Please try again.");
       }
@@ -1079,7 +1222,10 @@ const Register = () => {
                   participationId={step.participation.id}
                   eventName={event.name}
                   ticketName={ticket?.name ?? step.participation.ticket_type?.name ?? null}
-                  amount={ticket?.price ? String(ticket.price) : step.participation.ticket_type?.price ?? "0"}
+                  amount={
+                    step.participation.final_amount
+                    ?? (ticket?.price ? String(ticket.price) : step.participation.ticket_type?.price ?? "0")
+                  }
                   currency={ticket?.currency || "USD"}
                   brandColor={brandColor}
                   isDark={isDark}
@@ -1170,9 +1316,20 @@ const Register = () => {
     brandColor,
     tickets,
     selectedTicketId,
-    onSelectTicket: setSelectedTicketId,
+    onSelectTicket: handleSelectTicket,
     quantity,
     onQuantityChange: setQuantity,
+    discountCode,
+    onDiscountCodeChange: (v: string) => {
+      setDiscountCode(v);
+      if (discountQuote) setDiscountQuote(null);
+      if (discountError) setDiscountError(null);
+    },
+    discountQuote,
+    discountApplying,
+    discountError,
+    onApplyDiscount: () => void handleApplyDiscount(),
+    onClearDiscount: clearDiscount,
   };
 
   return (

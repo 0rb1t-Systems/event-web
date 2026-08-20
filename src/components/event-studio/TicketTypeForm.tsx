@@ -1,6 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Crown } from "lucide-react";
 import type { TicketTypeWriteBody } from "@/services/organizerTickets";
 
 export type TicketTypeFormValue = {
@@ -8,10 +9,11 @@ export type TicketTypeFormValue = {
   price: string;
   quantity_limit: string;
   sales_enabled: boolean;
+  is_vip: boolean;
 };
 
 export function emptyTicketTypeForm(): TicketTypeFormValue {
-  return { name: "", price: "0", quantity_limit: "", sales_enabled: true };
+  return { name: "", price: "0", quantity_limit: "", sales_enabled: true, is_vip: false };
 }
 
 export function ticketTypeFormToBody(value: TicketTypeFormValue): TicketTypeWriteBody {
@@ -20,6 +22,7 @@ export function ticketTypeFormToBody(value: TicketTypeFormValue): TicketTypeWrit
     price: Number(value.price) || 0,
     quantity_limit: value.quantity_limit === "" ? null : Number(value.quantity_limit),
     sales_enabled: value.sales_enabled,
+    is_vip: value.is_vip,
   };
 }
 
@@ -61,11 +64,35 @@ export default function TicketTypeForm({ value, onChange }: Props) {
           className="rounded-full"
         />
       </div>
-      <div className="sm:col-span-2 flex items-center justify-between rounded-xl bg-muted/50 px-4 h-11">
-        <span className="text-sm">Sales enabled</span>
+      <div className="sm:col-span-2 flex items-center justify-between gap-4 rounded-xl bg-muted/50 px-4 py-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <Crown className="w-4 h-4 text-primary shrink-0" />
+          <div className="min-w-0 space-y-0.5">
+            <p className="text-sm font-medium">VIP tier</p>
+            <p className="text-xs text-muted-foreground leading-snug">
+              Marks this ticket as VIP. The name alone does not make it VIP.
+            </p>
+          </div>
+        </div>
+        <Switch
+          checked={value.is_vip}
+          onCheckedChange={(v) => onChange({ ...value, is_vip: v })}
+          aria-label="VIP tier"
+        />
+      </div>
+      <div className="sm:col-span-2 flex items-center justify-between gap-4 rounded-xl bg-muted/50 px-4 py-3">
+        <div className="min-w-0 space-y-0.5">
+          <p className="text-sm font-medium">{value.sales_enabled ? "Sales enabled" : "Sales paused"}</p>
+          <p className="text-xs text-muted-foreground leading-snug">
+            {value.sales_enabled
+              ? "Participants can currently select this ticket."
+              : "This ticket still exists, but participants cannot use it for new registrations."}
+          </p>
+        </div>
         <Switch
           checked={value.sales_enabled}
           onCheckedChange={(v) => onChange({ ...value, sales_enabled: v })}
+          aria-label={value.sales_enabled ? "Pause sales" : "Enable sales"}
         />
       </div>
     </div>

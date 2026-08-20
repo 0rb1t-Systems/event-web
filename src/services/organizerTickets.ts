@@ -5,6 +5,8 @@ export type OrganizerTicketType = {
   id: number;
   event_id: number;
   name: string;
+  /** Laravel VIP flag — never infer from `name`. */
+  is_vip: boolean;
   price: string | number;
   quantity_limit: number | null;
   quantity_sold: number;
@@ -14,6 +16,7 @@ export type OrganizerTicketType = {
 
 export type TicketTypeWriteBody = {
   name?: string;
+  is_vip?: boolean;
   price?: number;
   quantity_limit?: number | null;
   sort_order?: number;

@@ -2,14 +2,14 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
-  LayoutDashboard, Layout, FormInput, Palette, Megaphone, Users,
+  LayoutDashboard, Layout, FormInput, Palette, Users,
   Settings as SettingsIcon, ChevronLeft, ChevronRight, ArrowLeft,
-  Share2, QrCode, Trophy, BarChart3, ScanLine, Ticket,
+  Share2, Trophy, ScanLine, Ticket,
 } from "lucide-react";
 
 export type EventSection =
   | "overview" | "tickets" | "form" | "content" | "branding"
-  | "promotion" | "attendees" | "checkin" | "settings";
+  | "attendees" | "checkin" | "settings";
 
 interface SubItem {
   id: string; // DOM id to scroll to
@@ -29,13 +29,6 @@ interface NavGroup {
   items: NavItem[];
 }
 
-const PROMOTION_SUBS: SubItem[] = [
-  { id: "promo-share", label: "Share formats", icon: Share2 },
-  { id: "promo-qr", label: "Event QR code", icon: QrCode },
-  { id: "promo-links", label: "Promoter links", icon: Trophy },
-  { id: "promo-attribution", label: "Source attribution", icon: BarChart3 },
-];
-
 const GROUPS: NavGroup[] = [
   {
     label: "Build",
@@ -52,9 +45,8 @@ const GROUPS: NavGroup[] = [
     ],
   },
   {
-    label: "Grow",
+    label: "Day of",
     items: [
-      { key: "promotion", label: "Promotion", icon: Megaphone },
       { key: "attendees", label: "Attendees", icon: Users },
       { key: "checkin", label: "Check-in scanner", icon: ScanLine },
     ],

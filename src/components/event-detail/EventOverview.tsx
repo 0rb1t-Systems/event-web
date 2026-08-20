@@ -7,7 +7,6 @@ import {
   Circle,
   Copy,
   ExternalLink,
-  Share2,
 } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { getRegistrationUrl } from "@/lib/publicUrl";
@@ -159,7 +158,9 @@ export default function EventOverview({ event, onJumpTab }: Props) {
             </button>
           </div>
           <p className="text-sm text-muted-foreground py-6">
-            Attendee list is not wired yet. This event currently has {registered} registration{registered === 1 ? "" : "s"}.
+            {registered > 0
+              ? `${registered} registration${registered === 1 ? "" : "s"} so far. Open Attendees to search, promote waitlist, cancel, or export.`
+              : "Registrations will show up here once guests start signing up. Manage them from Attendees."}
           </p>
         </div>
 
@@ -181,9 +182,6 @@ export default function EventOverview({ event, onJumpTab }: Props) {
               <Link to={`/events/${event.id}`} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="w-3.5 h-3.5 mr-2" /> Preview as attendee
               </Link>
-            </Button>
-            <Button onClick={() => onJumpTab("promotion")} size="sm" className="w-full rounded-full">
-              <Share2 className="w-3.5 h-3.5 mr-2" /> Open share kit
             </Button>
           </div>
         </div>

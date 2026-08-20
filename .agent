@@ -1,6 +1,6 @@
 # EventHub Web App — Agent Context
 
-Last updated: 2026-08-19 — Event create → public registration: event_mode, online_url, why_attend
+Last updated: 2026-08-20 — Prompt 10: Registrations + Announcements + Analytics
 Repository: C:\Users\Hp\Documents\personal\event-web
 Default branch: master
 
@@ -58,8 +58,8 @@ Local Laravel project (not modified by this Web App foundation): `C:\Users\Hp\Do
 - API client authentication: X-API-Key only
 - HMAC: NOT USED
 - Supabase: fully removed. `@supabase/supabase-js` is uninstalled, `src/` has no Supabase client, and the leftover Lovable `supabase/` Deno functions directory has been deleted.
-- Real backend wiring: participant auth, public catalog/detail, participation creation, WaafiPay payment, dashboard registrations list, registration detail + digital invitation, organizer auth + organizer dashboard + organizer event CRUD + event studio (tickets, discounts, form fields, speakers, sponsors, sessions, invitation designer). Organizer attendees/analytics still use mock data.
-- Mock data: src/lib/mockData.ts
+- Real backend wiring: participant auth, public catalog/detail, participation creation, WaafiPay payment, dashboard registrations list, registration detail + digital invitation, organizer auth + organizer dashboard + organizer event CRUD + event studio (tickets, discounts, form fields, speakers, sponsors, sessions, invitation designer, registrations/announcements) + org Attendees/Analytics. Check-in scanner still placeholder.
+- Mock data: src/lib/mockData.ts (legacy fixtures only; mockAttendees/mockAnalytics removed)
 
 ## Current Cleanup State
 
@@ -168,7 +168,7 @@ Confirmed Laravel error shape (2026-08-18 smoke test):
 The following are available with X-API-Key and no participant Bearer token:
 
 - GET /events
-- GET /events/{id} — `{id}` is the numeric event primary key (Laravel has no event slugs). Public payload includes `event_mode` (`in_person`|`online`|`hybrid`), `online_url`, `why_attend` (string[]|null), plus speakers/sponsors/sessions/ticket_types.
+- GET /events/{id} — `{id}` is the numeric event primary key (Laravel has no event slugs). Public payload includes `event_mode` (`in_person`|`online`|`hybrid`), `online_url`, `why_attend` (string[]|null), `banner_path` (site-relative e.g. `/assets/images/events/…`), `banner_url` (absolute when path is relative), plus speakers/sponsors/sessions/ticket_types.
 - GET /event-categories
 - GET /events/{id}/form-fields
 
@@ -260,7 +260,7 @@ Never call axios.create() inside feature files.
 
 Never call raw axios or fetch directly from pages/components unless a future documented exception exists.
 
-**Foundation + participant + organizer auth:** pages must not call axios/fetch directly. Participant session flows go through `src/services/participantAuth.ts` and `AuthContext`. Organizer session flows go through `src/services/organizerAuth.ts` and `OrganizerContext`. Never mix those tokens. Event catalog + public event detail are wired (Prompt 2). Registration + WaafiPay payment + ticket page are wired (Prompt 3). Organizer dashboard is wired (`GET /organizer/dashboard`). Organizer events list/create/detail/gallery/status transitions are wired (`/organizer/events*`). Event studio tickets/discounts/form/content/invitation are wired as nested routes under `/organizer/events/:id`. Attendees, check-in, and analytics remain later.
+**Foundation + participant + organizer auth:** pages must not call axios/fetch directly. Participant session flows go through `src/services/participantAuth.ts` and `AuthContext`. Organizer session flows go through `src/services/organizerAuth.ts` and `OrganizerContext`. Never mix those tokens. Event catalog + public event detail are wired (Prompt 2). Registration + WaafiPay payment + ticket page are wired (Prompt 3). Organizer dashboard is wired (`GET /organizer/dashboard`). Organizer events list/create/detail/gallery/status transitions are wired (`/organizer/events*`). Event studio tickets/discounts/form/content/invitation/registrations/announcements are wired as nested routes under `/organizer/events/:id`. Org Attendees + Analytics use real Laravel APIs. Check-in remains later.
 
 `src/lib/env.ts` throws at import time if `VITE_API_BASE_URL` or `VITE_API_KEY` is missing. That is intentional once a page imports the API layer.
 
@@ -302,11 +302,13 @@ ORGANIZER (behind `OrganizerProtectedRoute`; requires `organizer_token` + `/orga
   - `/form` → form builder + live preview
   - `/content` → speakers, sponsors, sessions/agenda (`/page` redirects here)
   - `/branding` → invitation designer (`/invitation` redirects here)
-  - `/settings` → capacity/deadline/trash
-  - `/promotion`, `/attendees`, `/checkin` → placeholders (not wired)
+  - `/settings` → capacity/deadline/trash (real event PATCH)
+  - `/attendees` → registrations table + announcements (real Laravel APIs)
+  - `/checkin` → polished coming-soon placeholder (later QR / check-in prompt)
+  - `/promotion` → redirects to event overview (Lovable promotion permanently removed)
 - `/organizer/events/:id/edit` → redirect to `/organizer/events/:id`
-- `/organizer/attendees` → Attendees (mock)
-- `/organizer/analytics` → Analytics (mock)
+- `/organizer/attendees` → Attendees (event picker + same registrations panel)
+- `/organizer/analytics` → Analytics (event picker + real event analytics scalars + Recharts from those scalars only)
 - `/organizer/payouts` → OrganizerPayouts (available/pending amounts from dashboard payload only; no payout request API)
 - `/organizer/settings` → OrganizerSettings (`PATCH /organizer-auth/profile`, `POST /organizer-auth/change-password`)
 
@@ -336,19 +338,20 @@ Guards:
 |---|---|---|---|---|
 | Homepage/catalog | existing Lovable UI (`Landing` via Index) | `GET /events` + `GET /event-categories` (publicApi) | Yes | `/` is public; popular cards rendered from Laravel public catalog; supports search + category filtering; mockEvents removed from the public catalog UI |
 | Auth | existing email/password Lovable UI + verify/forgot panels | Laravel `/auth/*` | Yes | participant register/login/verify/logout/me; admin users can use `/auth/login` as web-participant |
-| Public event page + registration | cinematic Lovable UI | `GET /events/{id}`, `GET /events/{id}/form-fields` (publicApi); `POST /participant/participations`, `POST /participant/payments/charge`, `GET /participant/participations/{id}` (participantApi) | Yes | Hero location badge from `event_mode`; Why Attend from `why_attend` (omitted if empty); online/hybrid join link from `online_url`; then ticket/form/pay flow |
+| Public event page + registration | cinematic Lovable UI | `GET /events/{id}`, `GET /events/{id}/form-fields` (publicApi); `POST /participant/events/{id}/discount-codes/validate`, `POST /participant/participations` (+ optional `discount_code`), `POST /participant/payments/charge`, `GET /participant/participations/{id}` (participantApi) | Yes | Hero from `event_mode` / `why_attend` / `online_url`; tickets with `sales_enabled=false` omitted; paid flow can validate + apply discount quote before join |
 | Participant dashboard (home) | existing Lovable UI | `GET /participant/participations` list + `GET /events` browse (publicApi) | Yes | real own registrations with status badges; browse excludes registered events; mockParticipations removed |
 | Registration detail + invitation + feedback + certificate | new page | `GET .../invitation`, `GET .../feedback`, `POST /participant/event-feedback`, `GET .../certificate` (participantApi) | Yes | `/registrations/:id`; shared `InvitationCanvasPreview` (800×1100) with organizer designer; fallback gradient when invitation is null; attendee name from `useAuth().user?.name` |
 | Organizer event studio — invitation | Event Studio branding tab (Lovable cards + live canvas) | `GET /organizer/invitation-system-templates`; `GET/POST/PATCH /organizer/events/{id}/invitation-template`; `POST .../background` | Yes | template library + custom dropzone; drag overlays / resize QR in logical 800×1100; mobile preview-only; reset via default PATCH body (no delete route) |
 | Participant home | existing UI | mockParticipations + real user.name | Partial | greeting uses `/auth/me` name; tickets still mock |
 | Organizer events | existing Events studio UI under `/organizer/events` | `GET /organizer/events` (`search`, `status`, `per_page`, `page`) | Yes | owned events only; shows image (`banner_path`), title, Laravel status, dates, registrations_count, monetized |
 | Organizer event create | multi-section form reused from studio cards | `POST /organizer/events` | Yes | sends required `event_mode`; `online_url` when online/hybrid; `why_attend` lines; does not send organizer_id/featured/monetized/status |
-| Organizer event detail | existing EventDetail shell + nested Outlet tabs | `GET/PATCH/DELETE /organizer/events/{id}`, transition, gallery | Yes | 403/404 copy: "You don't have access to this event."; status only via transition |
-| Organizer event studio — tickets | TicketTypeCard/Form + DiscountCodeForm | ticket-types + discount-codes + sales/active toggles | Yes | sales toggle, sold-out, remaining, free/paid; ticket delete is soft trash |
+| Organizer event detail | existing EventDetail shell + nested Outlet tabs | `GET/PATCH/DELETE /organizer/events/{id}`, `POST …/banner`, transition, gallery | Yes | cover via banner endpoint (field `banner`); 403/404 copy: "You don't have access to this event."; status only via transition |
+| Organizer event studio — tickets | TicketTypeCard/Form + DiscountCodeForm | ticket-types + discount-codes + sales/active toggles | Yes | VIP via `is_vip` toggle (never name); Sales enabled vs paused; sold-out is capacity; ticket delete is soft trash |
 | Organizer event studio — form | FormFieldCard/Editor + drag reorder + live preview | form-fields CRUD + reorder | Yes | types text/number/select/checkbox/date; key locked after create; delete deactivates if answers exist |
 | Organizer event studio — content | SpeakerCard/Form, SponsorCard/Form, SessionTimeline/Form | speakers/sponsors/sessions CRUD | Yes | sponsor tiers platinum/gold/silver/partner; sessions timeline |
-| Attendees | existing table UI | mockAttendees | No | organizer module later; event studio attendees tab is a placeholder count only |
-| Analytics | existing charts/UI | mockAnalytics | No | real endpoint later |
+| Attendees / registrations | Lovable table + capacity cards + detail dialog; Event Studio + `/organizer/attendees` | `GET/POST` participations promote/cancel (organizerApi); client search/CSV on current page | Yes | Status filter via API `status`; search/CSV labeled page-only; promote waitlisted only; cancel optional reason, no auto-refund claim |
+| Announcements | history list + send modal on Event Studio attendees tab | `GET/POST /organizer/events/{id}/announcements` | Yes | POST `{ subject, body }`; toast shows backend message (includes recipient count); list is sent/read-only |
+| Analytics | Lovable metric cards + Recharts bars | `GET /organizer/events/{id}/analytics` (+ event picker on `/organizer/analytics`) | Yes | Only returned scalars: views, registrations, conversion_rate, revenue, currency, check_ins, attendance_rate, average_rating, feedback_count — no fabricated time series |
 | Settings | existing tabs/cards | Laravel profile + password; theme local | Yes | participant: name, email, phone, address, profile_image, change-password |
 | Organizer login/register | reused participant Auth card/primitives | `/organizer-auth/register`, `/organizer-auth/login` (publicApi) | Yes | labeled Organizer Portal; register returns token immediately (no email verify) |
 | Organizer dashboard | reused Analytics-style metric cards | `GET /organizer/dashboard` (organizerApi) | Yes | total_events, registrations, revenue, available/pending payout, recent_events, quota if present |
@@ -460,6 +463,10 @@ Do not allow Web App architecture to accidentally use admin-panel tokens.
 - gallery upload field name is `image`; jpeg/png/jpg/gif/webp; max 4096 KB
 - form field `key` is immutable after create; delete deactivates the field when answers exist
 - ticket type delete is soft trash even when quantity_sold > 0
+- `sales_enabled=false` means sales paused (ticket still exists) — not sold out. Organizer UI must say "Sales enabled" / "Sales paused" with the participant-facing explanation. Public registration filters those tickets out via `adaptTicketTypes`.
+- Participant discount quote: `POST /participant/events/{event}/discount-codes/validate` body `{ code, ticket_type_id }` → `{ code, type, value, original_amount, discount_amount, final_amount }`. Join may include `discount_code`. Waafi / join charge uses snapshotted `final_amount` (display that amount; do not invent client-side pricing).
+- VIP is only `ticket_types.is_vip === true` (default false). Never infer from ticket `name`. Organizer create/update send `is_vip`; public adapter and participant picker read that flag only.
+- Event Studio overview (and settings capacity/deadline) uses local draft state + explicit **Save changes**. Do not PATCH on every blur/select — especially `event_mode` without `online_url` (422 for online/hybrid). Cover upload via `POST …/banner` may still save immediately.
 - organizer create/update must send `event_mode`; `online_url` is required for `online` and `hybrid`. Do not invent a venue requirement for online-only events. `why_attend` is a max-6 string array — public Why Attend must use that list, never hardcoded marketing bullets. Map `event_mode` onto cinematic `location_type` (`in_person`→physical, `hybrid`→hybrid, `online`→virtual).
 - invitation system templates expose `default_overlay_positions`, `default_customizations`, `thumbnail_path`, `background_image_path`. Participant `invitation.system_template` is the Eloquent model with those fields — normalize to overlay_positions / preview_image_path before drawing. Do not send `background_image_path` on invitation upsert; upload uses multipart field `background` (jpeg/png/jpg/webp, max 5120 KB). Canvas is locked 800×1100 portrait. Overlay x/y/width/height must be stored in that logical space (`screenPointToLogical` from the displayed preview box), never CSS/screen pixels. Save only schema fields (`sanitizeOverlayPositions` / `sanitizeCustomizations`). There is no invitation delete/reset or PDF compositing endpoint; reset PATCHes Laravel default overlay/customization objects. Mobile designer is preview-only.
 
@@ -492,14 +499,16 @@ For every meaningful change:
 
 All under `/api/v1`. Header `X-API-Key` + Bearer `participant_token`.
 
-- `POST /participant/participations` — body `{ event_id, ticket_type_id?, custom_field_answers? }`. Never send `user_id`. Returns wrapped `{ success, data: Participation }` (201). Possible errors: 422 validation, 400 "already has an active participation", 400 "Registration deadline has passed", 400 "Invalid ticket type", 400 "Ticket type sales are disabled", 400 "Ticket type quantity exhausted".
+- `POST /participant/events/{event}/discount-codes/validate` — body `{ code, ticket_type_id }`. Ticket must belong to the event and have `sales_enabled=true`. Success data: `{ code, type, value, original_amount, discount_amount, final_amount }` (amounts as `12.34` strings). 404 `discount_not_valid_for_event` / ticket not found; 400 `discount_inactive` | `discount_expired` | `discount_usage_exhausted`. Service: `src/services/participantDiscounts.ts`.
+- `POST /participant/participations` — body `{ event_id, ticket_type_id?, custom_field_answers?, discount_code? }`. Never send `user_id`. Returns wrapped `{ success, data: Participation }` (201). Participation may include `original_amount`, `discount_amount`, `final_amount` when a code was applied. Possible errors: 422 validation, 400 "already has an active participation", 400 "Registration deadline has passed", 400 "Invalid ticket type", 400 "Ticket type sales are disabled", 400 "Ticket type quantity exhausted", 400 discount_* codes.
   - `participation.status` values: `joined | waitlisted | paid | checked_in | cancelled`
   - `participation.payment_status` values: `not_required | pending | paid | refunded | failed`
   - Free or no-ticket → `payment_status=not_required`, `status=joined` → navigate to `/registrations/{id}`
-  - Paid ticket → `payment_status=pending`, `status=joined` → proceed to WaafiPay phone step
+  - Paid ticket → `payment_status=pending`, `status=joined` → proceed to WaafiPay phone step (display `final_amount` when present)
+  - Discount to $0 → `payment_status=paid` (no Waafi)
   - Capacity reached → `status=waitlisted` → show waitlist screen (no QR until promoted)
 
-- `POST /participant/payments/charge` — body `{ participation_id, payer_phone }`. Returns wrapped `{ success, data: Payment }`. Uses **210-second Axios timeout** (WaafiPay holds connection up to 180s). `payment.status` values: `pending | completed | refunded | failed`. On failure: `failure_code` + `failure_reason`. Error 400 "A payment is already pending" = idempotency guard. Error 400 "already paid" = race win, re-fetch participation.
+- `POST /participant/payments/charge` — body `{ participation_id, payer_phone }`. Returns wrapped `{ success, data: Payment }`. Uses **210-second Axios timeout** (WaafiPay holds connection up to 180s). Backend charges snapshotted `final_amount` (not a client-invented amount). `payment.status` values: `pending | completed | refunded | failed`. On failure: `failure_code` + `failure_reason`. Error 400 "A payment is already pending" = idempotency guard. Error 400 "already paid" = race win, re-fetch participation.
 
 - `GET /participant/participations/{id}` — returns wrapped `{ success, data: Participation }` with `event` + `ticketType` relationships. Used both by Ticket page and as fallback re-check after charge.
 
@@ -552,7 +561,8 @@ All under `/api/v1`, `organizerApi` (X-API-Key + Bearer `organizer_token`). Owne
 - `DELETE /organizer/events/{id}` — soft delete; `"Event moved to trash"`.
 - `POST /organizer/events/{id}/transition` — `{ status }`. Returns `{ event, allowed_transitions }`. Invalid → 400 `invalid_status_transition`.
 - Status machine: draft→published|cancelled; published→registration_open|draft|cancelled; registration_open→sold_out|registration_closed|ongoing|cancelled; sold_out→registration_closed|ongoing|cancelled; registration_closed→ongoing|cancelled; ongoing→completed|cancelled; completed/cancelled terminal.
-- Gallery: `GET /organizer/events/{id}/images`; `POST` multipart field `image` (jpeg/png/jpg/gif/webp, max 4096 KB); `DELETE /organizer/events/{id}/images/{image}`. Stored `assets/images/events/`.
+- Banner/cover: `POST /organizer/events/{id}/banner` — multipart field **`banner`** (jpeg/png/jpg/gif/webp, max 4096 KB). Stores under `public/assets/images/events/` as `/assets/images/events/banner-{id}-…`. Response event includes `banner_path` + `banner_url` (absolute). Do **not** set cover via gallery `POST …/images` + `PATCH banner_path`. Clearing cover may still `PATCH` `banner_path: null`.
+- Gallery: `GET /organizer/events/{id}/images`; `POST` multipart field `image` (jpeg/png/jpg/gif/webp, max 4096 KB); `DELETE /organizer/events/{id}/images/{image}`. Stored `assets/images/events/`. Gallery is separate from the event cover.
 
 ## Organizer Event Studio Architecture
 
@@ -565,18 +575,24 @@ Documented paths (all under OrganizerLayout):
 - `/organizer/events/:id/form`
 - `/organizer/events/:id/content`
 - `/organizer/events/:id/branding` (invitation designer; `/invitation` redirects here)
+- `/organizer/events/:id/attendees` (registrations + announcements)
+- `/organizer/events/:id/checkin` (coming soon — later QR prompt)
+- `/organizer/events/:id/settings` (capacity / deadline / delete)
+- `/organizer/events/:id/promotion` → redirects to overview (permanently removed)
 
-Side nav is route-aware (`src/lib/organizerStudioRoutes.ts`). Branding nav label is **Invitation**.
+Side nav: Overview, Tickets, Registration form, Speakers & agenda, Invitation, Attendees, Check-in scanner, Settings. Branding nav label is **Invitation**. No Promotion item.
 
-Reusable UI lives in `src/components/event-studio/` (`TicketTypeCard`, `TicketTypeForm`, `DiscountCodeForm`, `FormFieldCard`, `FormFieldEditor`, `SpeakerCard`, `SpeakerForm`, `SponsorCard`, `SponsorForm`, `SessionTimeline`, `SessionForm`, `InvitationDesigner`). Shared ticket canvas: `src/components/invitation/InvitationCanvasPreview.tsx`. Overlay drag layer: `InvitationOverlayEditor.tsx`. Coordinate helpers: `src/lib/invitationCanvas.ts` (`screenPointToLogical`, `logicalRectToPercent`).
+Reusable UI lives in `src/components/event-studio/` (`TicketTypeCard`, `TicketTypeForm`, `DiscountCodeForm`, `FormFieldCard`, `FormFieldEditor`, `SpeakerCard`, `SpeakerForm`, `SponsorCard`, `SponsorForm`, `SessionTimeline`, `SessionForm`, `InvitationDesigner`, `EventRegistrationsPanel`, `AnnouncementsPanel`). Shared ticket canvas: `src/components/invitation/InvitationCanvasPreview.tsx`. Overlay drag layer: `InvitationOverlayEditor.tsx`. Coordinate helpers: `src/lib/invitationCanvas.ts` (`screenPointToLogical`, `logicalRectToPercent`).
+
+Organizer top nav (`OrganizerLayout`): Dashboard, Events, Attendees, Analytics, Payouts, Settings.
 
 ## Organizer Event Studio API Contracts Confirmed
 
 Tickets (`organizerApi`):
 
-- `GET /organizer/events/{id}/ticket-types` — `{ event_id, monetized, derived_monetized, ticket_types }`
-- `POST /organizer/events/{id}/ticket-types` — `name`, `price` (required), `quantity_limit?`, `sort_order?`, `sales_enabled?`. `quantity_sold` forced 0.
-- `PATCH /organizer/ticket-types/{id}` — name/price/quantity_limit/sales_enabled/sort_order
+- `GET /organizer/events/{id}/ticket-types` — `{ event_id, monetized, derived_monetized, ticket_types }`. Ticket type fields: `id`, `name`, `is_vip` (boolean, default false), `price`, `quantity_limit`, `quantity_sold`, `sort_order`, `sales_enabled`. VIP is never inferred from `name`.
+- `POST /organizer/events/{id}/ticket-types` — `name`, `price` (required), `is_vip?` (defaults false), `quantity_limit?`, `sort_order?`, `sales_enabled?`. `quantity_sold` forced 0.
+- `PATCH /organizer/ticket-types/{id}` — name/is_vip/price/quantity_limit/sales_enabled/sort_order
 - `PATCH /organizer/ticket-types/{id}/sales` — `{ sales_enabled }`
 - `DELETE /organizer/ticket-types/{id}` — soft delete (`Ticket type moved to trash`)
 
@@ -618,7 +634,144 @@ Participant `GET /participant/participations/{id}/invitation` returns `invitatio
 
 Ownership: cross-organizer IDs return 404. UI uses `isOrganizerEventAccessError` → "You don't have access to this event."
 
+## Organizer Registrations + Announcements + Analytics API Contracts Confirmed
+
+All under `/api/v1`, `organizerApi` (X-API-Key + Bearer `organizer_token`). Owned events only. Services: `src/services/organizerParticipations.ts`, `organizerAnnouncements.ts`, `organizerAnalytics.ts`.
+
+Participations (registrations):
+
+- `GET /organizer/events/{id}/participations` — query `status?` (`joined|waitlisted|paid|checked_in|cancelled`), `per_page`, `page`. Envelope `{ success, data: { items, pagination, event_id, capacity } }`. Capacity: `{ registered_count, waitlisted_count, capacity, seats_remaining }`. Items include `user`, ticket as `ticket_type` and/or `ticketType`, `status`, `payment_status`, `custom_field_answers`, amounts, `created_at`.
+- `GET /organizer/participations/{id}` — single row with `user`, `event`, ticket relation.
+- `POST /organizer/participations/{id}/promote` — waitlisted → confirmed seat. Capacity full → 400 (e.g. “No seats available…”). UI shows confirm + surfaces API error.
+- `POST /organizer/participations/{id}/cancel` — body `{ reason? }` (`nullable|string|max:500`). Does **not** claim automatic refund. UI confirms strongly and states cancellation does not auto-refund.
+
+Participation status enum: `joined | waitlisted | paid | checked_in | cancelled`. Payment status: `not_required | pending | paid | refunded | failed`.
+
+Announcements:
+
+- `GET /organizer/events/{id}/announcements` — paginated `{ items, pagination }`. Fields: `id`, `event_id`, `subject`, `body`, `sent_at`, `sent_by`. UI treats history as sent/read-only.
+- `POST /organizer/events/{id}/announcements` — `{ subject, body }` (required). Emails non-cancelled participants. Response message includes recipient count (shown in toast).
+
+Analytics:
+
+- `GET /organizer/events/{id}/analytics` — scalars only: `event_id`, `views`, `registrations`, `conversion_rate` (nullable), `revenue`, `currency`, `check_ins`, `attendance_rate` (nullable), `average_rating` (nullable), `feedback_count`. Do **not** invent time-series, funnel steps, or extra KPIs. Charts derive only from these returned numbers.
+
+CSV: client-side export of the currently loaded/filtered page is allowed; UI labels “Export this page” and states it is not all results unless every page was fetched.
+
 ## Change Log
+
+### 2026-08-20 — Prompt 10: Registrations + Announcements + Analytics
+
+Replaced mock attendees/analytics with Laravel organizer APIs. Event Studio Attendees tab lists participations, detail modal (custom answers, payment summary, check-in), promote (waitlist only), cancel (optional reason, no auto-refund claim), page-only search/CSV. Announcements history + send modal. Org `/organizer/attendees` and `/organizer/analytics` use event pickers over the same APIs. Analytics charts only plot returned scalars.
+
+Files:
+
+- `src/services/organizerParticipations.ts`, `organizerAnnouncements.ts`, `organizerAnalytics.ts` (new)
+- `src/components/event-studio/EventRegistrationsPanel.tsx`, `AnnouncementsPanel.tsx` (new)
+- `src/pages/dashboard/event-studio/EventStudioAttendees.tsx` (new)
+- `src/pages/dashboard/Attendees.tsx`, `Analytics.tsx` — real data
+- `src/App.tsx` — studio attendees route wired; removed attendees placeholder
+- `src/components/layout/OrganizerLayout.tsx` — Attendees + Analytics nav
+- `src/components/event-detail/EventOverview.tsx` — attendees blurb points to real management
+- Deleted `EventAttendeesTable.tsx`; removed `mockAttendees` / `mockAnalytics` from `mockData.ts`
+- `EventStudioPlaceholder.tsx` — Check-in placeholder only
+
+Verification: registrations list/filter/detail, promote capacity failure toast, cancel confirmation, announcement send, analytics scalars, no mock attendee/analytics UI, mobile nav, tsc/build.
+
+### 2026-08-20 — Event Studio nav cleanup (remove Promotion)
+
+Removed permanently deleted Lovable Promotion from Event Studio. Kept Attendees and Check-in as polished coming-soon routes for upcoming prompts.
+
+Files:
+
+- `src/components/event-detail/EventSideNav.tsx` — dropped Promotion; nav groups Build / Day of / Configure
+- `src/lib/organizerStudioRoutes.ts` — no `promotion` section
+- `src/App.tsx` — `/promotion` redirects to event overview; attendees/checkin keep routes
+- `src/pages/dashboard/event-studio/EventStudioPlaceholder.tsx` — polished Attendees + Check-in copy (no “not wired”)
+- `src/components/event-detail/EventOverview.tsx` — removed “Open share kit”; softer attendees blurb
+- Deleted unused `src/components/event-detail/EventQRCode.tsx` (promotion leftover). Kept `CheckInScanner.tsx` for later QR work (not mounted).
+
+Studio nav now: Overview, Tickets, Registration form, Speakers & agenda, Invitation, Attendees, Check-in scanner, Settings.
+
+Verification: `npx tsc --noEmit`, `npm run build`
+
+### 2026-08-20 — Event Studio overview draft + Save changes
+
+Changing `event_mode` to online/hybrid used to PATCH immediately without `online_url`, causing Laravel 422.
+
+Files:
+
+- `src/components/event-detail/EventQuickInfo.tsx` — local draft for overview fields; explicit Save changes; client-side online_url required for online/hybrid; field errors from Laravel; Save disabled when clean or saving
+- `src/pages/dashboard/event-studio/EventStudioSettings.tsx` — same draft/save for capacity + registration deadline (was blur-autosave)
+- `src/pages/dashboard/EventDetail.tsx` — `handleUpdate` rethrows so forms can map validation errors
+- `src/lib/apiError.ts` — `getLaravelFieldErrors`
+
+Cover upload still uses `POST …/banner` immediately. Ticket/form/content/invitation save flows unchanged.
+
+Verification: `npx tsc --noEmit`, `npm run build`
+
+### 2026-08-20 — Wire real `ticket_types.is_vip`
+
+Laravel added `is_vip` boolean (default false). VIP is only `is_vip === true`; name is display-only.
+
+Files:
+
+- `src/services/organizerTickets.ts` — `is_vip` on type + write body
+- `src/components/event-studio/TicketTypeForm.tsx` — VIP tier toggle; sends `is_vip`
+- `src/components/event-studio/TicketTypeCard.tsx` / `TicketTypesPanel.tsx` — VIP badge from flag; edit hydrates `is_vip`
+- `src/lib/publicEventsAdapters.ts` — `adaptTicketTypes` maps `is_vip === true` only
+- `src/components/event-detail/TicketTiersManager.tsx` — `TicketTier.is_vip`
+- `src/pages/Register.tsx` — crown/VIP pill when `t.is_vip`
+
+Verification: `npx tsc --noEmit`, `npm run build`
+
+### 2026-08-20 — sales_enabled clarity + participant discount validation
+
+Organizer ticket sales toggle copy was ambiguous vs sold out. Participant registration had no discount-code quote path.
+
+Files:
+
+- `src/components/event-studio/TicketTypeCard.tsx` / `TicketTypeForm.tsx` — "Sales enabled" vs "Sales paused" with participant-facing explanation; sold-out badge stays capacity-only
+- `src/services/participantDiscounts.ts` — `POST /participant/events/{event}/discount-codes/validate`
+- `src/services/participationService.ts` — optional `discount_code` on join; `final_amount` fields on participation
+- `src/pages/Register.tsx` — discount apply/remove UI on paid tickets; join sends validated code; Waafi displays `final_amount`
+- `src/lib/publicEventsAdapters.ts` — unchanged filter: `sales_enabled=false` tickets stay hidden from selection
+
+Verification: `npx tsc --noEmit`, `npm run build`
+
+### 2026-08-20 — Remove fake VIP classification
+
+Laravel ticket types and participations have no `is_vip` / `vip` field. The public page inferred VIP from ticket names containing "vip" and showed crown/VIP badges; attendees inferred the same from mock ticket_type strings.
+
+Files:
+
+- `src/lib/publicEventsAdapters.ts` — `adaptTicketTypes` no longer sets `is_vip`
+- `src/components/event-detail/TicketTiersManager.tsx` — dropped `is_vip` from `TicketTier` and the VIP toggle
+- `src/pages/Register.tsx` — ticket picker uses the ticket icon for every type; no VIP badge
+- `src/components/event-detail/EventAttendeesTable.tsx` — removed VIP filter chip, star toggle, badge, and CSV column
+
+A ticket may still be *named* VIP; that is only `name`, not a classification.
+
+Verification: `npx tsc --noEmit`, `npm run build`
+
+### 2026-08-20 — Fix event banner/cover (dedicated upload + display URLs)
+
+Manual cover upload rendered broken images because the studio used gallery `POST …/images` then `PATCH banner_path`, and some adapters returned a relative `banner_path` without an origin.
+
+Files:
+
+- `src/services/organizerEvents.ts` — `uploadOrganizerEventBanner` (`POST /organizer/events/{id}/banner`, field `banner`); `banner_url` on `OrganizerEvent`
+- `src/pages/dashboard/EventDetail.tsx` — cover upload calls banner endpoint only
+- `src/lib/organizerEventAdapters.ts` — studio cover prefers `banner_url`
+- `src/lib/publicEventsAdapters.ts` — `resolveBannerSrc` prefers `banner_url`, else `getMediaUrl(banner_path)` for catalog/hero
+- `src/pages/dashboard/AttendeeHome.tsx`, `src/pages/Ticket.tsx`, `src/services/participationService.ts` — prefer `banner_url` when present
+
+Behavior:
+
+- Cover ≠ gallery: gallery uploads stay on `…/images` with field `image`
+- Display: prefer Laravel `banner_url`; fall back to `getMediaUrl(banner_path)`
+
+Verification: `npx tsc --noEmit`, `npm run build`
 
 ### 2026-08-19 — Event create → public registration consistency (event_mode / why_attend)
 

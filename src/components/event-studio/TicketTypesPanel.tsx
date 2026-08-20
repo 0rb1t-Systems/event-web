@@ -70,6 +70,7 @@ export default function TicketTypesPanel({ eventId, onDenied }: Props) {
       price: String(ticket.price),
       quantity_limit: ticket.quantity_limit == null ? "" : String(ticket.quantity_limit),
       sales_enabled: ticket.sales_enabled,
+      is_vip: ticket.is_vip === true,
     });
   };
 
