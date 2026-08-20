@@ -1,6 +1,6 @@
 # EventHub Web App — Agent Context
 
-Last updated: 2026-08-20 — Prompt 10: Registrations + Announcements + Analytics
+Last updated: 2026-08-20 — Prompt 11: Finance + Payouts + Subscription/Quota
 Repository: C:\Users\Hp\Documents\personal\event-web
 Default branch: master
 
@@ -58,7 +58,7 @@ Local Laravel project (not modified by this Web App foundation): `C:\Users\Hp\Do
 - API client authentication: X-API-Key only
 - HMAC: NOT USED
 - Supabase: fully removed. `@supabase/supabase-js` is uninstalled, `src/` has no Supabase client, and the leftover Lovable `supabase/` Deno functions directory has been deleted.
-- Real backend wiring: participant auth, public catalog/detail, participation creation, WaafiPay payment, dashboard registrations list, registration detail + digital invitation, organizer auth + organizer dashboard + organizer event CRUD + event studio (tickets, discounts, form fields, speakers, sponsors, sessions, invitation designer, registrations/announcements) + org Attendees/Analytics. Check-in scanner still placeholder.
+- Real backend wiring: participant auth, public catalog/detail, participation creation, WaafiPay payment, dashboard registrations list, registration detail + digital invitation, organizer auth + organizer dashboard + organizer event CRUD + event studio (tickets, discounts, form fields, speakers, sponsors, sessions, invitation designer, registrations/announcements, finance/payouts) + org Attendees/Analytics/Payouts (package/quota). Check-in scanner still placeholder.
 - Mock data: src/lib/mockData.ts (legacy fixtures only; mockAttendees/mockAnalytics removed)
 
 ## Current Cleanup State
@@ -260,7 +260,7 @@ Never call axios.create() inside feature files.
 
 Never call raw axios or fetch directly from pages/components unless a future documented exception exists.
 
-**Foundation + participant + organizer auth:** pages must not call axios/fetch directly. Participant session flows go through `src/services/participantAuth.ts` and `AuthContext`. Organizer session flows go through `src/services/organizerAuth.ts` and `OrganizerContext`. Never mix those tokens. Event catalog + public event detail are wired (Prompt 2). Registration + WaafiPay payment + ticket page are wired (Prompt 3). Organizer dashboard is wired (`GET /organizer/dashboard`). Organizer events list/create/detail/gallery/status transitions are wired (`/organizer/events*`). Event studio tickets/discounts/form/content/invitation/registrations/announcements are wired as nested routes under `/organizer/events/:id`. Org Attendees + Analytics use real Laravel APIs. Check-in remains later.
+**Foundation + participant + organizer auth:** pages must not call axios/fetch directly. Participant session flows go through `src/services/participantAuth.ts` and `AuthContext`. Organizer session flows go through `src/services/organizerAuth.ts` and `OrganizerContext`. Never mix those tokens. Event catalog + public event detail are wired (Prompt 2). Registration + WaafiPay payment + ticket page are wired (Prompt 3). Organizer dashboard is wired (`GET /organizer/dashboard`). Organizer events list/create/detail/gallery/status transitions are wired (`/organizer/events*`). Event studio tickets/discounts/form/content/invitation/registrations/announcements/finance are wired as nested routes under `/organizer/events/:id`. Org Attendees + Analytics + Payouts (finance/package) use real Laravel APIs. Check-in remains later.
 
 `src/lib/env.ts` throws at import time if `VITE_API_BASE_URL` or `VITE_API_KEY` is missing. That is intentional once a page imports the API layer.
 
@@ -304,12 +304,13 @@ ORGANIZER (behind `OrganizerProtectedRoute`; requires `organizer_token` + `/orga
   - `/branding` → invitation designer (`/invitation` redirects here)
   - `/settings` → capacity/deadline/trash (real event PATCH)
   - `/attendees` → registrations table + announcements (real Laravel APIs)
+  - `/finance` → shared EventFinancePanel (per-event finance + payout requests)
   - `/checkin` → polished coming-soon placeholder (later QR / check-in prompt)
   - `/promotion` → redirects to event overview (Lovable promotion permanently removed)
 - `/organizer/events/:id/edit` → redirect to `/organizer/events/:id`
 - `/organizer/attendees` → Attendees (event picker + same registrations panel)
 - `/organizer/analytics` → Analytics (event picker + real event analytics scalars + Recharts from those scalars only)
-- `/organizer/payouts` → OrganizerPayouts (available/pending amounts from dashboard payload only; no payout request API)
+- `/organizer/payouts` → Event finance (shared panel) + all payout requests + package/quota (no online purchase)
 - `/organizer/settings` → OrganizerSettings (`PATCH /organizer-auth/profile`, `POST /organizer-auth/change-password`)
 
 Legacy redirects:
@@ -352,11 +353,12 @@ Guards:
 | Attendees / registrations | Lovable table + capacity cards + detail dialog; Event Studio + `/organizer/attendees` | `GET/POST` participations promote/cancel (organizerApi); client search/CSV on current page | Yes | Status filter via API `status`; search/CSV labeled page-only; promote waitlisted only; cancel optional reason, no auto-refund claim |
 | Announcements | history list + send modal on Event Studio attendees tab | `GET/POST /organizer/events/{id}/announcements` | Yes | POST `{ subject, body }`; toast shows backend message (includes recipient count); list is sent/read-only |
 | Analytics | Lovable metric cards + Recharts bars | `GET /organizer/events/{id}/analytics` (+ event picker on `/organizer/analytics`) | Yes | Only returned scalars: views, registrations, conversion_rate, revenue, currency, check_ins, attendance_rate, average_rating, feedback_count — no fabricated time series |
+| Organizer finance / payouts | Shared `EventFinancePanel` on `/organizer/payouts` + Event Studio `/finance` | `GET …/finance`; payout-requests list/create/show; packages/subscription/quota | Yes | Per-event only (no batch). Commission rate snapshotted on create. No approve/reject/record-payment. Package view is informational (admin-managed). Finance summary has no refunds field — do not invent |
 | Settings | existing tabs/cards | Laravel profile + password; theme local | Yes | participant: name, email, phone, address, profile_image, change-password |
 | Organizer login/register | reused participant Auth card/primitives | `/organizer-auth/register`, `/organizer-auth/login` (publicApi) | Yes | labeled Organizer Portal; register returns token immediately (no email verify) |
 | Organizer dashboard | reused Analytics-style metric cards | `GET /organizer/dashboard` (organizerApi) | Yes | total_events, registrations, revenue, available/pending payout, recent_events, quota if present |
 | Organizer settings | reused Settings tabs | `PATCH /organizer-auth/profile`, `POST /organizer-auth/change-password` | Yes | business_name, contact_name, email, phone; password fields `current_password` + `password` + `password_confirmation` |
-| Organizer payouts | reused metric cards | dashboard `available_payout` / `pending_payout` only | Partial | no payout-request endpoint wired yet |
+| Organizer payouts | tabs: event finance + all requests + package/quota | finance + payout-requests + packages APIs | Yes | Shared panel with Event Studio Finance; dashboard available/pending still summary-only |
 
 Update this table whenever a future prompt replaces mock data with real API integration.
 
@@ -577,12 +579,13 @@ Documented paths (all under OrganizerLayout):
 - `/organizer/events/:id/branding` (invitation designer; `/invitation` redirects here)
 - `/organizer/events/:id/attendees` (registrations + announcements)
 - `/organizer/events/:id/checkin` (coming soon — later QR prompt)
+- `/organizer/events/:id/finance` (shared EventFinancePanel)
 - `/organizer/events/:id/settings` (capacity / deadline / delete)
 - `/organizer/events/:id/promotion` → redirects to overview (permanently removed)
 
-Side nav: Overview, Tickets, Registration form, Speakers & agenda, Invitation, Attendees, Check-in scanner, Settings. Branding nav label is **Invitation**. No Promotion item.
+Side nav: Overview, Tickets, Registration form, Speakers & agenda, Invitation, Attendees, Check-in scanner, Finance, Settings. Branding nav label is **Invitation**. No Promotion item.
 
-Reusable UI lives in `src/components/event-studio/` (`TicketTypeCard`, `TicketTypeForm`, `DiscountCodeForm`, `FormFieldCard`, `FormFieldEditor`, `SpeakerCard`, `SpeakerForm`, `SponsorCard`, `SponsorForm`, `SessionTimeline`, `SessionForm`, `InvitationDesigner`, `EventRegistrationsPanel`, `AnnouncementsPanel`). Shared ticket canvas: `src/components/invitation/InvitationCanvasPreview.tsx`. Overlay drag layer: `InvitationOverlayEditor.tsx`. Coordinate helpers: `src/lib/invitationCanvas.ts` (`screenPointToLogical`, `logicalRectToPercent`).
+Reusable UI lives in `src/components/event-studio/` (`TicketTypeCard`, `TicketTypeForm`, `DiscountCodeForm`, `FormFieldCard`, `FormFieldEditor`, `SpeakerCard`, `SpeakerForm`, `SponsorCard`, `SponsorForm`, `SessionTimeline`, `SessionForm`, `InvitationDesigner`, `EventRegistrationsPanel`, `AnnouncementsPanel`, `EventFinancePanel`, `SubscriptionQuotaPanel`). Shared ticket canvas: `src/components/invitation/InvitationCanvasPreview.tsx`. Overlay drag layer: `InvitationOverlayEditor.tsx`. Coordinate helpers: `src/lib/invitationCanvas.ts` (`screenPointToLogical`, `logicalRectToPercent`).
 
 Organizer top nav (`OrganizerLayout`): Dashboard, Events, Attendees, Analytics, Payouts, Settings.
 
@@ -658,7 +661,45 @@ Analytics:
 
 CSV: client-side export of the currently loaded/filtered page is allowed; UI labels “Export this page” and states it is not all results unless every page was fetched.
 
+## Organizer Finance + Payouts + Package API Contracts Confirmed
+
+All under `/api/v1`, `organizerApi` (X-API-Key + Bearer `organizer_token`). Services: `organizerFinance.ts`, `organizerPayouts.ts`, `organizerPackages.ts`.
+
+Finance (owned event):
+
+- `GET /organizer/events/{id}/finance` — `EventFinanceService::summary`: `{ event_id, currency, total_collected, total_paid_out, total_reserved, outstanding_balance }`. `total_collected` = completed (non-refunded) payments. `total_reserved` = sum of requested+approved+paid `requested_amount`. `outstanding_balance` = collected − reserved. **No refunds/net fields** — do not invent them. Note: after payout status `paid`, admin refunds may return `refund_blocked_payout_recorded`; UI does not promise automatic clawback.
+
+Payouts (per-event only; no organizer-wide batch create):
+
+- `GET /organizer/payout-requests` — paginated list for the authenticated organizer (`items`, `pagination`). Statuses: `requested|approved|paid|rejected`.
+- `GET /organizer/events/{id}/payout-requests` — same list scoped to event + `{ event_finance, available_amount }` (`available_amount` = outstanding balance).
+- `POST /organizer/events/{id}/payout-requests` — `{ requested_amount }` (required, min 0.01). Creates with status `requested` and **snapshotted** `commission_rate` from platform settings. `commission_amount` / `net_amount` may be null until admin approval. Amount > outstanding → 400.
+- `GET /organizer/payout-requests/{id}` — `{ payout, snapshot_amounts: { commission_amount, net_amount }, event_finance, available_amount }`. Show `admin_notes` read-only when present.
+- Do **not** wire Admin `approve` / `reject` / `record-payment`.
+
+Packages (read-only — no purchase):
+
+- `GET /organizer/packages` — active package catalog (`name`, `description`, `price`, `event_quota`, `status`).
+- `GET /organizer/subscription` — `{ active, history }` with package + `quota_usage` (EventQuota payload).
+- `GET /organizer/quota` — EventQuota fields + `has_active_subscription` + `package` summary. Null quota = unlimited; 0 = zero quota.
+
+UI: one shared `EventFinancePanel` for Event Studio Finance tab and `/organizer/payouts` event tab. `/organizer/payouts` also lists all requests and shows `SubscriptionQuotaPanel` (contact support for plan changes).
+
 ## Change Log
+
+### 2026-08-20 — Prompt 11: Finance + Payouts + Subscription/Quota
+
+Built real organizer finance/payouts using Laravel contracts. Shared `EventFinancePanel` on `/organizer/payouts` (event picker) and Event Studio `/finance`. Per-event payout requests with confirm flow, status list/detail, snapshotted commission, admin notes read-only. Package/quota catalog is informational (no purchase). No admin approve/reject/pay actions. Finance cards map only returned summary fields (collected, reserved/paid, available).
+
+Files:
+
+- `src/services/organizerFinance.ts`, `organizerPayouts.ts`, `organizerPackages.ts` (new)
+- `src/components/event-studio/EventFinancePanel.tsx`, `SubscriptionQuotaPanel.tsx` (new)
+- `src/pages/dashboard/event-studio/EventStudioFinance.tsx` (new)
+- `src/pages/organizer/OrganizerPayouts.tsx` — finance + all requests + package tabs
+- `src/App.tsx`, `EventSideNav.tsx`, `organizerStudioRoutes.ts` — Finance studio route/nav
+
+Verification: finance real data, per-event payout, no-balance state, request list, commission snapshot, package/quota, mobile nav, tsc/build.
 
 ### 2026-08-20 — Prompt 10: Registrations + Announcements + Analytics
 

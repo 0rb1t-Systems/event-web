@@ -9,6 +9,7 @@ export const STUDIO_PATH_BY_SECTION: Record<EventSection, string> = {
   branding: "branding",
   attendees: "attendees",
   checkin: "checkin",
+  finance: "finance",
   settings: "settings",
 };
 

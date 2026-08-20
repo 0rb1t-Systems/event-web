@@ -39,6 +39,7 @@ import EventStudioContent from "./pages/dashboard/event-studio/EventStudioConten
 import EventStudioBranding from "./pages/dashboard/event-studio/EventStudioBranding";
 import EventStudioSettings from "./pages/dashboard/event-studio/EventStudioSettings";
 import EventStudioAttendees from "./pages/dashboard/event-studio/EventStudioAttendees";
+import EventStudioFinance from "./pages/dashboard/event-studio/EventStudioFinance";
 import { EventStudioCheckInPlaceholder } from "./pages/dashboard/event-studio/EventStudioPlaceholder";
 import AttendeeHome from "./pages/dashboard/AttendeeHome";
 import Attendees from "./pages/dashboard/Attendees";
@@ -123,6 +124,7 @@ const App = () => (
                         <Route path="promotion" element={<Navigate to=".." relative="path" replace />} />
                         <Route path="attendees" element={<EventStudioAttendees />} />
                         <Route path="checkin" element={<EventStudioCheckInPlaceholder />} />
+                        <Route path="finance" element={<EventStudioFinance />} />
                         <Route path="settings" element={<EventStudioSettings />} />
                       </Route>
                       <Route path="attendees" element={<Attendees />} />
