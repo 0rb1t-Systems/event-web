@@ -1,4 +1,5 @@
 import type { TicketTier } from "@/components/event-detail/TicketTiersManager";
+import { eventModeToLocationType } from "@/lib/eventMode";
 import { getMediaUrl } from "@/lib/mediaUrl";
 
 export type LaravelPaginator<T> = {
@@ -17,6 +18,9 @@ export type PublicEventCatalogItem = {
   description?: string | null;
   city?: string | null;
   address?: string | null;
+  event_mode?: string | null;
+  online_url?: string | null;
+  why_attend?: string[] | null;
   banner_path?: string | null;
   featured: boolean;
   monetized: boolean;
@@ -41,6 +45,7 @@ export type PublicEventCatalogItem = {
     sort_order?: number;
     sales_enabled: boolean;
   }>;
+  ticketTypes?: PublicEventCatalogItem["ticket_types"];
   registration_gates?: {
     allowed: boolean;
     reason?: string | null;
@@ -150,7 +155,9 @@ function mapLaravelFieldType(t: string): UiFormFieldType {
 
 export function adaptTicketTypes(apiTickets: PublicEventCatalogItem["ticket_types"]): TicketTier[] {
   const list = apiTickets ?? [];
-  return list.map((t) => {
+  return list
+    .filter((t) => t.sales_enabled !== false)
+    .map((t) => {
     const rawPrice = typeof t.price === "string" ? Number(t.price) : Number((t as any).price);
     const price = Number.isFinite(rawPrice) ? rawPrice : 0;
 
@@ -203,6 +210,8 @@ export type PublicEventUiModel = {
   organizer_business_name?: string;
   category_name?: string;
   city?: string | null;
+  online_url?: string | null;
+  why_attend?: string[] | null;
 
   background_image_url?: string;
   images?: Array<{ path: string }>;
@@ -216,7 +225,9 @@ export type PublicEventUiModel = {
 };
 
 export function adaptPublicEventDetailToUi(api: PublicEventDetail): PublicEventUiModel {
-  const ticket_tiers = adaptTicketTypes(api.ticket_types);
+  const ticket_tiers = adaptTicketTypes(api.ticket_types ?? api.ticketTypes);
+  const locationType = eventModeToLocationType(api.event_mode);
+  const venueLine = [api.address, api.city].filter(Boolean).join(", ") || null;
   return {
     id: api.id,
     name: api.title,
@@ -227,12 +238,14 @@ export function adaptPublicEventDetailToUi(api: PublicEventDetail): PublicEventU
     status: api.status,
     primary_color: "#7C3AED",
     color_mode: "light",
-    location_type: "physical",
-    location: api.address ?? null,
+    location_type: locationType,
+    location: locationType === "virtual" ? null : venueLine,
     capacity: api.capacity ?? null,
     organizer_business_name: api.organizer?.business_name,
     category_name: api.category?.name ?? undefined,
     city: api.city ?? null,
+    online_url: api.online_url ?? null,
+    why_attend: Array.isArray(api.why_attend) ? api.why_attend.filter(Boolean) : null,
     background_image_url: pickHeroBackgroundImage(api),
     images: (api.images ?? []).map((im) => ({ path: im.path })),
     registration_gates: api.registration_gates,

@@ -23,7 +23,22 @@ const EventDetailEditRedirect = () => {
   const { id } = useParams();
   return <Navigate to={`/organizer/events/${id}`} replace />;
 };
+const EventStudioPageRedirect = () => {
+  const { id } = useParams();
+  return <Navigate to={`/organizer/events/${id}/content`} replace />;
+};
+const EventStudioInvitationRedirect = () => {
+  const { id } = useParams();
+  return <Navigate to={`/organizer/events/${id}/branding`} replace />;
+};
 import EventDetail from "./pages/dashboard/EventDetail";
+import EventStudioOverview from "./pages/dashboard/event-studio/EventStudioOverview";
+import EventStudioTickets from "./pages/dashboard/event-studio/EventStudioTickets";
+import EventStudioForm from "./pages/dashboard/event-studio/EventStudioForm";
+import EventStudioContent from "./pages/dashboard/event-studio/EventStudioContent";
+import EventStudioBranding from "./pages/dashboard/event-studio/EventStudioBranding";
+import EventStudioSettings from "./pages/dashboard/event-studio/EventStudioSettings";
+import EventStudioPlaceholder, { EventStudioAttendeesPlaceholder } from "./pages/dashboard/event-studio/EventStudioPlaceholder";
 import AttendeeHome from "./pages/dashboard/AttendeeHome";
 import Attendees from "./pages/dashboard/Attendees";
 import Analytics from "./pages/dashboard/Analytics";
@@ -95,8 +110,20 @@ const App = () => (
                       <Route path="events" element={<Events />} />
                       <Route path="events/new" element={<OrganizerEventCreate />} />
                       <Route path="events/create" element={<Navigate to="/organizer/events/new" replace />} />
-                      <Route path="events/:id" element={<EventDetail />} />
                       <Route path="events/:id/edit" element={<EventDetailEditRedirect />} />
+                      <Route path="events/:id" element={<EventDetail />}>
+                        <Route index element={<EventStudioOverview />} />
+                        <Route path="tickets" element={<EventStudioTickets />} />
+                        <Route path="form" element={<EventStudioForm />} />
+                        <Route path="content" element={<EventStudioContent />} />
+                        <Route path="page" element={<EventStudioPageRedirect />} />
+                        <Route path="branding" element={<EventStudioBranding />} />
+                        <Route path="invitation" element={<EventStudioInvitationRedirect />} />
+                        <Route path="promotion" element={<EventStudioPlaceholder title="Promotion" body="Promotion / tracking was removed in cleanup." />} />
+                        <Route path="attendees" element={<EventStudioAttendeesPlaceholder />} />
+                        <Route path="checkin" element={<EventStudioPlaceholder title="Check-in" body="Check-in is not wired yet." />} />
+                        <Route path="settings" element={<EventStudioSettings />} />
+                      </Route>
                       <Route path="attendees" element={<Attendees />} />
                       <Route path="analytics" element={<Analytics />} />
                       <Route path="payouts" element={<OrganizerPayouts />} />

@@ -1,4 +1,5 @@
 import { getMediaUrl } from "@/lib/mediaUrl";
+import { asEventMode, type EventMode } from "@/lib/eventMode";
 import type { OrganizerEvent, OrganizerEventImage, OrganizerEventWriteBody } from "@/services/organizerEvents";
 
 /** Studio UI shape used by surviving Lovable event-detail components. */
@@ -10,6 +11,9 @@ export type OrganizerEventStudio = {
   status: string;
   city: string | null;
   address: string | null;
+  event_mode: EventMode;
+  online_url: string | null;
+  why_attend: string[] | null;
   location_value: string | null;
   event_date: string | null;
   event_end_date: string | null;
@@ -48,6 +52,9 @@ export function toStudioEvent(event: OrganizerEvent): OrganizerEventStudio {
     status: typeof event.status === "string" ? event.status : String(event.status),
     city: event.city,
     address: event.address,
+    event_mode: asEventMode(event.event_mode),
+    online_url: event.online_url ?? null,
+    why_attend: Array.isArray(event.why_attend) ? event.why_attend : null,
     location_value: event.address,
     event_date: event.starts_at,
     event_end_date: event.ends_at,
@@ -94,6 +101,15 @@ export function studioPatchToWriteBody(patch: Record<string, unknown>): Organize
   if ("city" in patch) body.city = emptyToNull(patch.city as string | null);
   if ("address" in patch || "location_value" in patch) {
     body.address = emptyToNull((patch.address ?? patch.location_value) as string | null);
+  }
+  if ("event_mode" in patch) body.event_mode = asEventMode(patch.event_mode);
+  if ("online_url" in patch) body.online_url = emptyToNull(patch.online_url as string | null);
+  if ("why_attend" in patch) {
+    const raw = patch.why_attend;
+    body.why_attend = Array.isArray(raw)
+      ? raw.map((item) => String(item).trim()).filter(Boolean).slice(0, 6)
+      : null;
+    if (body.why_attend && body.why_attend.length === 0) body.why_attend = null;
   }
   if ("event_date" in patch || "starts_at" in patch) {
     body.starts_at = emptyToNull((patch.starts_at ?? patch.event_date) as string | null);

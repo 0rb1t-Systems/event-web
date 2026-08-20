@@ -6,6 +6,7 @@
  */
 
 import { participantApi } from "@/lib/api";
+import { normalizeInvitationConfig } from "@/lib/invitationCanvas";
 import type { WrappedSuccess } from "@/lib/publicEventsAdapters";
 
 // ─── Response types ───────────────────────────────────────────────────────────
@@ -195,7 +196,8 @@ export async function getParticipationInvitation(id: number): Promise<ApiInvitat
   const resp = await participantApi.get<InvitationDetailResponse>(
     `/participant/participations/${id}/invitation`,
   );
-  return resp.data.data;
+  const detail = resp.data.data;
+  return { ...detail, invitation: normalizeInvitationConfig(detail.invitation) };
 }
 
 /** GET /participant/participations/{id}/feedback — returns null if not yet submitted */

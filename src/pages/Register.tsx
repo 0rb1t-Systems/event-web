@@ -701,8 +701,12 @@ const Register = () => {
 
     const galleryImageUrl = ui.images?.[0]?.path ? getMediaUrl(ui.images[0].path) : undefined;
 
-    const modulesOut: any[] = [
-      {
+    const whyBullets = (ui.why_attend ?? []).map((b) => String(b).trim()).filter(Boolean).slice(0, 6);
+
+    const modulesOut: any[] = [];
+
+    if (whyBullets.length > 0) {
+      modulesOut.push({
         id: "why-attend",
         type: "why_attend",
         enabled: true,
@@ -710,15 +714,10 @@ const Register = () => {
         title: "Why Attend",
         content: {
           heading: "Why attend",
-          bullets: [
-            "Meet founders, engineers, and operators across East Africa",
-            "Learn practical tactics from builders shipping real products",
-            "Find collaborators, customers, and your next career move",
-            "Leave with real next steps for your team",
-          ],
+          bullets: whyBullets,
         },
-      },
-    ];
+      });
+    }
 
     if (scheduleItems.length > 0) {
       modulesOut.push({
@@ -753,18 +752,24 @@ const Register = () => {
       });
     }
 
-    modulesOut.push({
-      id: "location",
-      type: "location",
-      enabled: true,
-      position: 4,
-      title: "Location",
-      content: {
-        heading: "Where to find us",
-        venue: ui.city ?? undefined,
-        address: ui.location,
-      },
-    });
+    const hasVenue = ui.location_type !== "virtual" && !!(ui.city || ui.location);
+    const hasJoin = ui.location_type !== "physical" && !!ui.online_url;
+    if (hasVenue || hasJoin) {
+      modulesOut.push({
+        id: "location",
+        type: "location",
+        enabled: true,
+        position: 4,
+        title: "Location",
+        content: {
+          heading: ui.location_type === "virtual" ? "Join online" : "Where to find us",
+          venue: ui.city ?? (ui.location_type === "virtual" ? "Online event" : undefined),
+          address: ui.location,
+          mapUrl: hasJoin ? ui.online_url : undefined,
+          linkLabel: hasJoin ? "Open meeting link" : undefined,
+        },
+      });
+    }
 
     if (galleryImageUrl) {
       modulesOut.push({

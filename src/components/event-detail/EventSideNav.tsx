@@ -4,11 +4,11 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, Layout, FormInput, Palette, Megaphone, Users,
   Settings as SettingsIcon, ChevronLeft, ChevronRight, ArrowLeft,
-  Share2, QrCode, Trophy, BarChart3, ScanLine,
+  Share2, QrCode, Trophy, BarChart3, ScanLine, Ticket,
 } from "lucide-react";
 
 export type EventSection =
-  | "overview" | "page" | "form" | "branding"
+  | "overview" | "tickets" | "form" | "content" | "branding"
   | "promotion" | "attendees" | "checkin" | "settings";
 
 interface SubItem {
@@ -41,9 +41,14 @@ const GROUPS: NavGroup[] = [
     label: "Build",
     items: [
       { key: "overview", label: "Overview", icon: LayoutDashboard },
-      { key: "page", label: "Landing page", icon: Layout },
-      { key: "form", label: "Tickets / Registration", icon: FormInput },
-      { key: "branding", label: "Branding", icon: Palette },
+      { key: "tickets", label: "Tickets", icon: Ticket },
+      { key: "form", label: "Registration form", icon: FormInput },
+      { key: "content", label: "Speakers & agenda", icon: Layout, subItems: [
+        { id: "studio-speakers", label: "Speakers", icon: Users },
+        { id: "studio-sponsors", label: "Sponsors", icon: Trophy },
+        { id: "studio-sessions", label: "Agenda", icon: Share2 },
+      ] },
+      { key: "branding", label: "Invitation", icon: Palette },
     ],
   },
   {

@@ -2,8 +2,14 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { LANDING_DEFAULTS } from "@/lib/landing-defaults";
 import { publicApi } from "@/lib/api";
-import type { PublicEventCatalogItem, PublicEventCatalogResponse, PublicEventCategory, PublicEventCategoriesResponse } from "@/lib/publicEventsAdapters";
-import { pickHeroBackgroundImage } from "@/lib/publicEventsAdapters";
+import { catalogPlaceLabel } from "@/lib/eventMode";
+import {
+  pickHeroBackgroundImage,
+  type PublicEventCatalogItem,
+  type PublicEventCatalogResponse,
+  type PublicEventCategory,
+  type PublicEventCategoriesResponse,
+} from "@/lib/publicEventsAdapters";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -428,7 +434,7 @@ const Landing = () => {
       title: event.title,
       tag,
       date,
-      city: event.city ?? "",
+      city: catalogPlaceLabel(event),
     };
   });
 

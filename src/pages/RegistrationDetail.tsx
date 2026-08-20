@@ -29,20 +29,15 @@ import {
   type ApiInvitationDetail,
   type ApiFeedback,
   type ApiCertificateResult,
-  type InvitationConfig,
-  type OverlayPositions,
-  type Customizations,
 } from "@/services/participationService";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { getMediaUrl } from "@/lib/mediaUrl";
 import { toast } from "sonner";
 import { ParticipantWaafiPayment } from "@/components/participant/ParticipantWaafiPayment";
+import InvitationCanvasPreview, { InvitationScaled } from "@/components/invitation/InvitationCanvasPreview";
+import { INVITATION_BRAND } from "@/lib/invitationCanvas";
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const CANVAS_W = 800;
-const CANVAS_H = 1100;
-const BRAND = "#7C3AED";
+const BRAND = INVITATION_BRAND;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -64,13 +59,6 @@ function fmtShortDate(iso: string | null | undefined) {
   try {
     return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" }).format(new Date(iso));
   } catch { return iso; }
-}
-
-function fmtTime(iso: string | null | undefined, tz = "Africa/Mogadishu") {
-  if (!iso) return "";
-  try {
-    return new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit", timeZone: tz }).format(new Date(iso));
-  } catch { return ""; }
 }
 
 type Status = ApiInvitationDetail["status"];
@@ -98,212 +86,6 @@ function hasValidTicket(status: Status, paymentStatus: PaymentStatus): boolean {
   if (status === "cancelled" || status === "waitlisted") return false;
   return paymentStatus === "paid" || paymentStatus === "not_required";
 }
-
-// ─── Default invitation canvas (no backend template) ─────────────────────────
-
-const DefaultInvitation = ({
-  detail,
-  qrDataUrl,
-  printRef,
-}: {
-  detail: ApiInvitationDetail;
-  qrDataUrl: string;
-  printRef: React.RefObject<HTMLDivElement>;
-}) => {
-  const primary = BRAND;
-  const eventTitle = detail.event?.title ?? "Event";
-  const starts = detail.event?.starts_at ?? null;
-  const venue = detail.event?.address ?? detail.event?.city ?? "";
-  const ticketName = detail.ticket_type?.name ?? null;
-
-  return (
-    <div
-      ref={printRef}
-      id="invitation-canvas"
-      className="relative overflow-hidden bg-white text-gray-900 select-none"
-      style={{ width: CANVAS_W, height: CANVAS_H, maxWidth: "100%" }}
-    >
-      {/* Gradient header */}
-      <div
-        className="absolute inset-x-0 top-0 h-80"
-        style={{ background: `linear-gradient(160deg, ${primary} 0%, hsl(265 90% 50%) 100%)` }}
-      />
-
-      {/* Decorative circles */}
-      <div className="absolute -top-16 -right-16 w-72 h-72 rounded-full opacity-20" style={{ background: primary }} />
-      <div className="absolute top-40 -left-20 w-48 h-48 rounded-full opacity-10" style={{ background: "white" }} />
-
-      {/* Header text */}
-      <div className="relative z-10 px-12 pt-14">
-        <p className="text-white/70 text-sm font-semibold tracking-[0.25em] uppercase mb-3">You are invited</p>
-        <h1 className="text-white font-bold leading-tight" style={{ fontSize: 36 }}>
-          {eventTitle}
-        </h1>
-        {ticketName && (
-          <span
-            className="inline-block mt-3 text-xs font-bold uppercase tracking-[0.15em] px-3 py-1 rounded-full"
-            style={{ background: "rgba(255,255,255,0.18)", color: "white" }}
-          >
-            {ticketName}
-          </span>
-        )}
-      </div>
-
-      {/* Card body */}
-      <div className="relative z-10 mx-8 mt-8 bg-white rounded-3xl shadow-lg px-10 py-8 space-y-6">
-        {/* Meta rows */}
-        <div className="space-y-3">
-          {starts && (
-            <div className="flex items-start gap-3">
-              <CalendarDays className="w-5 h-5 mt-0.5 shrink-0" style={{ color: primary }} />
-              <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Date & Time</p>
-                <p className="text-sm font-semibold text-gray-800 mt-0.5">{fmtDate(starts)}</p>
-              </div>
-            </div>
-          )}
-          {venue && (
-            <div className="flex items-start gap-3">
-              <MapPin className="w-5 h-5 mt-0.5 shrink-0" style={{ color: primary }} />
-              <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Venue</p>
-                <p className="text-sm font-semibold text-gray-800 mt-0.5">{venue}</p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Divider */}
-        <div className="border-t border-dashed border-gray-200 relative">
-          <div className="absolute -left-[calc(2.5rem+1px)] top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-gray-100" />
-          <div className="absolute -right-[calc(2.5rem+1px)] top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-gray-100" />
-        </div>
-
-        {/* QR */}
-        <div className="flex flex-col items-center gap-3">
-          {qrDataUrl ? (
-            <img src={qrDataUrl} alt="QR" className="w-40 h-40" />
-          ) : (
-            <div className="w-40 h-40 bg-gray-100 rounded-xl flex items-center justify-center">
-              <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-            </div>
-          )}
-          <p className="text-[11px] text-gray-400 tracking-widest uppercase">Show at entry</p>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className="absolute bottom-8 inset-x-0 text-center">
-        <p className="text-[11px] text-gray-400 tracking-[0.15em] uppercase">EventHub</p>
-      </div>
-    </div>
-  );
-};
-
-// ─── Configured invitation canvas (template / custom mode) ────────────────────
-
-const ConfiguredInvitation = ({
-  detail,
-  invitation,
-  qrDataUrl,
-  printRef,
-}: {
-  detail: ApiInvitationDetail;
-  invitation: NonNullable<InvitationConfig>;
-  qrDataUrl: string;
-  printRef: React.RefObject<HTMLDivElement>;
-}) => {
-  const overlay: OverlayPositions = invitation.overlay_positions
-    ?? invitation.system_template?.overlay_positions
-    ?? {};
-  const custom: Customizations = invitation.customizations
-    ?? invitation.system_template?.customizations
-    ?? {};
-
-  const bgPath = invitation.background_image_path
-    ?? invitation.system_template?.preview_image_path
-    ?? null;
-  const bgUrl = bgPath ? getMediaUrl(bgPath) : null;
-
-  const eventTitle = detail.event?.title ?? "";
-  const starts = detail.event?.starts_at ?? null;
-  const venue = detail.event?.address ?? detail.event?.city ?? "";
-  const ticketName = detail.ticket_type?.name ?? null;
-
-  const qrPos = overlay["qr_code"] ?? { x: 300, y: 820, width: 200, height: 200 };
-  const namePos = overlay["participant_name"] ?? { x: 80, y: 220, font_size: 36, font_color: "#111827" };
-  const titlePos = overlay["event_title"] ?? { x: 80, y: 290, font_size: 28, font_color: "#111827" };
-  const datePos = overlay["event_date"] ?? { x: 80, y: 360, font_size: 20, font_color: "#374151" };
-  const timePos = overlay["event_time"] ?? { x: 80, y: 400, font_size: 18, font_color: "#374151" };
-  const venuePos = overlay["event_venue"] ?? { x: 80, y: 450, font_size: 18, font_color: "#374151" };
-  const ticketPos = overlay["ticket_type"] ?? { x: 80, y: 500, font_size: 16, font_color: "#4B5563" };
-
-  return (
-    <div
-      ref={printRef}
-      id="invitation-canvas"
-      className="relative overflow-hidden"
-      style={{
-        width: CANVAS_W,
-        height: CANVAS_H,
-        maxWidth: "100%",
-        background: bgUrl ? `url(${bgUrl}) center/cover no-repeat` : (custom.primary_color ?? BRAND),
-        fontFamily: custom.font_family ?? "Inter, sans-serif",
-      }}
-    >
-      {/* Header text overlay */}
-      {custom.header_text && (
-        <div
-          className="absolute font-bold text-white"
-          style={{ left: 80, top: 80, fontSize: 22, letterSpacing: "0.2em", opacity: 0.85 }}
-        >
-          {custom.header_text}
-        </div>
-      )}
-
-      {/* Overlay text positions */}
-      <div className="absolute" style={{ left: namePos.x, top: namePos.y, fontSize: namePos.font_size ?? 36, color: namePos.font_color ?? "#111827", fontWeight: 700 }}>
-        {/* Attendee name shown at name position */}
-        {detail.ticket_type?.name ?? ""}
-      </div>
-      <div className="absolute" style={{ left: titlePos.x, top: titlePos.y, fontSize: titlePos.font_size ?? 28, color: titlePos.font_color ?? "#111827", fontWeight: 600 }}>
-        {eventTitle}
-      </div>
-      {starts && (
-        <>
-          <div className="absolute" style={{ left: datePos.x, top: datePos.y, fontSize: datePos.font_size ?? 20, color: datePos.font_color ?? "#374151" }}>
-            {fmtShortDate(starts)}
-          </div>
-          <div className="absolute" style={{ left: timePos.x, top: timePos.y, fontSize: timePos.font_size ?? 18, color: timePos.font_color ?? "#374151" }}>
-            {fmtTime(starts)}
-          </div>
-        </>
-      )}
-      {venue && (
-        <div className="absolute" style={{ left: venuePos.x, top: venuePos.y, fontSize: venuePos.font_size ?? 18, color: venuePos.font_color ?? "#374151" }}>
-          {venue}
-        </div>
-      )}
-      {ticketName && (
-        <div className="absolute" style={{ left: ticketPos.x, top: ticketPos.y, fontSize: ticketPos.font_size ?? 16, color: ticketPos.font_color ?? "#4B5563" }}>
-          {ticketName}
-        </div>
-      )}
-
-      {/* QR */}
-      <div
-        className="absolute flex items-center justify-center bg-white rounded-xl p-2"
-        style={{ left: qrPos.x, top: qrPos.y, width: qrPos.width ?? 200, height: qrPos.height ?? 200 }}
-      >
-        {qrDataUrl ? (
-          <img src={qrDataUrl} alt="QR" style={{ width: "100%", height: "100%" }} />
-        ) : (
-          <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-        )}
-      </div>
-    </div>
-  );
-};
 
 // ─── Feedback panel ───────────────────────────────────────────────────────────
 
@@ -515,51 +297,6 @@ const CertificatePanel = ({
   );
 };
 
-// ─── Responsive scale wrapper ─────────────────────────────────────────────────
-
-/**
- * Renders the 800×1100 canvas scaled down to fit its container width,
- * preserving aspect ratio via a padding-bottom trick.
- */
-const InvitationScaled = ({ children }: { children: React.ReactNode }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(1);
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const update = () => {
-      const w = el.getBoundingClientRect().width;
-      setScale(w / CANVAS_W);
-    };
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  return (
-    <div
-      ref={containerRef}
-      className="overflow-hidden rounded-3xl shadow-[0_20px_60px_-20px_rgba(0,0,0,0.2)] w-full"
-      style={{ paddingBottom: `${(CANVAS_H / CANVAS_W) * 100}%`, position: "relative" }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: CANVAS_W,
-          height: CANVAS_H,
-          transform: `scale(${scale})`,
-          transformOrigin: "top left",
-        }}
-      >
-        {children}
-      </div>
-    </div>
-  );
-};
 
 // ─── Print styles injected once ───────────────────────────────────────────────
 
@@ -950,20 +687,18 @@ export default function RegistrationDetail() {
             </div>
 
             <InvitationScaled>
-              {invitation ? (
-                <ConfiguredInvitation
-                  detail={detail}
-                  invitation={invitation}
-                  qrDataUrl={qrDataUrl}
-                  printRef={printRef}
-                />
-              ) : (
-                <DefaultInvitation
-                  detail={detail}
-                  qrDataUrl={qrDataUrl}
-                  printRef={printRef}
-                />
-              )}
+              <InvitationCanvasPreview
+                printRef={printRef}
+                model={{
+                  eventTitle: detail.event?.title ?? "Event",
+                  startsAt: detail.event?.starts_at,
+                  venue: detail.event?.address ?? detail.event?.city,
+                  ticketName: detail.ticket_type?.name,
+                  attendeeName: user?.name ?? "Guest",
+                  invitation,
+                  qrDataUrl,
+                }}
+              />
             </InvitationScaled>
           </div>
         )}

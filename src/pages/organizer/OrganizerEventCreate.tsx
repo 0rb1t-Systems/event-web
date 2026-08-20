@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getApiErrorMessage, isEventQuotaError } from "@/lib/apiError";
+import { asEventMode, eventModeRequiresUrl, parseWhyAttendInput, type EventMode } from "@/lib/eventMode";
 import { getOrganizerDashboard } from "@/services/organizerDashboard";
 import { createOrganizerEvent, listEventCategories } from "@/services/organizerEvents";
 import type { OrganizerQuota } from "@/types/organizer";
@@ -16,6 +17,9 @@ export default function OrganizerEventCreate() {
   const navigate = useNavigate();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [whyAttend, setWhyAttend] = useState("");
+  const [eventMode, setEventMode] = useState<EventMode>("in_person");
+  const [onlineUrl, setOnlineUrl] = useState("");
   const [city, setCity] = useState("");
   const [address, setAddress] = useState("");
   const [startsAt, setStartsAt] = useState("");
@@ -38,12 +42,19 @@ export default function OrganizerEventCreate() {
       toast.error("Title is required");
       return;
     }
+    if (eventModeRequiresUrl(eventMode) && !onlineUrl.trim()) {
+      toast.error("Online URL is required for online and hybrid events");
+      return;
+    }
     setSaving(true);
     setQuotaBlock(null);
     try {
       const created = await createOrganizerEvent({
         title: trimmed,
         description: description.trim() || null,
+        why_attend: parseWhyAttendInput(whyAttend),
+        event_mode: eventMode,
+        online_url: eventModeRequiresUrl(eventMode) ? onlineUrl.trim() : (onlineUrl.trim() || null),
         city: city.trim() || null,
         address: address.trim() || null,
         starts_at: startsAt ? new Date(startsAt).toISOString() : null,
@@ -116,6 +127,15 @@ export default function OrganizerEventCreate() {
             <Textarea className="rounded-2xl min-h-[120px]" value={description} onChange={(e) => setDescription(e.target.value)} />
           </div>
           <div className="space-y-1.5">
+            <Label>Why attend</Label>
+            <Textarea
+              className="rounded-2xl min-h-[96px]"
+              placeholder="One reason per line (max 6)"
+              value={whyAttend}
+              onChange={(e) => setWhyAttend(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
             <Label>Category</Label>
             <Select value={categoryId} onValueChange={setCategoryId}>
               <SelectTrigger className="rounded-full"><SelectValue placeholder="None" /></SelectTrigger>
@@ -151,12 +171,29 @@ export default function OrganizerEventCreate() {
           <h2 className="font-display font-semibold">Where & capacity</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>City</Label>
-              <Input className="rounded-full" value={city} onChange={(e) => setCity(e.target.value)} />
+              <Label>Event mode</Label>
+              <Select value={eventMode} onValueChange={(v) => setEventMode(asEventMode(v))}>
+                <SelectTrigger className="rounded-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="in_person">In person</SelectItem>
+                  <SelectItem value="online">Online</SelectItem>
+                  <SelectItem value="hybrid">Hybrid</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1.5">
               <Label>Capacity</Label>
               <Input type="number" min={0} className="rounded-full" value={capacity} onChange={(e) => setCapacity(e.target.value)} placeholder="Unlimited" />
+            </div>
+            {eventModeRequiresUrl(eventMode) && (
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label>Online URL</Label>
+                <Input type="url" className="rounded-full" placeholder="https://" value={onlineUrl} onChange={(e) => setOnlineUrl(e.target.value)} required />
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <Label>City</Label>
+              <Input className="rounded-full" value={city} onChange={(e) => setCity(e.target.value)} />
             </div>
             <div className="space-y-1.5 sm:col-span-2">
               <Label>Address</Label>

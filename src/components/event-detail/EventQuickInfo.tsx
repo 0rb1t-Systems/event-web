@@ -2,7 +2,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarDays, MapPin, Type, FileText, Globe, CalendarX, Users } from "lucide-react";
+import { CalendarDays, MapPin, Type, FileText, Globe, CalendarX, Users, Video } from "lucide-react";
+import { toast } from "sonner";
+import { asEventMode, eventModeRequiresUrl, formatWhyAttend, parseWhyAttendInput } from "@/lib/eventMode";
 import SmartImageField from "./SmartImageField";
 
 type Event = any;
@@ -61,6 +63,19 @@ export default function EventQuickInfo({ event, onUpdate, categories = [], onUpl
               onBlur={(e) => onUpdate({ description: e.target.value || null })}
             />
           </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label className="text-xs flex items-center gap-1">
+              <FileText className="w-3 h-3" /> Why attend
+            </Label>
+            <Textarea
+              className="text-sm min-h-[96px] resize-y rounded-2xl"
+              placeholder="One reason per line (max 6)"
+              defaultValue={formatWhyAttend(event.why_attend)}
+              key={`why-${event.id}-${(event.why_attend ?? []).join("|")}`}
+              rows={4}
+              onBlur={(e) => onUpdate({ why_attend: parseWhyAttendInput(e.target.value) })}
+            />
+          </div>
           <div className="space-y-1.5">
             <Label className="text-xs flex items-center gap-1">
               <CalendarDays className="w-3 h-3" /> Event date
@@ -100,6 +115,48 @@ export default function EventQuickInfo({ event, onUpdate, categories = [], onUpl
               </SelectContent>
             </Select>
           </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs flex items-center gap-1">
+              <Video className="w-3 h-3" /> Event mode
+            </Label>
+            <Select
+              value={asEventMode(event.event_mode)}
+              onValueChange={(v) => {
+                const mode = asEventMode(v);
+                if (eventModeRequiresUrl(mode) && !String(event.online_url || "").trim()) {
+                  toast.error("Online URL is required for online and hybrid events");
+                }
+                const patch: Record<string, unknown> = { event_mode: mode };
+                if (eventModeRequiresUrl(mode) && event.online_url) patch.online_url = event.online_url;
+                onUpdate(patch);
+              }}
+            >
+              <SelectTrigger className="h-9 text-sm rounded-full"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="in_person">In person</SelectItem>
+                <SelectItem value="online">Online</SelectItem>
+                <SelectItem value="hybrid">Hybrid</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {eventModeRequiresUrl(event.event_mode) && (
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label className="text-xs flex items-center gap-1">
+                <Globe className="w-3 h-3" /> Online URL
+              </Label>
+              <Input
+                type="url"
+                className="h-9 text-sm rounded-full"
+                placeholder="https://"
+                defaultValue={event.online_url || ""}
+                key={`url-${event.id}-${event.online_url ?? ""}`}
+                onBlur={(e) => onUpdate({
+                  event_mode: asEventMode(event.event_mode),
+                  online_url: e.target.value.trim() || null,
+                })}
+              />
+            </div>
+          )}
           <div className="space-y-1.5">
             <Label className="text-xs flex items-center gap-1">
               <MapPin className="w-3 h-3" /> City

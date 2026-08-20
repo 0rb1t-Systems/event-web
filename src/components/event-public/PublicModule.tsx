@@ -269,7 +269,7 @@ function Location({ module: m, brandColor }: ModuleProps) {
                   rel="noreferrer"
                   className="inline-flex items-center gap-2 mt-2 px-5 h-11 rounded-full bg-white text-foreground text-sm font-semibold w-fit hover:scale-[1.02] transition-transform"
                 >
-                  Open in maps <span>→</span>
+                  {c.linkLabel || "Open in maps"} <span>→</span>
                 </a>
               )}
             </div>

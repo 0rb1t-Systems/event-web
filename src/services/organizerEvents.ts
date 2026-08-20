@@ -33,6 +33,9 @@ export type OrganizerEvent = {
   description: string | null;
   city: string | null;
   address: string | null;
+  event_mode?: string | null;
+  online_url?: string | null;
+  why_attend?: string[] | null;
   latitude: string | number | null;
   longitude: string | number | null;
   banner_path: string | null;
@@ -62,6 +65,9 @@ export type OrganizerEventWriteBody = {
   description?: string | null;
   city?: string | null;
   address?: string | null;
+  event_mode?: "in_person" | "online" | "hybrid";
+  online_url?: string | null;
+  why_attend?: string[] | null;
   latitude?: number | null;
   longitude?: number | null;
   banner_path?: string | null;
