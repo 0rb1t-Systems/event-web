@@ -1,6 +1,6 @@
 # EventHub Web App — Agent Context
 
-Last updated: 2026-08-20 — Organizer Plans & billing Web UI (self-subscribe / upgrade)
+Last updated: 2026-08-20 — Fix invitation Download PDF print layout
 Repository: C:\Users\Hp\Documents\personal\event-web
 Default branch: master
 
@@ -340,7 +340,7 @@ Guards:
 | Auth | existing email/password Lovable UI + verify/forgot panels | Laravel `/auth/*` | Yes | participant register/login/verify/logout/me; admin users can use `/auth/login` as web-participant |
 | Public event page + registration | cinematic Lovable UI | `GET /events/{id}`, `GET /events/{id}/form-fields` (publicApi); `POST /participant/events/{id}/discount-codes/validate`, `POST /participant/participations` (+ optional `discount_code`), `POST /participant/payments/charge`, `GET /participant/participations/{id}` (participantApi) | Yes | Hero from `event_mode` / `why_attend` / `online_url`; tickets with `sales_enabled=false` omitted; paid flow can validate + apply discount quote before join |
 | Participant dashboard (home) | existing Lovable UI | `GET /participant/participations` list + `GET /events` browse (publicApi) | Yes | real own registrations with status badges; browse excludes registered events |
-| Registration detail + invitation + feedback + certificate | RegistrationDetail | `GET .../invitation`, `GET .../feedback`, `POST /participant/event-feedback`, `GET .../certificate` (participantApi) | Yes | `/registrations/:id`; shared invitation canvas; PDF via browser print; certificate `available: false` = deferred backend issue |
+| Registration detail + invitation + feedback + certificate | RegistrationDetail | `GET .../invitation`, `GET .../feedback`, `POST /participant/event-feedback`, `GET .../certificate` (participantApi) | Yes | `/registrations/:id`; shared invitation canvas; PDF via browser print (clones 800×1100 sheet into `#print-root`, `@page` sized to canvas, scale-to-fit, `afterprint` cleanup — do not move live scaled canvas); certificate `available: false` = deferred backend issue |
 | Organizer event studio — invitation | Event Studio branding tab | invitation-system-templates + invitation-template CRUD + background | Yes | drag overlays / resize QR; mobile preview-only; no delete route |
 | Organizer events | Events under `/organizer/events` | `GET /organizer/events` | Yes | owned events; banner, status, dates, registrations_count, monetized |
 | Organizer event create | multi-section form | `POST /organizer/events` | Yes | required `event_mode`; `online_url` when online/hybrid; `why_attend` |
@@ -729,6 +729,10 @@ All under `/api/v1`, `organizerApi` (X-API-Key + Bearer `organizer_token`). Serv
 Route: `/organizer/events/:id/scanner` (lazy). Camera via `html5-qrcode`; manual token entry; optional Wake Lock; accessible control names.
 
 ## Change Log
+
+### 2026-08-20 — Fix invitation Download PDF print layout
+
+`Download PDF` on `/registrations/:id` was broken: print moved the live `#invitation-canvas` out of `InvitationScaled` then restored it immediately after `window.print()` (Chrome often returns while the dialog is still open), and Letter margins clipped the bottom of the 800×1100 sheet where the QR sits. Fix in `RegistrationDetail.tsx`: clone a `.invitation-print-sheet` into `#print-root`, wait for `afterprint` to clear it, inject `@page` size ≈ 8.333×11.458in with zero margins, scale with `min(100vw/800, 100vh/1100)`, and `print-color-adjust: exact` so background + QR images paint. Blocks print if `qr_token` exists but QR data URL is still loading.
 
 ### 2026-08-20 — Organizer Dashboard + Payouts UI polish
 

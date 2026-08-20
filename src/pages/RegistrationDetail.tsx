@@ -299,6 +299,9 @@ const CertificatePanel = ({
 
 
 // ─── Print styles injected once ───────────────────────────────────────────────
+// Invitation is a fixed 800×1100 canvas. Default Letter margins clip the bottom
+// (QR lives near y≈820). Match page size to the canvas, scale to fit as fallback,
+// and force backgrounds/images to paint.
 
 let printStylesInjected = false;
 function ensurePrintStyles() {
@@ -307,21 +310,57 @@ function ensurePrintStyles() {
   const style = document.createElement("style");
   style.textContent = `
 @media print {
-  body > *:not(#print-root) { display: none !important; }
-  #print-root {
-    display: block !important;
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
-    background: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  @page {
+    size: 8.333in 11.458in;
+    margin: 0;
   }
-  #invitation-canvas {
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: white !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  body * {
+    visibility: hidden !important;
+  }
+  #print-root,
+  #print-root * {
+    visibility: visible !important;
+  }
+  #print-root {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    overflow: hidden !important;
+    z-index: 9999 !important;
+  }
+  #print-root .invitation-print-sheet {
+    position: relative !important;
     width: 800px !important;
     height: 1100px !important;
     max-width: none !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    transform: scale(min(100vw / 800px, 100vh / 1100px)) !important;
+    transform-origin: center center !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  #print-root img {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 }`;
   document.head.appendChild(style);
@@ -421,28 +460,47 @@ export default function RegistrationDetail() {
   const handleDownload = () => {
     if (!detail || !hasValidTicket(detail.status, detail.payment_status)) return;
 
-    // Move invitation canvas into a print-root div, print, then restore
     const canvas = document.getElementById("invitation-canvas");
-    if (!canvas) { window.print(); return; }
+    if (!canvas) {
+      toast.error("Invitation is not ready to print yet.");
+      return;
+    }
+    if (detail.qr_token && !qrDataUrl) {
+      toast.error("QR code is still loading. Try again in a moment.");
+      return;
+    }
 
+    // Clone into a dedicated print root so we never yank the live (scaled) canvas.
+    // Restoring the live node while Chrome's print dialog is open was clipping the
+    // bottom of the 800×1100 sheet (QR) and breaking layout in Save as PDF.
     let root = document.getElementById("print-root");
     if (!root) {
       root = document.createElement("div");
       root.id = "print-root";
-      root.style.cssText = "display:none;position:fixed;inset:0;z-index:9999;background:white;align-items:center;justify-content:center;";
+      root.setAttribute("aria-hidden", "true");
+      root.style.cssText = "display:none;position:fixed;inset:0;z-index:9999;background:white;";
       document.body.appendChild(root);
     }
 
-    const placeholder = document.createElement("div");
-    canvas.parentNode?.insertBefore(placeholder, canvas);
-    root.appendChild(canvas);
+    root.replaceChildren();
+    const sheet = canvas.cloneNode(true) as HTMLElement;
+    sheet.removeAttribute("id");
+    sheet.classList.add("invitation-print-sheet");
+    root.appendChild(sheet);
 
-    window.print();
+    let cleaned = false;
+    const cleanup = () => {
+      if (cleaned) return;
+      cleaned = true;
+      root.replaceChildren();
+      window.removeEventListener("afterprint", cleanup);
+    };
 
-    // Restore after print dialog closes
-    root.removeChild(canvas);
-    placeholder.parentNode?.insertBefore(canvas, placeholder);
-    placeholder.remove();
+    window.addEventListener("afterprint", cleanup);
+    // Defer so the clone is laid out before Chrome snapshots the page.
+    requestAnimationFrame(() => {
+      window.print();
+    });
   };
 
   const handleBack = () => {
