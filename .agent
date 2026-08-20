@@ -1,6 +1,6 @@
 # EventHub Web App — Agent Context
 
-Last updated: 2026-08-20 — Fix invitation Download PDF print layout
+Last updated: 2026-08-20 — Platform branding (Admin org → Web App)
 Repository: C:\Users\Hp\Documents\personal\event-web
 Default branch: master
 
@@ -118,6 +118,8 @@ VITE_APP_URL=http://localhost:8080
 VITE_WAAFI_CURRENCY=USD
 ```
 
+`VITE_APP_NAME` is the fallback display name when `GET /platform/branding` has no organization name. Live branding (name, light/dark logos, favicon) is edited in Laravel Admin → Settings → Organization — not in `.env`.
+
 There is NO API secret in the Vite application.
 
 Never add:
@@ -175,10 +177,12 @@ The following are available with X-API-Key and no participant Bearer token:
 - GET /events/{id} — `{id}` is the numeric event primary key (Laravel has no event slugs). Public payload includes `event_mode` (`in_person`|`online`|`hybrid`), `online_url`, `why_attend` (string[]|null), `banner_path` (site-relative e.g. `/assets/images/events/…`), `banner_url` (absolute when path is relative), plus speakers/sponsors/sessions/ticket_types.
 - GET /event-categories
 - GET /events/{id}/form-fields
+- GET /platform/branding — `{ name, logo_url, logo_dark_url, icon_url }` (nulls when unset; no contact PII). Managed in Laravel Admin → Settings → Organization. Web App `BrandingProvider` applies title/favicon/logos.
 
 Response handling (as implemented in `src/lib/publicEventsAdapters.ts`):
 - GET `/events` and GET `/event-categories` return raw Laravel paginators (no `{ success, data }` envelope)
 - GET `/events/{id}` and GET `/events/{id}/form-fields` return the JSON envelope from `ApiResponseTrait`: `{ success, message?, status_code, data }`
+- GET `/platform/branding` returns the same `{ success, data }` envelope (`src/services/platformBranding.ts`)
 
 Smoke-tested locally: GET /events with a valid public key returned HTTP 200 and a data payload.
 
@@ -336,7 +340,8 @@ Guards:
 
 | Module | Current UI | Data source | Backend wired? | Notes |
 |---|---|---|---|---|
-| Homepage/catalog | existing Lovable UI (`Landing` via Index) | `GET /events` + `GET /event-categories` (publicApi) | Yes | `/` is public; popular cards rendered from Laravel public catalog; supports search + category filtering; mockEvents removed from the public catalog UI |
+| Homepage/catalog | existing Lovable UI (`Landing` via Index) | `GET /events` + `GET /event-categories` + `GET /platform/branding` (publicApi) | Yes | `/` is public; popular cards from Laravel catalog; site name/logos/favicon from Admin Organization via BrandingProvider |
+| Platform branding | `Logo` + document title/favicon | `GET /platform/branding` (publicApi) | Yes | Admin Settings → Organization is the write UI; Web App read-only; fallback `VITE_APP_NAME` + glyph when empty |
 | Auth | existing email/password Lovable UI + verify/forgot panels | Laravel `/auth/*` | Yes | participant register/login/verify/logout/me; admin users can use `/auth/login` as web-participant |
 | Public event page + registration | cinematic Lovable UI | `GET /events/{id}`, `GET /events/{id}/form-fields` (publicApi); `POST /participant/events/{id}/discount-codes/validate`, `POST /participant/participations` (+ optional `discount_code`), `POST /participant/payments/charge`, `GET /participant/participations/{id}` (participantApi) | Yes | Hero from `event_mode` / `why_attend` / `online_url`; tickets with `sales_enabled=false` omitted; paid flow can validate + apply discount quote before join |
 | Participant dashboard (home) | existing Lovable UI | `GET /participant/participations` list + `GET /events` browse (publicApi) | Yes | real own registrations with status badges; browse excludes registered events |
@@ -729,6 +734,12 @@ All under `/api/v1`, `organizerApi` (X-API-Key + Bearer `organizer_token`). Serv
 Route: `/organizer/events/:id/scanner` (lazy). Camera via `html5-qrcode`; manual token entry; optional Wake Lock; accessible control names.
 
 ## Change Log
+
+### 2026-08-20 — Platform branding (Admin Organization → Web App)
+
+Wired Admin Organization profile into the Web App. `GET /platform/branding` (publicApi) loads `{ name, logo_url, logo_dark_url, icon_url }`. `BrandingProvider` sets document title + favicon; `Logo` uses theme-aware uploaded logos or glyph + name (no more hardcoded `eventspark`). `index.html` fallback titles are EventHub. Landing/Register/PublicEventPage/invitation footers use branding name. Laravel side: `PlatformBrandingController`, organizations route order fix, Admin Organization copy clarified.
+
+Files: `src/services/platformBranding.ts`, `src/contexts/BrandingContext.tsx`, `src/components/Logo.tsx`, `src/App.tsx`, `index.html`, Landing/Register/PublicEventPage/InvitationCanvasPreview, `.agent`.
 
 ### 2026-08-20 — Fix invitation Download PDF print layout
 

@@ -11,6 +11,7 @@ import {
 } from "@/lib/publicEventsAdapters";
 import { Logo } from "@/components/Logo";
 import { PublicSiteHeader } from "@/components/layout/PublicSiteHeader";
+import { useBranding } from "@/contexts/BrandingContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -299,6 +300,7 @@ function ConfettiLayer({ size, opacity, count, spread }: { size: number; opacity
 }
 
 const Landing = () => {
+  const { name: brandName } = useBranding();
   const landing = LANDING_DEFAULTS;
   const hero = landing.hero;
   const popular = landing.popular_events;
@@ -968,7 +970,7 @@ const Landing = () => {
       <footer className="py-12 px-6 lg:px-8">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <Logo size="md" />
-          <p className="text-sm text-muted-foreground">© 2026 eventspark. All rights reserved.</p>
+          <p className="text-sm text-muted-foreground">© 2026 {brandName}. All rights reserved.</p>
         </div>
       </footer>
 

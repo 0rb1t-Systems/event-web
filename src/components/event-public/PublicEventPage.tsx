@@ -12,6 +12,7 @@ import { Hero } from "./Hero";
 import { StickyRegisterBar } from "./StickyRegisterBar";
 import { PublicModule } from "./PublicModule";
 import { useAuth } from "@/contexts/AuthContext";
+import { useBranding } from "@/contexts/BrandingContext";
 
 interface Props {
   event: Event;
@@ -42,6 +43,7 @@ export function PublicEventPage({
   const registerRef = useRef<HTMLDivElement>(null);
 
   const { user } = useAuth();
+  const { name: brandName } = useBranding();
   const navigate = useNavigate();
 
   const scrollToRegister = () => {
@@ -234,7 +236,7 @@ export function PublicEventPage({
             </motion.div>
 
             <p className="text-center text-xs text-muted-foreground mt-8">
-              Powered by <span className="font-semibold text-foreground">eventspark</span>
+              Powered by <span className="font-semibold text-foreground">{brandName}</span>
             </p>
           </div>
         </section>

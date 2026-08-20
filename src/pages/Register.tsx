@@ -12,6 +12,7 @@ import {
   Clock, AlertTriangle,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useBranding } from "@/contexts/BrandingContext";
 import { publicApi } from "@/lib/api";
 import { getApiErrorMessage } from "@/lib/apiError";
 import {
@@ -694,11 +695,14 @@ const FlyerImage = ({ flyerUrl, eventName, className = "" }: { flyerUrl: string 
   ) : null
 );
 
-const PoweredBy = () => (
-  <p className="text-center text-xs text-muted-foreground mt-6">
-    Powered by <span className="font-semibold">EventHub</span>
-  </p>
-);
+const PoweredBy = () => {
+  const { name } = useBranding();
+  return (
+    <p className="text-center text-xs text-muted-foreground mt-6">
+      Powered by <span className="font-semibold">{name}</span>
+    </p>
+  );
+};
 
 // ─── Registration step state ───────────────────────────────────────────────────
 

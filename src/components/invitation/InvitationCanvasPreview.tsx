@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { CalendarDays, Loader2, MapPin } from "lucide-react";
 import { getMediaUrl } from "@/lib/mediaUrl";
+import { useBranding } from "@/contexts/BrandingContext";
 import {
   DEFAULT_CUSTOMIZATIONS,
   DEFAULT_OVERLAY_POSITIONS,
@@ -107,6 +108,7 @@ export function FallbackInvitation({
   const starts = model.startsAt ?? null;
   const venue = model.venue ?? "";
   const ticketName = model.ticketName ?? null;
+  const { name: brandName } = useBranding();
 
   return (
     <div
@@ -163,7 +165,7 @@ export function FallbackInvitation({
         </div>
       </div>
       <div className="absolute bottom-8 inset-x-0 text-center">
-        <p className="text-[11px] text-gray-400 tracking-[0.15em] uppercase">EventHub</p>
+        <p className="text-[11px] text-gray-400 tracking-[0.15em] uppercase">{brandName}</p>
       </div>
     </div>
   );
