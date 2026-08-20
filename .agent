@@ -409,7 +409,7 @@ When adding screens: wire Laravel contracts or show honest empty/error/deferred 
 
 Do not build unless explicitly requested after Prompt 14:
 
-- Organizer online package purchase / self-serve checkout (admin assigns packages)
+- ~~Organizer online package purchase / self-serve checkout~~ — **backend done in Prompt 15**; Web App UI still deferred
 - Apple/Google Wallet passes
 - Push notifications
 - Multi-language
@@ -420,6 +420,16 @@ Do not build unless explicitly requested after Prompt 14:
 - Organizer-wide batch payout create (per-event only in Web App)
 - Richer email campaign tooling beyond announcements
 - Certificate issuance (participant read-only when `available: false`)
+
+## Organizer Package Self-Subscription (Backend — Prompt 15)
+
+Laravel now supports organizer self-subscribe/upgrade. Web App still only GETs packages/subscription/quota until a later prompt wires checkout UI.
+
+- `POST /api/v1/organizer/subscriptions` `{ package_id, payer_phone? }` — server derives subscribe vs upgrade; never accept client amount
+- `GET /api/v1/organizer/subscriptions/history`
+- `GET /api/v1/organizer/subscription-orders`, `GET .../subscription-orders/{id}`
+- Catalog exposes `duration_*`, `tier_rank`, `selectable`, `upgrade_allowed`, `blocked_reason`
+- Rank rule: `tier_rank` only. No proration. Free = no Waafi. Failed upgrade leaves old plan.
 
 ## Prompt 14 Quality Notes
 
@@ -697,9 +707,11 @@ Payouts (per-event only; no organizer-wide batch create):
 
 Packages (read-only — no purchase):
 
-- `GET /organizer/packages` — active package catalog (`name`, `description`, `price`, `event_quota`, `status`).
-- `GET /organizer/subscription` — `{ active, history }` with package + `quota_usage` (EventQuota payload).
-- `GET /organizer/quota` — EventQuota fields + `has_active_subscription` + `package` summary. Null quota = unlimited; 0 = zero quota.
+- `GET /organizer/packages` — active catalog: `id`, `name`, `description`, `price`, `event_quota`, `duration_value`, `duration_unit`, `duration_label`, `tier_rank`, `status`, plus lifecycle `is_current`, `selectable`, `upgrade_allowed`, `blocked_reason`, `action`
+- `GET /organizer/subscription` — `{ active, history }` with snapshots / seconds_remaining / quota_usage
+- `GET /organizer/quota` — EventQuota fields + `has_active_subscription` + package summary + subscription timing
+- `POST /organizer/subscriptions` — body `{ package_id, payer_phone? }` only (backend Prompt 15; Web UI not wired yet)
+- `GET /organizer/subscriptions/history`, `GET /organizer/subscription-orders`, `GET /organizer/subscription-orders/{id}`
 
 UI: one shared `EventFinancePanel` for Event Studio Finance tab and `/organizer/payouts` event tab. `/organizer/payouts` also lists all requests and shows `SubscriptionQuotaPanel` (contact support for plan changes).
 
