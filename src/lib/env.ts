@@ -31,5 +31,6 @@ export const env = {
   appUrl:
     import.meta.env.VITE_APP_URL?.trim() ||
     (typeof window !== "undefined" ? window.location.origin : ""),
+  googleClientId: import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim() || "",
   waafiCurrency: import.meta.env.VITE_WAAFI_CURRENCY?.trim() || "USD",
 } as const;

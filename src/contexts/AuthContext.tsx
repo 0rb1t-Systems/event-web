@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 import { participantSessionStorage } from "@/lib/authStorage";
+import { requestGoogleAccessToken } from "@/lib/googleSignIn";
 import { participantAuthService } from "@/services/participantAuth";
 import type { ParticipantProfileUpdate, ParticipantUser } from "@/types/participant";
 
@@ -13,6 +14,7 @@ interface AuthContextType {
   loading: boolean;
   signOut: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   register: (
     name: string,
@@ -98,6 +100,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     const result = await participantAuthService.login(email, password);
+    persistParticipant(result.token, result.user);
+    setUser(result.user);
+
+    try {
+      const me = await participantAuthService.me();
+      persistParticipant(result.token, me);
+      setUser(me);
+    } catch {
+      // Login payload is enough to start the session.
+    }
+  }, []);
+
+  const loginWithGoogle = useCallback(async () => {
+    const accessToken = await requestGoogleAccessToken();
+    const result = await participantAuthService.googleLogin(accessToken);
     persistParticipant(result.token, result.user);
     setUser(result.user);
 
@@ -216,6 +233,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading: isLoading,
       signOut: logout,
       login,
+      loginWithGoogle,
       logout,
       register,
       verifyEmail,
@@ -232,6 +250,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isLoading,
       logout,
       login,
+      loginWithGoogle,
       register,
       verifyEmail,
       resendVerification,

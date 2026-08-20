@@ -70,6 +70,21 @@ export const participantAuthService = {
     };
   },
 
+  googleLogin: async (accessToken: string): Promise<LoginPayload> => {
+    const { data } = await publicApi.post<Envelope<LoginPayload>>("/auth/google/login", {
+      access_token: accessToken,
+    });
+    const inner = data.data;
+    if (!inner?.token) {
+      throw new Error("Google login did not return a session token.");
+    }
+    return {
+      user: pickUser(inner.user),
+      token: inner.token,
+      token_ability: inner.token_ability,
+    };
+  },
+
   verify: async (email: string, verification_code: string): Promise<ParticipantUser> => {
     const { data } = await publicApi.post<Envelope<{ user: ParticipantUser }>>("/auth/verify", {
       email,

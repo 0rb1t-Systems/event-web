@@ -1,6 +1,6 @@
 # EventHub Web App — Agent Context
 
-Last updated: 2026-08-20 — Platform branding (Admin org → Web App)
+Last updated: 2026-08-20 — Continue with Google (participant)
 Repository: C:\Users\Hp\Documents\personal\event-web
 Default branch: master
 
@@ -115,10 +115,13 @@ Optional:
 ```text
 VITE_APP_NAME=EventHub
 VITE_APP_URL=http://localhost:8080
+VITE_GOOGLE_CLIENT_ID=
 VITE_WAAFI_CURRENCY=USD
 ```
 
 `VITE_APP_NAME` is the fallback display name when `GET /platform/branding` has no organization name. Live branding (name, light/dark logos, favicon) is edited in Laravel Admin → Settings → Organization — not in `.env`.
+
+`VITE_GOOGLE_CLIENT_ID` must match Laravel `GOOGLE_CLIENT_ID` (Google Cloud OAuth Web client). Authorized JavaScript origins must include the Web App origin (e.g. `http://localhost:8080`). Empty = Continue with Google shows a config error toast.
 
 There is NO API secret in the Vite application.
 
@@ -215,7 +218,7 @@ Authenticated (`participantApi`):
 
 Also present on Laravel but **intentionally unwired** in this Web App:
 
-- `POST /auth/google/login` — route exists; do not claim it is missing. Google OAuth is out of current Web App scope. The `/auth` Google button stays visual-only (toast: coming soon) until a dedicated Google-auth prompt.
+- `POST /auth/google/login` — body `{ access_token }` (GIS OAuth) and/or `{ id_token }`. Verifies against `GOOGLE_CLIENT_ID`, creates/activates participant (`provider=google`, skips email OTP), returns same `{ user, token, token_ability: web-participant }` shape as email login. Suspended → 403. Web App: `VITE_GOOGLE_CLIENT_ID` + Continue with Google on `/auth`.
 - `POST /auth/admin/login` — Admin Panel only; Web App must never call it.
 
 Do not call organizer-auth from the participant module.
@@ -342,7 +345,7 @@ Guards:
 |---|---|---|---|---|
 | Homepage/catalog | existing Lovable UI (`Landing` via Index) | `GET /events` + `GET /event-categories` + `GET /platform/branding` (publicApi) | Yes | `/` is public; popular cards from Laravel catalog; site name/logos/favicon from Admin Organization via BrandingProvider |
 | Platform branding | `Logo` + document title/favicon | `GET /platform/branding` (publicApi) | Yes | Admin Settings → Organization is the write UI; Web App read-only; fallback `VITE_APP_NAME` + glyph when empty |
-| Auth | existing email/password Lovable UI + verify/forgot panels | Laravel `/auth/*` | Yes | participant register/login/verify/logout/me; admin users can use `/auth/login` as web-participant |
+| Auth | existing email/password Lovable UI + verify/forgot + Continue with Google | Laravel `/auth/*` incl. `POST /auth/google/login` | Yes | participant register/login/verify/logout/me/google; admin users can use `/auth/login` as web-participant; Google needs `VITE_GOOGLE_CLIENT_ID` + Laravel `GOOGLE_CLIENT_ID` |
 | Public event page + registration | cinematic Lovable UI | `GET /events/{id}`, `GET /events/{id}/form-fields` (publicApi); `POST /participant/events/{id}/discount-codes/validate`, `POST /participant/participations` (+ optional `discount_code`), `POST /participant/payments/charge`, `GET /participant/participations/{id}` (participantApi) | Yes | Hero from `event_mode` / `why_attend` / `online_url`; tickets with `sales_enabled=false` omitted; paid flow can validate + apply discount quote before join |
 | Participant dashboard (home) | existing Lovable UI | `GET /participant/participations` list + `GET /events` browse (publicApi) | Yes | real own registrations with status badges; browse excludes registered events |
 | Registration detail + invitation + feedback + certificate | RegistrationDetail | `GET .../invitation`, `GET .../feedback`, `POST /participant/event-feedback`, `GET .../certificate` (participantApi) | Yes | `/registrations/:id`; shared invitation canvas; PDF via browser print (clones 800×1100 sheet into `#print-root`, `@page` sized to canvas, scale-to-fit, `afterprint` cleanup — do not move live scaled canvas); certificate `available: false` = deferred backend issue |
@@ -734,6 +737,10 @@ All under `/api/v1`, `organizerApi` (X-API-Key + Bearer `organizer_token`). Serv
 Route: `/organizer/events/:id/scanner` (lazy). Camera via `html5-qrcode`; manual token entry; optional Wake Lock; accessible control names.
 
 ## Change Log
+
+### 2026-08-20 — Continue with Google (participant)
+
+Wired `/auth` Continue with Google to Laravel `POST /auth/google/login`. GIS popup → `access_token` → API. Files: `googleSignIn.ts`, `participantAuth.googleLogin`, `AuthContext.loginWithGoogle`, `Auth.tsx`. Env: `VITE_GOOGLE_CLIENT_ID` (+ Laravel `GOOGLE_CLIENT_ID`).
 
 ### 2026-08-20 — Remove fake landing testimonials
 
