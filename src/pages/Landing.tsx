@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { LANDING_DEFAULTS } from "@/lib/landing-defaults";
+import { LANDING_DEFAULTS, applyBrandName } from "@/lib/landing-defaults";
 import { publicApi } from "@/lib/api";
 import { catalogPlaceLabel } from "@/lib/eventMode";
 import {
@@ -303,10 +303,31 @@ const Landing = () => {
   const { name: brandName } = useBranding();
   const landing = LANDING_DEFAULTS;
   const hero = landing.hero;
-  const popular = landing.popular_events;
-  const featuresContent = landing.features;
-  const testimonialsContent = landing.testimonials;
-  const ctaContent = landing.cta;
+  const popular = {
+    ...landing.popular_events,
+    title_line_1: applyBrandName(landing.popular_events.title_line_1, brandName),
+    title_line_2: applyBrandName(landing.popular_events.title_line_2, brandName),
+    subhead: applyBrandName(landing.popular_events.subhead, brandName),
+  };
+  const featuresContent = {
+    ...landing.features,
+    title_line_1: applyBrandName(landing.features.title_line_1, brandName),
+    title_line_2: applyBrandName(landing.features.title_line_2, brandName),
+    subhead: applyBrandName(landing.features.subhead, brandName),
+  };
+  const testimonialsContent = {
+    ...landing.testimonials,
+    items: landing.testimonials.items.map((item) => ({
+      ...item,
+      quote: applyBrandName(item.quote, brandName),
+    })),
+  };
+  const ctaContent = {
+    ...landing.cta,
+    title_line_1: applyBrandName(landing.cta.title_line_1, brandName),
+    title_line_2: applyBrandName(landing.cta.title_line_2, brandName),
+    subhead: applyBrandName(landing.cta.subhead, brandName),
+  };
   const rotatingWords = hero.rotating_words;
 
   const [wordIndex, setWordIndex] = useState(0);

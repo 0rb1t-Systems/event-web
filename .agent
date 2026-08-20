@@ -735,6 +735,10 @@ Route: `/organizer/events/:id/scanner` (lazy). Camera via `html5-qrcode`; manual
 
 ## Change Log
 
+### 2026-08-20 — Landing copy uses live brand name
+
+Landing marketing strings no longer hardcode `eventspark`. `landing-defaults.ts` uses `{brand}` tokens; `applyBrandName()` + `BrandingProvider` name fill Popular events / features / testimonials / CTA. Left localStorage keys in `eventDraft.ts` unchanged (would break drafts).
+
 ### 2026-08-20 — Platform branding (Admin Organization → Web App)
 
 Wired Admin Organization profile into the Web App. `GET /platform/branding` (publicApi) loads `{ name, logo_url, logo_dark_url, icon_url }`. `BrandingProvider` sets document title + favicon; `Logo` uses theme-aware uploaded logos or glyph + name (no more hardcoded `eventspark`). `index.html` fallback titles are EventHub. Landing/Register/PublicEventPage/invitation footers use branding name. Laravel side: `PlatformBrandingController`, organizations route order fix, Admin Organization copy clarified.
