@@ -96,7 +96,7 @@ function WhyAttend({ module: m, brandColor }: ModuleProps) {
           >
             {imageUrl && (
               <>
-                <img src={imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                <img src={imageUrl} alt="" loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover" />
                 <div className="absolute inset-0" style={{ background: `linear-gradient(0deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.25) 50%, rgba(0,0,0,0.0) 100%), radial-gradient(circle at 70% 30%, ${brandColor}40, transparent 60%)` }} />
               </>
             )}
@@ -201,6 +201,8 @@ function Speakers({ module: m, brandColor }: ModuleProps) {
                 <img
                   src={p.avatar}
                   alt={p.name}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
               ) : (

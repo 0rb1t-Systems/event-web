@@ -1,5 +1,7 @@
 import axios from "axios";
 
+const API_KEY_ERROR_CODES = new Set(["missing_api_key", "invalid_api_key"]);
+
 export function getApiErrorCode(data: unknown): string | null {
   if (!data || typeof data !== "object") {
     return null;
@@ -29,6 +31,29 @@ export function getApiErrorCode(data: unknown): string | null {
   return null;
 }
 
+/** App configuration errors — never treat as expired participant/organizer session. */
+export function isApiKeyConfigErrorPayload(
+  data: unknown,
+  status?: number,
+): boolean {
+  const code = getApiErrorCode(data);
+  if (code && API_KEY_ERROR_CODES.has(code)) return true;
+
+  if (status === 401 && data && typeof data === "object") {
+    const message = (data as { message?: unknown }).message;
+    if (typeof message === "string" && /api[_\s-]?key/i.test(message)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export function isApiKeyConfigError(error: unknown): boolean {
+  if (!axios.isAxiosError(error)) return false;
+  return isApiKeyConfigErrorPayload(error.response?.data, error.response?.status);
+}
+
 function firstValidationMessage(data: unknown): string | null {
   if (!data || typeof data !== "object") return null;
 
@@ -56,21 +81,21 @@ function friendlyValidationMessage(message: string): string {
 }
 
 /**
- * Human-readable API error for toasts/forms. Never returns raw JSON.
- * Does not surface participant_admin_login_forbidden (admin-panel only).
+ * Human-readable API error for toasts/forms. Never returns raw JSON or stack traces.
  *
  * Priority:
- *  1. response.data.message  (backend human-readable text, e.g. "Insufficient balance")
- *  2. first meaningful validation/domain error from response.data.errors.*
- *  3. Axios network/timeout message
- *  4. fallback
+ *  1. API key configuration errors (friendly, no logout)
+ *  2. response.data.message (backend human-readable text)
+ *  3. first meaningful validation/domain error from response.data.errors.*
+ *  4. status-based fallbacks (404 / 403 / 422 / 5xx)
+ *  5. Axios network/timeout message
+ *  6. fallback
  */
 export function getApiErrorMessage(
   error: unknown,
   fallback = "Something went wrong. Please try again.",
 ): string {
   if (axios.isAxiosError(error)) {
-    // Network error / no response (timeout, DNS failure, etc.)
     if (!error.response) {
       if (error.code === "ECONNABORTED" || error.message?.toLowerCase().includes("timeout")) {
         return "The request timed out. Please check your connection and try again.";
@@ -79,18 +104,17 @@ export function getApiErrorMessage(
     }
 
     const data = error.response.data;
+    const status = error.response.status;
     const code = getApiErrorCode(data);
 
-    if (code === "missing_api_key" || code === "invalid_api_key") {
-      return "This app is not configured correctly. Please try again later.";
+    if (isApiKeyConfigErrorPayload(data, status)) {
+      return "This app is not configured correctly. Please contact support if this continues.";
     }
 
     if (code === "participant_admin_login_forbidden") {
       return fallback;
     }
 
-    // 1. Prefer backend's top-level human-readable message first (e.g. "Insufficient balance")
-    //    This is what Laravel/Waafi surfaces for domain failures.
     if (data && typeof data === "object") {
       const message = (data as { message?: unknown }).message;
       if (
@@ -99,20 +123,37 @@ export function getApiErrorMessage(
         message !== "Validation failed" &&
         message !== "The given data was invalid."
       ) {
+        // Never surface PHP/stack-looking blobs
+        if (message.length > 400 || /stack trace|exception|sqlstate/i.test(message)) {
+          return fallback;
+        }
         return message;
       }
     }
 
-    // 2. Fall back to first meaningful validation/field error
     const fieldMessage = firstValidationMessage(data);
     if (fieldMessage) {
       return friendlyValidationMessage(fieldMessage);
+    }
+
+    if (status === 404) {
+      return "We couldn't find that resource.";
+    }
+    if (status === 403) {
+      return "You don't have permission to do that.";
+    }
+    if (status === 422) {
+      return "Please check the form and try again.";
+    }
+    if (status >= 500) {
+      return "The server had a problem. Please try again shortly.";
     }
 
     return fallback;
   }
 
   if (error instanceof Error && error.message.trim()) {
+    if (/stack trace|exception|sqlstate/i.test(error.message)) return fallback;
     return error.message;
   }
 

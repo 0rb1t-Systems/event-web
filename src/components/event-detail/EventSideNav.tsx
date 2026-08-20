@@ -9,7 +9,7 @@ import {
 
 export type EventSection =
   | "overview" | "tickets" | "form" | "content" | "branding"
-  | "attendees" | "checkin" | "finance" | "settings";
+  | "attendees" | "scanner" | "finance" | "settings";
 
 interface SubItem {
   id: string; // DOM id to scroll to
@@ -48,7 +48,7 @@ const GROUPS: NavGroup[] = [
     label: "Day of",
     items: [
       { key: "attendees", label: "Attendees", icon: Users },
-      { key: "checkin", label: "Check-in scanner", icon: ScanLine },
+      { key: "scanner", label: "Check-in scanner", icon: ScanLine },
     ],
   },
   {

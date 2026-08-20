@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
 import { LANDING_DEFAULTS } from "@/lib/landing-defaults";
 import { publicApi } from "@/lib/api";
 import { catalogPlaceLabel } from "@/lib/eventMode";
@@ -11,6 +10,7 @@ import {
   type PublicEventCategoriesResponse,
 } from "@/lib/publicEventsAdapters";
 import { Logo } from "@/components/Logo";
+import { PublicSiteHeader } from "@/components/layout/PublicSiteHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -299,8 +299,6 @@ function ConfettiLayer({ size, opacity, count, spread }: { size: number; opacity
 }
 
 const Landing = () => {
-  const { user, loading: authLoading } = useAuth();
-
   const landing = LANDING_DEFAULTS;
   const hero = landing.hero;
   const popular = landing.popular_events;
@@ -441,39 +439,14 @@ const Landing = () => {
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
       {/* Navbar — hidden until scroll */}
-      <motion.nav
-        className="fixed top-0 w-full z-50 bg-background/90 backdrop-blur-md"
+      <motion.div
+        className="fixed top-0 w-full z-50"
         initial={{ y: -100 }}
         animate={{ y: navVisible ? 0 : -100 }}
         transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
       >
-        <div className="max-w-7xl mx-auto flex items-center justify-between h-[72px] px-6 lg:px-8">
-          <Link to="/">
-            <Logo size="md" />
-          </Link>
-          <div className="flex items-center gap-3">
-            {authLoading ? (
-              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            ) : user ? (
-              <Button className="text-sm font-semibold" asChild>
-                <Link to="/dashboard">Dashboard</Link>
-              </Button>
-            ) : (
-              <>
-                <Button variant="ghost" className="text-sm font-medium" asChild>
-                  <Link to="/auth">Log in</Link>
-                </Button>
-                <Button className="hidden sm:inline-flex text-sm font-semibold" asChild>
-                  <Link to="/auth">Sign up</Link>
-                </Button>
-                <Button variant="ghost" className="hidden sm:inline-flex text-sm font-medium text-muted-foreground" asChild>
-                  <Link to="/organizer/login">Organizer</Link>
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
-      </motion.nav>
+        <PublicSiteHeader />
+      </motion.div>
 
       {/* Hero */}
       <section className="relative overflow-hidden">
@@ -691,6 +664,8 @@ const Landing = () => {
                         <img
                           src={event.img}
                           alt={event.title}
+                          loading="lazy"
+                          decoding="async"
                           className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                         />
                       ) : (

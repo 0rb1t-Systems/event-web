@@ -5,9 +5,7 @@ import {
   organizerSessionStorage,
   participantSessionStorage,
 } from "./authStorage";
-import { getApiErrorCode } from "./apiError";
-
-const API_KEY_ERROR_CODES = new Set(["missing_api_key", "invalid_api_key"]);
+import { isApiKeyConfigErrorPayload } from "./apiError";
 
 function createClient(): AxiosInstance {
   return axios.create({
@@ -34,6 +32,10 @@ function attachBearer(
   });
 }
 
+/**
+ * Expired Sanctum session → clear that session only and redirect.
+ * Never treat missing_api_key / invalid_api_key as session expiry.
+ */
 function attachExpiredSessionHandler(
   client: AxiosInstance,
   options: {
@@ -45,13 +47,11 @@ function attachExpiredSessionHandler(
   client.interceptors.response.use(
     (response) => response,
     (error: AxiosError) => {
-      const code = getApiErrorCode(error.response?.data);
+      if (isApiKeyConfigErrorPayload(error.response?.data, error.response?.status)) {
+        return Promise.reject(error);
+      }
 
-      if (
-        error.response?.status === 401 &&
-        !API_KEY_ERROR_CODES.has(code ?? "") &&
-        options.getToken()
-      ) {
+      if (error.response?.status === 401 && options.getToken()) {
         options.clear();
 
         const skipRedirect = Boolean(error.config?.skipAuthRedirect);

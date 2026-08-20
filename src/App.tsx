@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,12 +13,38 @@ import { RoleHomeRedirect } from "@/components/RoleHomeRedirect";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { OrganizerLayout } from "@/components/layout/OrganizerLayout";
 import { SmoothScroll } from "@/components/motion/SmoothScroll";
+import { RouteFallback } from "@/components/RouteFallback";
 
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
-import Register from "./pages/Register";
-import RegistrationDetail from "./pages/RegistrationDetail";
-import Events from "./pages/dashboard/Events";
+import NotFound from "./pages/NotFound";
+
+/** Heavy / secondary screens — code-split for faster initial load. */
+const Register = lazy(() => import("./pages/Register"));
+const RegistrationDetail = lazy(() => import("./pages/RegistrationDetail"));
+const Events = lazy(() => import("./pages/dashboard/Events"));
+const EventDetail = lazy(() => import("./pages/dashboard/EventDetail"));
+const EventStudioOverview = lazy(() => import("./pages/dashboard/event-studio/EventStudioOverview"));
+const EventStudioTickets = lazy(() => import("./pages/dashboard/event-studio/EventStudioTickets"));
+const EventStudioForm = lazy(() => import("./pages/dashboard/event-studio/EventStudioForm"));
+const EventStudioContent = lazy(() => import("./pages/dashboard/event-studio/EventStudioContent"));
+const EventStudioBranding = lazy(() => import("./pages/dashboard/event-studio/EventStudioBranding"));
+const EventStudioSettings = lazy(() => import("./pages/dashboard/event-studio/EventStudioSettings"));
+const EventStudioAttendees = lazy(() => import("./pages/dashboard/event-studio/EventStudioAttendees"));
+const EventStudioFinance = lazy(() => import("./pages/dashboard/event-studio/EventStudioFinance"));
+const EventStudioScanner = lazy(() => import("./pages/dashboard/event-studio/EventStudioScanner"));
+const AttendeeHome = lazy(() => import("./pages/dashboard/AttendeeHome"));
+const Attendees = lazy(() => import("./pages/dashboard/Attendees"));
+const Analytics = lazy(() => import("./pages/dashboard/Analytics"));
+const SettingsPage = lazy(() => import("./pages/dashboard/SettingsPage"));
+const OrganizerLogin = lazy(() => import("./pages/organizer/OrganizerLogin"));
+const OrganizerRegister = lazy(() => import("./pages/organizer/OrganizerRegister"));
+const OrganizerDashboard = lazy(() => import("./pages/organizer/OrganizerDashboard"));
+const OrganizerEventCreate = lazy(() => import("./pages/organizer/OrganizerEventCreate"));
+const OrganizerSettings = lazy(() => import("./pages/organizer/OrganizerSettings"));
+const OrganizerPayouts = lazy(() => import("./pages/organizer/OrganizerPayouts"));
+
+/** Cheap bookmark redirects — keep until traffic dies down. */
 const EventDetailEditRedirect = () => {
   const { id } = useParams();
   return <Navigate to={`/organizer/events/${id}`} replace />;
@@ -31,38 +57,18 @@ const EventStudioInvitationRedirect = () => {
   const { id } = useParams();
   return <Navigate to={`/organizer/events/${id}/branding`} replace />;
 };
-import EventDetail from "./pages/dashboard/EventDetail";
-import EventStudioOverview from "./pages/dashboard/event-studio/EventStudioOverview";
-import EventStudioTickets from "./pages/dashboard/event-studio/EventStudioTickets";
-import EventStudioForm from "./pages/dashboard/event-studio/EventStudioForm";
-import EventStudioContent from "./pages/dashboard/event-studio/EventStudioContent";
-import EventStudioBranding from "./pages/dashboard/event-studio/EventStudioBranding";
-import EventStudioSettings from "./pages/dashboard/event-studio/EventStudioSettings";
-import EventStudioAttendees from "./pages/dashboard/event-studio/EventStudioAttendees";
-import EventStudioFinance from "./pages/dashboard/event-studio/EventStudioFinance";
-import { EventStudioCheckInPlaceholder } from "./pages/dashboard/event-studio/EventStudioPlaceholder";
-import AttendeeHome from "./pages/dashboard/AttendeeHome";
-import Attendees from "./pages/dashboard/Attendees";
-import Analytics from "./pages/dashboard/Analytics";
-import SettingsPage from "./pages/dashboard/SettingsPage";
-import OrganizerLogin from "./pages/organizer/OrganizerLogin";
-import OrganizerRegister from "./pages/organizer/OrganizerRegister";
-import OrganizerDashboard from "./pages/organizer/OrganizerDashboard";
-import OrganizerEventCreate from "./pages/organizer/OrganizerEventCreate";
-import OrganizerSettings from "./pages/organizer/OrganizerSettings";
-import OrganizerPayouts from "./pages/organizer/OrganizerPayouts";
-import NotFound from "./pages/NotFound";
-
+const EventStudioCheckInRedirect = () => {
+  const { id } = useParams();
+  return <Navigate to={`/organizer/events/${id}/scanner`} replace />;
+};
 const PublicRegisterRedirect = () => {
   const { id } = useParams();
   return <Navigate to={`/events/${id}`} replace />;
 };
-
 const TicketRedirect = () => {
   const { registrationId } = useParams();
   return <Navigate to={`/registrations/${registrationId}`} replace />;
 };
-
 const LegacyDashboardEventRedirect = () => {
   const { id } = useParams();
   return <Navigate to={`/organizer/events/${id}`} replace />;
@@ -83,81 +89,95 @@ const App = () => (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} storageKey="app-theme">
       <AuthProvider>
         <OrganizerProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <ScrollToTop />
-            <SmoothScroll />
-            <Routes>
-              {/* Public */}
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/events/:id" element={<Register />} />
-              <Route path="/register/:id" element={<PublicRegisterRedirect />} />
-              <Route path="/registrations/:registrationId" element={<RegistrationDetail />} />
-              <Route path="/ticket/:registrationId" element={<TicketRedirect />} />
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <ScrollToTop />
+              <SmoothScroll />
+              <Suspense fallback={<RouteFallback />}>
+                <Routes>
+                  {/* Public */}
+                  <Route path="/" element={<Index />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/events/:id" element={<Register />} />
+                  <Route path="/register/:id" element={<PublicRegisterRedirect />} />
+                  <Route path="/ticket/:registrationId" element={<TicketRedirect />} />
 
-              {/* Organizer auth (no organizer session required) */}
-              <Route path="/organizer/login" element={<OrganizerLogin />} />
-              <Route path="/organizer/register" element={<OrganizerRegister />} />
+                  {/* Participant */}
+                  <Route path="/registrations/:registrationId" element={<RegistrationDetail />} />
+                  <Route path="/dashboard" element={<ProtectedRoute><RoleHomeRedirect /></ProtectedRoute>} />
+                  <Route
+                    path="/dashboard/*"
+                    element={
+                      <ProtectedRoute>
+                        <DashboardLayout>
+                          <Suspense fallback={<RouteFallback />}>
+                            <Routes>
+                              <Route path="home" element={<AttendeeHome />} />
+                              <Route path="settings" element={<SettingsPage />} />
+                              <Route path="events/create" element={<Navigate to="/organizer/events/new" replace />} />
+                              <Route path="events/:id" element={<LegacyDashboardEventRedirect />} />
+                              <Route path="events" element={<Navigate to="/organizer/events" replace />} />
+                              <Route path="attendees" element={<Navigate to="/organizer/attendees" replace />} />
+                              <Route path="analytics" element={<Navigate to="/organizer/analytics" replace />} />
+                              <Route path="*" element={<Navigate to="/dashboard/home" replace />} />
+                            </Routes>
+                          </Suspense>
+                        </DashboardLayout>
+                      </ProtectedRoute>
+                    }
+                  />
 
-              {/* Organizer app */}
-              <Route path="/organizer" element={<Navigate to="/organizer/dashboard" replace />} />
-              <Route path="/organizer/*" element={
-                <OrganizerProtectedRoute>
-                  <OrganizerLayout>
-                    <Routes>
-                      <Route path="dashboard" element={<OrganizerDashboard />} />
-                      <Route path="events" element={<Events />} />
-                      <Route path="events/new" element={<OrganizerEventCreate />} />
-                      <Route path="events/create" element={<Navigate to="/organizer/events/new" replace />} />
-                      <Route path="events/:id/edit" element={<EventDetailEditRedirect />} />
-                      <Route path="events/:id" element={<EventDetail />}>
-                        <Route index element={<EventStudioOverview />} />
-                        <Route path="tickets" element={<EventStudioTickets />} />
-                        <Route path="form" element={<EventStudioForm />} />
-                        <Route path="content" element={<EventStudioContent />} />
-                        <Route path="page" element={<EventStudioPageRedirect />} />
-                        <Route path="branding" element={<EventStudioBranding />} />
-                        <Route path="invitation" element={<EventStudioInvitationRedirect />} />
-                        <Route path="promotion" element={<Navigate to=".." relative="path" replace />} />
-                        <Route path="attendees" element={<EventStudioAttendees />} />
-                        <Route path="checkin" element={<EventStudioCheckInPlaceholder />} />
-                        <Route path="finance" element={<EventStudioFinance />} />
-                        <Route path="settings" element={<EventStudioSettings />} />
-                      </Route>
-                      <Route path="attendees" element={<Attendees />} />
-                      <Route path="analytics" element={<Analytics />} />
-                      <Route path="payouts" element={<OrganizerPayouts />} />
-                      <Route path="settings" element={<OrganizerSettings />} />
-                    </Routes>
-                  </OrganizerLayout>
-                </OrganizerProtectedRoute>
-              } />
+                  {/* Organizer auth */}
+                  <Route path="/organizer/login" element={<OrganizerLogin />} />
+                  <Route path="/organizer/register" element={<OrganizerRegister />} />
 
-              {/* Participant dashboard */}
-              <Route path="/dashboard" element={<ProtectedRoute><RoleHomeRedirect /></ProtectedRoute>} />
-              <Route path="/dashboard/events/create" element={<Navigate to="/organizer/events/new" replace />} />
-              <Route path="/dashboard/events/:id" element={<LegacyDashboardEventRedirect />} />
-              <Route path="/dashboard/events" element={<Navigate to="/organizer/events" replace />} />
-              <Route path="/dashboard/attendees" element={<Navigate to="/organizer/attendees" replace />} />
-              <Route path="/dashboard/analytics" element={<Navigate to="/organizer/analytics" replace />} />
-              <Route path="/dashboard/*" element={
-                <ProtectedRoute>
-                  <DashboardLayout>
-                    <Routes>
-                      <Route path="home" element={<AttendeeHome />} />
-                      <Route path="settings" element={<SettingsPage />} />
-                    </Routes>
-                  </DashboardLayout>
-                </ProtectedRoute>
-              } />
+                  {/* Organizer app */}
+                  <Route path="/organizer" element={<Navigate to="/organizer/dashboard" replace />} />
+                  <Route
+                    path="/organizer/*"
+                    element={
+                      <OrganizerProtectedRoute>
+                        <OrganizerLayout>
+                          <Suspense fallback={<RouteFallback />}>
+                            <Routes>
+                              <Route path="dashboard" element={<OrganizerDashboard />} />
+                              <Route path="events" element={<Events />} />
+                              <Route path="events/new" element={<OrganizerEventCreate />} />
+                              <Route path="events/create" element={<Navigate to="/organizer/events/new" replace />} />
+                              <Route path="events/:id/edit" element={<EventDetailEditRedirect />} />
+                              <Route path="events/:id" element={<EventDetail />}>
+                                <Route index element={<EventStudioOverview />} />
+                                <Route path="tickets" element={<EventStudioTickets />} />
+                                <Route path="form" element={<EventStudioForm />} />
+                                <Route path="content" element={<EventStudioContent />} />
+                                <Route path="page" element={<EventStudioPageRedirect />} />
+                                <Route path="branding" element={<EventStudioBranding />} />
+                                <Route path="invitation" element={<EventStudioInvitationRedirect />} />
+                                <Route path="promotion" element={<Navigate to=".." relative="path" replace />} />
+                                <Route path="attendees" element={<EventStudioAttendees />} />
+                                <Route path="scanner" element={<EventStudioScanner />} />
+                                <Route path="checkin" element={<EventStudioCheckInRedirect />} />
+                                <Route path="finance" element={<EventStudioFinance />} />
+                                <Route path="settings" element={<EventStudioSettings />} />
+                              </Route>
+                              <Route path="attendees" element={<Attendees />} />
+                              <Route path="analytics" element={<Analytics />} />
+                              <Route path="payouts" element={<OrganizerPayouts />} />
+                              <Route path="settings" element={<OrganizerSettings />} />
+                            </Routes>
+                          </Suspense>
+                        </OrganizerLayout>
+                      </OrganizerProtectedRoute>
+                    }
+                  />
 
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+            </BrowserRouter>
+          </TooltipProvider>
         </OrganizerProvider>
       </AuthProvider>
     </ThemeProvider>

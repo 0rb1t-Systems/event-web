@@ -122,7 +122,7 @@ export default function AttendeeHome() {
       {/* My Registrations */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-display text-xl sm:text-2xl tracking-[-0.02em]">My tickets</h2>
+          <h2 className="font-display text-xl sm:text-2xl tracking-[-0.02em]">My registrations</h2>
           {!ticketsLoading && participations.length > 0 && (
             <span className="text-xs text-muted-foreground">{participations.length} total</span>
           )}
