@@ -48,7 +48,7 @@ const GROUPS: NavGroup[] = [
     label: "Day of",
     items: [
       { key: "attendees", label: "Attendees", icon: Users },
-      { key: "scanner", label: "Check-in scanner", icon: ScanLine },
+      { key: "scanner", label: "Scanner (token)", icon: ScanLine },
     ],
   },
   {

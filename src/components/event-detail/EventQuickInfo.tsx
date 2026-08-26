@@ -297,7 +297,6 @@ export default function EventQuickInfo({ event, onUpdate, categories = [], onUpl
               <SelectContent>
                 <SelectItem value="in_person">In person</SelectItem>
                 <SelectItem value="online">Online</SelectItem>
-                <SelectItem value="hybrid">Hybrid</SelectItem>
               </SelectContent>
             </Select>
             {fieldError("event_mode")}

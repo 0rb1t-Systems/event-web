@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
-import { organizerSessionStorage } from "@/lib/authStorage";
+import { organizerSessionStorage, participantSessionStorage } from "@/lib/authStorage";
 import { requestGoogleAccessToken } from "@/lib/googleSignIn";
 import { organizerAuthService } from "@/services/organizerAuth";
 import type {
@@ -98,6 +98,7 @@ export function OrganizerProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     const result = await organizerAuthService.login(email, password);
+    participantSessionStorage.clear();
     persistOrganizer(result.token, result.organizer);
     setToken(result.token);
     setOrganizer(result.organizer);
@@ -114,6 +115,7 @@ export function OrganizerProvider({ children }: { children: ReactNode }) {
   const loginWithGoogle = useCallback(async () => {
     const accessToken = await requestGoogleAccessToken();
     const result = await organizerAuthService.googleLogin(accessToken);
+    participantSessionStorage.clear();
     persistOrganizer(result.token, result.organizer);
     setToken(result.token);
     setOrganizer(result.organizer);
@@ -129,6 +131,7 @@ export function OrganizerProvider({ children }: { children: ReactNode }) {
 
   const register = useCallback(async (payload: OrganizerRegisterBody) => {
     const result = await organizerAuthService.register(payload);
+    participantSessionStorage.clear();
     persistOrganizer(result.token, result.organizer);
     setToken(result.token);
     setOrganizer(result.organizer);

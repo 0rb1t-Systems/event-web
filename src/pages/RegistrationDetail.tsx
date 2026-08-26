@@ -34,8 +34,10 @@ import { getApiErrorMessage } from "@/lib/apiError";
 import { getMediaUrl } from "@/lib/mediaUrl";
 import { toast } from "sonner";
 import { ParticipantWaafiPayment } from "@/components/participant/ParticipantWaafiPayment";
+import { EventRoomExtras } from "@/components/participant/EventRoomExtras";
 import InvitationCanvasPreview, { InvitationScaled } from "@/components/invitation/InvitationCanvasPreview";
 import { INVITATION_BRAND } from "@/lib/invitationCanvas";
+import { asEventMode } from "@/lib/eventMode";
 
 const BRAND = INVITATION_BRAND;
 
@@ -399,19 +401,29 @@ export default function RegistrationDetail() {
         if (cancelled) return;
         setDetail(d);
 
-        // Load feedback + certificate in parallel only for checked-in participations
-        if (d.status === "checked_in") {
-          const [fb, cert] = await Promise.allSettled([
-            getParticipationFeedback(numericId),
-            getParticipationCertificate(numericId),
-          ]);
-          if (!cancelled) {
-            setFeedback(fb.status === "fulfilled" ? fb.value : null);
-            setCertificate(cert.status === "fulfilled" ? cert.value : null);
-          }
-        } else {
-          if (!cancelled) setFeedback("unloaded");
+        const eventEnded =
+          d.event?.status === "completed" ||
+          (!!d.event?.ends_at && new Date(d.event.ends_at).getTime() < Date.now());
+
+        // Feedback after event ends; certificate still only for checked-in.
+        const tasks: PromiseSettledResult<unknown>[] = [];
+        if (eventEnded && d.status !== "cancelled") {
+          tasks.push(
+            getParticipationFeedback(numericId).then((fb) => {
+              if (!cancelled) setFeedback(fb);
+            }),
+          );
+        } else if (!cancelled) {
+          setFeedback("unloaded");
         }
+        if (d.status === "checked_in") {
+          tasks.push(
+            getParticipationCertificate(numericId).then((cert) => {
+              if (!cancelled) setCertificate(cert);
+            }),
+          );
+        }
+        if (tasks.length) await Promise.allSettled(tasks);
       })
       .catch((err: any) => {
         if (cancelled) return;
@@ -438,10 +450,11 @@ export default function RegistrationDetail() {
     load();
   }, [load]);
 
-  // Generate QR
+  // Generate QR for in-person door check-in only
   useEffect(() => {
     const token = detail?.qr_token;
-    if (!token) {
+    const mode = asEventMode(detail?.event?.event_mode);
+    if (!token || mode === "online") {
       setQrDataUrl("");
       return;
     }
@@ -570,6 +583,12 @@ export default function RegistrationDetail() {
   const isPaymentFailed = detail.payment_status === "failed";
   const isPaymentRefunded = detail.payment_status === "refunded";
   const ticketValid = hasValidTicket(detail.status, detail.payment_status);
+  const eventMode = asEventMode(detail.event?.event_mode);
+  const isOnline = eventMode === "online";
+  const showDoorQr = ticketValid && !!detail.qr_token && !isOnline;
+  const eventEnded =
+    detail.event?.status === "completed" ||
+    (!!detail.event?.ends_at && new Date(detail.event.ends_at).getTime() < Date.now());
   // "Check status" is useful whenever the payment outcome may still be resolving
   const showCheckStatus = isPaymentPending || isPaymentFailed;
   const eventTitle = detail.event?.title ?? "Event";
@@ -577,6 +596,7 @@ export default function RegistrationDetail() {
   const invitation = detail.invitation;
   const feedbackLoaded = feedback !== "unloaded";
   const feedbackValue = feedbackLoaded ? feedback : null;
+  const showFeedback = eventEnded && detail.status !== "cancelled" && feedbackLoaded;
 
   return (
     <div className="min-h-screen bg-background px-4 py-8 sm:py-14 overflow-x-hidden">
@@ -761,8 +781,8 @@ export default function RegistrationDetail() {
           </div>
         )}
 
-        {/* QR standalone (below canvas, for easy mobile scan) — only when ticket is valid */}
-        {ticketValid && detail.qr_token && (
+        {/* QR standalone — in-person only */}
+        {showDoorQr && (
           <div className="bg-card rounded-3xl p-6 flex flex-col items-center gap-4 shadow-sm">
             <p className="text-xs uppercase tracking-[0.18em] font-semibold text-muted-foreground">Scan at the door</p>
             <div className="bg-white rounded-2xl p-4 shadow-inner">
@@ -780,6 +800,15 @@ export default function RegistrationDetail() {
           </div>
         )}
 
+        {ticketValid && eventId && (
+          <EventRoomExtras
+            participationId={detail.id}
+            eventId={eventId}
+            onlineUrl={detail.event?.online_url}
+            isOnline={isOnline || eventMode === "hybrid"}
+          />
+        )}
+
         {/* ── Certificate — only for checked-in ── */}
         <AnimatePresence>
           {isCheckedIn && certificate && (
@@ -794,9 +823,9 @@ export default function RegistrationDetail() {
           )}
         </AnimatePresence>
 
-        {/* ── Feedback — only for checked-in ── */}
+        {/* ── Feedback — after event ends ── */}
         <AnimatePresence>
-          {isCheckedIn && feedbackLoaded && (
+          {showFeedback && (
             <motion.div
               key="feedback"
               initial={{ opacity: 0, y: 8 }}

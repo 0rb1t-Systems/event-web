@@ -42,6 +42,8 @@ export type OrganizerEvent = {
   banner_path: string | null;
   /** Absolute URL when Laravel appends the accessor (prefer for <img src>). */
   banner_url?: string | null;
+  /** Unique check-in unlock token (organizer-only; hidden on public APIs). */
+  scan_token?: string | null;
   featured: boolean;
   monetized: boolean;
   status: OrganizerEventStatus | string;

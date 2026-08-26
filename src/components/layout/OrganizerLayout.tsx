@@ -20,11 +20,13 @@ import {
   Settings,
   LogOut,
   Menu,
+  ScanLine,
 } from "lucide-react";
 
 const organizerNavItems = [
   { title: "Dashboard", url: "/organizer/dashboard", icon: LayoutDashboard },
   { title: "Events", url: "/organizer/events", icon: CalendarDays },
+  { title: "Scanner", url: "/organizer/scanner", icon: ScanLine },
   { title: "Plans", url: "/organizer/subscription", icon: Package },
   { title: "Payouts", url: "/organizer/payouts", icon: Wallet },
   { title: "Settings", url: "/organizer/settings", icon: Settings },

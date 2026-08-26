@@ -71,16 +71,36 @@ export function isQrNetworkError(error: unknown): boolean {
   return !error.response;
 }
 
-/** POST /organizer/qr-scan-logs/validate — body `{ token, gate? }` only. */
+/** POST /organizer/scanner/unlock — body `{ scan_token }`. */
+export async function unlockOrganizerScanner(scanToken: string): Promise<{
+  event_id: number;
+  title: string;
+  status: string;
+  event_mode?: string | null;
+}> {
+  const { data } = await organizerApi.post<
+    WrappedSuccess<{
+      event_id: number;
+      title: string;
+      status: string;
+      event_mode?: string | null;
+    }>
+  >("/organizer/scanner/unlock", { scan_token: scanToken.trim() });
+  return data.data;
+}
+
+/** POST /organizer/qr-scan-logs/validate — body `{ token, gate?, event_id? }`. */
 export async function validateOrganizerQrScan(body: {
   token: string;
   gate?: string | null;
+  event_id?: number | null;
 }): Promise<OrganizerQrValidateResponse> {
   const { data } = await organizerApi.post<WrappedSuccess<OrganizerQrValidateResponse>>(
     "/organizer/qr-scan-logs/validate",
     {
       token: body.token.trim(),
       ...(body.gate ? { gate: body.gate } : {}),
+      ...(body.event_id != null ? { event_id: body.event_id } : {}),
     },
   );
   return data.data;

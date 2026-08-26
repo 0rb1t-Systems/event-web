@@ -180,7 +180,6 @@ export default function OrganizerEventCreate() {
                 <SelectContent>
                   <SelectItem value="in_person">In person</SelectItem>
                   <SelectItem value="online">Online</SelectItem>
-                  <SelectItem value="hybrid">Hybrid</SelectItem>
                 </SelectContent>
               </Select>
             </div>

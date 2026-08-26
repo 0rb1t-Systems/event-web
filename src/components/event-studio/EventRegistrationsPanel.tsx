@@ -58,6 +58,7 @@ import {
   type CapacitySnapshot,
   type OrganizerParticipation,
 } from "@/services/organizerParticipations";
+import { listOrganizerFormFields, type OrganizerFormField } from "@/services/organizerFormFields";
 
 const STATUS_STYLE: Record<string, string> = {
   joined: "bg-primary/10 text-primary border-0",
@@ -120,6 +121,26 @@ export default function EventRegistrationsPanel({ eventId, onDenied, compact }: 
   const [cancelTarget, setCancelTarget] = useState<OrganizerParticipation | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [actionBusy, setActionBusy] = useState(false);
+  const [formFields, setFormFields] = useState<OrganizerFormField[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    listOrganizerFormFields(eventId)
+      .then((fields) => {
+        if (!cancelled) setFormFields(fields);
+      })
+      .catch(() => {
+        /* labels fall back to keys */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [eventId]);
+
+  const fieldLabel = useCallback(
+    (key: string) => formFields.find((f) => f.key === key)?.label ?? key,
+    [formFields],
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -504,9 +525,9 @@ export default function EventRegistrationsPanel({ eventId, onDenied, compact }: 
                     </p>
                     {Object.entries(detail.custom_field_answers).map(([key, value]) => (
                       <div key={key} className="flex flex-col gap-0.5">
-                        <span className="text-xs text-muted-foreground">{key}</span>
+                        <span className="text-xs text-muted-foreground">{fieldLabel(key)}</span>
                         <span className="text-sm">
-                          {typeof value === "string" || typeof value === "number"
+                          {typeof value === "string" || typeof value === "number" || typeof value === "boolean"
                             ? String(value)
                             : JSON.stringify(value)}
                         </span>

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Trash2, Loader2 } from "lucide-react";
+import { Trash2, Loader2, Copy, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import { getApiErrorMessage, getLaravelFieldErrors } from "@/lib/apiError";
 import { useEventStudio } from "@/contexts/EventStudioContext";
@@ -103,6 +103,39 @@ export default function EventStudioSettings() {
           )}
         </div>
       </div>
+      <div className="rounded-2xl border border-border/60 p-4 space-y-2">
+        <div className="flex items-center gap-2">
+          <KeyRound className="w-4 h-4 text-muted-foreground" />
+          <h4 className="text-sm font-semibold">Check-in scan token</h4>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Enter this token on <span className="font-medium">Organizer → Scanner</span> to unlock door check-in for this event.
+        </p>
+        {event.scan_token ? (
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Input readOnly value={event.scan_token} className="rounded-full font-mono text-xs" />
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-full shrink-0"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(event.scan_token!);
+                  toast.success("Scan token copied");
+                } catch {
+                  toast.error("Could not copy");
+                }
+              }}
+            >
+              <Copy className="w-4 h-4 mr-1.5" />
+              Copy
+            </Button>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">Token not available — recreate or refresh the event.</p>
+        )}
+      </div>
+
       <div className="flex flex-wrap items-center gap-2">
         <Button
           type="button"

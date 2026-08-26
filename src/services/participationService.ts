@@ -33,6 +33,9 @@ export type ApiParticipation = {
     city?: string | null;
     banner_path?: string | null;
     banner_url?: string | null;
+    event_mode?: string | null;
+    online_url?: string | null;
+    status?: string | null;
   };
   ticket_type?: {
     id: number;
@@ -230,6 +233,67 @@ export async function getParticipationCertificate(id: number): Promise<ApiCertif
     `/participant/participations/${id}/certificate`,
   );
   return resp.data.data;
+}
+
+export type ApiAnnouncement = {
+  id: number;
+  subject: string;
+  body: string;
+  sent_at?: string | null;
+  created_at?: string | null;
+};
+
+export type ApiDiscussion = {
+  id: number;
+  event_id: number;
+  speaker_id: number | null;
+  body: string;
+  status: string;
+  created_at?: string;
+  speaker?: { id: number; name: string } | null;
+};
+
+/** GET /participant/participations/{id}/announcements */
+export async function getParticipationAnnouncements(id: number): Promise<ApiAnnouncement[]> {
+  const resp = await participantApi.get<
+    WrappedSuccess<{ event_id: number; announcements: ApiAnnouncement[] }>
+  >(`/participant/participations/${id}/announcements`);
+  return resp.data.data.announcements ?? [];
+}
+
+/** GET /participant/events/{eventId}/discussions — own questions only */
+export async function listMyEventDiscussions(eventId: number): Promise<ApiDiscussion[]> {
+  const resp = await participantApi.get<WrappedSuccess<{ items: ApiDiscussion[] }>>(
+    `/participant/events/${eventId}/discussions`,
+  );
+  return resp.data.data.items ?? [];
+}
+
+export async function createEventDiscussion(
+  eventId: number,
+  body: { body: string; speaker_id?: number | null },
+): Promise<ApiDiscussion> {
+  const resp = await participantApi.post<WrappedSuccess<ApiDiscussion>>(
+    `/participant/events/${eventId}/discussions`,
+    body,
+  );
+  return resp.data.data;
+}
+
+export async function updateEventDiscussion(
+  eventId: number,
+  discussionId: number,
+  body: string,
+): Promise<ApiDiscussion> {
+  const resp = await participantApi.patch<WrappedSuccess<ApiDiscussion>>(
+    `/participant/events/${eventId}/discussions/${discussionId}`,
+    { body },
+  );
+  return resp.data.data;
+}
+
+export async function deleteEventDiscussion(eventId: number, discussionId: number): Promise<void> {
+  await participantApi.delete(`/participant/events/${eventId}/discussions/${discussionId}`);
 }
 
 /**

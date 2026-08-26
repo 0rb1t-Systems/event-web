@@ -210,6 +210,7 @@ export default function CheckInScanner({ eventId, eventTitle, onDenied }: Props)
         const data = await validateOrganizerQrScan({
           token,
           gate: `event:${eventId}`,
+          event_id: eventId,
         });
         if (typeof navigator !== "undefined" && "vibrate" in navigator) {
           try {

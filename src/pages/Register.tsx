@@ -27,9 +27,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { AuroraBackdrop, GlassCard } from "@/components/register/AuroraBackdrop";
 import { getMediaUrl } from "@/lib/mediaUrl";
 import type { TicketTier } from "@/components/event-detail/TicketTiersManager";
-import { Ticket as TicketIcon, Crown, Check, Minus, Plus } from "lucide-react";
+import { Ticket as TicketIcon, Crown, Check } from "lucide-react";
 import {
   createParticipation,
+  listParticipations,
   type ApiParticipation,
 } from "@/services/participationService";
 import {
@@ -55,48 +56,12 @@ const formatMoneyString = (amount: string, currency = "USD") => {
   return formatTicketPrice(n, currency);
 };
 
-const QuantityStepper = ({
-  value, onChange, min = 1, max = 10, brandColor,
-}: { value: number; onChange: (n: number) => void; min?: number; max?: number; brandColor: string }) => (
-  <div
-    className="inline-flex items-center gap-0 rounded-full bg-background/80 backdrop-blur p-1"
-    onClick={(e) => e.stopPropagation()}
-  >
-    <button
-      type="button"
-      onClick={() => onChange(Math.max(min, value - 1))}
-      disabled={value <= min}
-      className="w-8 h-8 rounded-full inline-flex items-center justify-center text-foreground/70 hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:hover:bg-transparent transition"
-      aria-label="Decrease quantity"
-    >
-      <Minus className="w-3.5 h-3.5" />
-    </button>
-    <span
-      className="w-7 text-center text-sm font-display font-semibold tabular-nums"
-      style={{ color: brandColor }}
-    >
-      {value}
-    </span>
-    <button
-      type="button"
-      onClick={() => onChange(Math.min(max, value + 1))}
-      disabled={value >= max}
-      className="w-8 h-8 rounded-full inline-flex items-center justify-center text-foreground/70 hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:hover:bg-transparent transition"
-      aria-label="Increase quantity"
-    >
-      <Plus className="w-3.5 h-3.5" />
-    </button>
-  </div>
-);
-
 const TicketPicker = ({
-  tickets, selectedId, onSelect, quantity, onQuantityChange, brandColor,
+  tickets, selectedId, onSelect, brandColor,
 }: {
   tickets: TicketTier[];
   selectedId: string | null;
   onSelect: (id: string) => void;
-  quantity: number;
-  onQuantityChange: (n: number) => void;
   brandColor: string;
 }) => (
   <div className="space-y-2.5">
@@ -196,19 +161,6 @@ const TicketPicker = ({
               </div>
             </div>
 
-            {selected && !soldOut && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-                className="overflow-hidden"
-              >
-                <div className="mt-3.5 pt-3.5 border-t border-border/60 flex items-center justify-between">
-                  <span className="text-xs font-medium text-muted-foreground">Quantity</span>
-                  <QuantityStepper value={quantity} onChange={onQuantityChange} brandColor={brandColor} />
-                </div>
-              </motion.div>
-            )}
           </motion.button>
         );
       })}
@@ -479,6 +431,64 @@ const EventInfo = ({ event, className = "" }: { event: Event; className?: string
   );
 };
 
+// ─── Coming soon (registration not open yet) ─────────────────────────────────
+
+const ComingSoonPanel = ({
+  brandColor,
+  isDark,
+  startsAt,
+}: {
+  brandColor: string;
+  isDark: boolean;
+  startsAt?: string | null;
+}) => {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const target = startsAt ? new Date(startsAt).getTime() : NaN;
+  const diff = Number.isFinite(target) ? Math.max(0, target - now) : null;
+  const days = diff != null ? Math.floor(diff / 86_400_000) : null;
+  const hours = diff != null ? Math.floor((diff % 86_400_000) / 3_600_000) : null;
+  const mins = diff != null ? Math.floor((diff % 3_600_000) / 60_000) : null;
+  const secs = diff != null ? Math.floor((diff % 60_000) / 1000) : null;
+
+  return (
+    <div className="relative min-h-[280px] pb-24 sm:pb-0">
+      <AuroraBackdrop brandColor={brandColor} isDark={isDark} />
+      <div className="relative z-10 flex flex-col items-center gap-4 py-10 px-4 text-center">
+        <Clock className="w-10 h-10 text-muted-foreground/70" />
+        <h2 className="font-display text-2xl font-semibold tracking-[-0.02em]">Coming soon</h2>
+        <p className="text-sm text-muted-foreground max-w-sm">
+          Registration is not open yet. Check back when the organizer opens tickets.
+        </p>
+        {diff != null && diff > 0 && (
+          <div className="mt-2 flex gap-3 tabular-nums">
+            {[
+              { label: "Days", value: days },
+              { label: "Hrs", value: hours },
+              { label: "Min", value: mins },
+              { label: "Sec", value: secs },
+            ].map((unit) => (
+              <div
+                key={unit.label}
+                className="rounded-2xl bg-card/80 backdrop-blur px-3 py-2 min-w-[4.25rem] border border-border/50"
+              >
+                <div className="text-xl font-display font-bold" style={{ color: brandColor }}>
+                  {String(unit.value).padStart(2, "0")}
+                </div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{unit.label}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // ─── Registration form ────────────────────────────────────────────────────────
 
 const RegistrationForm = ({
@@ -495,8 +505,6 @@ const RegistrationForm = ({
   tickets,
   selectedTicketId,
   onSelectTicket,
-  quantity,
-  onQuantityChange,
   discountCode,
   onDiscountCodeChange,
   discountQuote,
@@ -519,8 +527,6 @@ const RegistrationForm = ({
   tickets: TicketTier[];
   selectedTicketId: string | null;
   onSelectTicket: (id: string) => void;
-  quantity: number;
-  onQuantityChange: (n: number) => void;
   discountCode: string;
   onDiscountCodeChange: (v: string) => void;
   discountQuote: DiscountQuote | null;
@@ -537,13 +543,13 @@ const RegistrationForm = ({
   const displayTotal =
     quoteFinal != null && Number.isFinite(quoteFinal)
       ? quoteFinal
-      : unitPrice * quantity;
+      : unitPrice;
   const ctaLabel = isPending
     ? "Processing…"
     : isPaid
       ? `Get ticket · ${formatTicketPrice(displayTotal, selectedTicket.currency || "USD")}`
       : selectedTicket
-        ? `Reserve ${quantity > 1 ? `${quantity} spots` : "my spot"}`
+        ? "Reserve my spot"
         : "Register now";
 
   const effectiveLabel = submitLabel ?? ctaLabel;
@@ -555,8 +561,6 @@ const RegistrationForm = ({
           tickets={tickets}
           selectedId={selectedTicketId}
           onSelect={onSelectTicket}
-          quantity={quantity}
-          onQuantityChange={onQuantityChange}
           brandColor={brandColor}
         />
       )}
@@ -734,7 +738,6 @@ const Register = () => {
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [consent, setConsent] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
-  const [quantity, setQuantity] = useState(1);
   const [discountCode, setDiscountCode] = useState("");
   const [discountQuote, setDiscountQuote] = useState<DiscountQuote | null>(null);
   const [discountApplying, setDiscountApplying] = useState(false);
@@ -751,6 +754,30 @@ const Register = () => {
   useEffect(() => {
     if (tickets.length === 1 && !selectedTicketId) setSelectedTicketId(tickets[0].id);
   }, [tickets, selectedTicketId]);
+
+  // Registered participants must not see the join form — send them to their event room.
+  useEffect(() => {
+    if (!user || !Number.isFinite(eventId)) return;
+    let cancelled = false;
+    listParticipations({ per_page: 50 })
+      .then(({ items }) => {
+        if (cancelled) return;
+        const existing = items.find(
+          (p) =>
+            p.event_id === eventId &&
+            p.status !== "cancelled",
+        );
+        if (existing) {
+          navigate(`/registrations/${existing.id}`, { replace: true });
+        }
+      })
+      .catch(() => {
+        /* non-blocking */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user, eventId, navigate]);
 
   const clearDiscount = useCallback(() => {
     setDiscountQuote(null);
@@ -891,9 +918,10 @@ const Register = () => {
       });
     }
 
+    // Never expose online_url on the public page — join link lives in the event room after register.
     const hasVenue = ui.location_type !== "virtual" && !!(ui.city || ui.location);
-    const hasJoin = ui.location_type !== "physical" && !!ui.online_url;
-    if (hasVenue || hasJoin) {
+    const isOnline = ui.location_type === "virtual" || ui.location_type === "hybrid";
+    if (hasVenue || isOnline) {
       modulesOut.push({
         id: "location",
         type: "location",
@@ -901,11 +929,9 @@ const Register = () => {
         position: 4,
         title: "Location",
         content: {
-          heading: ui.location_type === "virtual" ? "Join online" : "Where to find us",
+          heading: ui.location_type === "virtual" ? "Online event" : "Where to find us",
           venue: ui.city ?? (ui.location_type === "virtual" ? "Online event" : undefined),
-          address: ui.location,
-          mapUrl: hasJoin ? ui.online_url : undefined,
-          linkLabel: hasJoin ? "Open meeting link" : undefined,
+          address: ui.location ?? (isOnline && !hasVenue ? "Meeting link shared after registration" : undefined),
         },
       });
     }
@@ -969,6 +995,15 @@ const Register = () => {
   }, [eventId, retryNonce]);
 
   const registrationAllowed = event?.registration_gates?.allowed === true;
+  const registrationComingSoon =
+    !!event &&
+    !registrationAllowed &&
+    (event.status === "published" || event.status === "draft") &&
+    event.registration_gates?.reason !== "deadline_passed" &&
+    event.status !== "sold_out" &&
+    event.status !== "registration_closed" &&
+    event.status !== "cancelled" &&
+    event.status !== "completed";
 
   const registerLabel = (() => {
     if (!event) return "Register";
@@ -979,7 +1014,8 @@ const Register = () => {
     if (event.status === "sold_out") return "Sold out";
     if (event.status === "registration_closed") return "Registration closed";
     if (event.registration_gates?.reason === "deadline_passed") return "Registration ended";
-    return "Registration unavailable";
+    if (registrationComingSoon) return "Coming soon";
+    return "Registration closed";
   })();
 
   const submitDisabled = !registrationAllowed;
@@ -1321,8 +1357,6 @@ const Register = () => {
     tickets,
     selectedTicketId,
     onSelectTicket: handleSelectTicket,
-    quantity,
-    onQuantityChange: setQuantity,
     discountCode,
     onDiscountCodeChange: (v: string) => {
       setDiscountCode(v);
@@ -1345,8 +1379,18 @@ const Register = () => {
         isDark={isDark}
         formattedDate={event.event_date ? formatEventDateTime(event) : ""}
         registerLabel={registerLabel}
-        registerDisabled={submitDisabled}
-        formSlot={<RegistrationForm {...formProps} className="pb-24 sm:pb-0" />}
+        registerDisabled={submitDisabled || registrationComingSoon}
+        formSlot={
+          registrationComingSoon ? (
+            <ComingSoonPanel
+              brandColor={brandColor}
+              isDark={isDark}
+              startsAt={event.event_date}
+            />
+          ) : (
+            <RegistrationForm {...formProps} className="pb-24 sm:pb-0" />
+          )
+        }
       />
     </div>
   );

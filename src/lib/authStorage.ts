@@ -1,6 +1,7 @@
 /**
- * Independent participant vs organizer localStorage.
- * Never share a single auth_token. A browser may hold both sessions at once.
+ * Independent participant vs organizer localStorage keys.
+ * Never share a single auth_token. Product rule: only one role session per browser —
+ * logging into one role clears the other.
  */
 
 export const AUTH_STORAGE_KEYS = {

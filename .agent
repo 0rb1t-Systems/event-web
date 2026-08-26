@@ -1,6 +1,6 @@
 # EventHub Web App — Agent Context
 
-Last updated: 2026-08-20 — Organizer Continue with Google
+Last updated: 2026-08-26 — Client feedback batch (room, scanner token, discussions)
 Repository: C:\Users\Hp\Documents\personal\event-web
 Default branch: master
 
@@ -243,7 +243,7 @@ Organizer:
 
 The two sessions are independent and must never be mixed.
 
-A browser may hold both sessions at the same time.
+Product rule: **one role per browser**. Logging into participant clears organizer storage (and vice versa) in `AuthContext` / `OrganizerContext`.
 
 ## HTTP Architecture
 
@@ -730,13 +730,43 @@ UI: one shared `EventFinancePanel` for Event Studio Finance tab and `/organizer/
 
 All under `/api/v1`, `organizerApi` (X-API-Key + Bearer `organizer_token`). Service: `src/services/organizerQr.ts`. Identity from Bearer — never send `organizer_id`.
 
-- `POST /organizer/qr-scan-logs/validate` — body **`{ token, gate? }` only**. Response includes `result` (`valid` | `already_used` | `invalid`), `checked_in`, `participation`, `scan_log`. UI must not treat network/5xx as `invalid`.
+- `POST /organizer/scanner/unlock` — body `{ scan_token }` → `{ event_id, title, status, event_mode }` for owned events only.
+- `POST /organizer/qr-scan-logs/validate` — body `{ token, gate?, event_id? }`. When `event_id` is set, tickets from other events are `INVALID`. Response includes `result` (`valid` | `already_used` | `invalid`), `checked_in`, `participation`, `scan_log`.
 - `GET /organizer/events/{id}/qr-scan-logs` — `{ event_id, stats, scan_logs }`
-- `GET /organizer/events/{id}/check-in-stats` — door stats (registered/arrived/absent/waitlisted + scan counters)
+- `GET /organizer/events/{id}/check-in-stats` — door stats
 
-Route: `/organizer/events/:id/scanner` (lazy). Camera via `html5-qrcode`; manual token entry; optional Wake Lock; accessible control names.
+Routes: **main nav** `/organizer/scanner` (token unlock) and studio `/organizer/events/:id/scanner`. Event `scan_token` is generated on create (organizer show makes it visible; Settings tab copies it). Online events: invitation omits door `qr_token`.
+
+## Participant event room + discussions
+
+- `GET /participant/participations/{id}/announcements`
+- `GET|POST /participant/events/{event}/discussions` (+ PATCH/DELETE own)
+- Organizer: `GET /organizer/events/{event}/discussions?speaker_id=`, `PATCH .../answered`
+- Organizer: `GET /organizer/events/{event}/feedback` (attendee feedback list)
+- Feedback submit allowed after event `ends_at` past or status `completed` (not check-in-only)
+- Public `online_url` is hidden; registered participants see it on invitation/event room
 
 ## Change Log
+
+### 2026-08-26 — Client feedback batch (room, scanner token, discussions)
+
+Implemented locked client notes across Web + Laravel:
+
+- One ticket only (removed qty UI); already-registered → `/registrations/:id`
+- Event room on RegistrationDetail: online join link, announcements, ask-a-speaker discussions; no door QR for online; feedback after event ends
+- Coming soon countdown when registration not open (`published`)
+- Dual session: login clears the other role
+- Custom form answers show field labels in attendees detail
+- Organizer Attendees: Discussions (filter by speaker) + Attendee Feedback panels
+- Main-nav Scanner + `scan_token` unlock; validate scoped by `event_id`
+- Hybrid removed from create/edit selectors (API may still return legacy hybrid)
+- Admin `POST /events/{id}/force-transition` already present; gallery mkdir already present
+
+Laravel files (sibling repo): discussions migration/model/controllers, feedback rule change, invitation QR omit for online, scanner unlock, organizer feedback list, participant announcements/discussions routes.
+
+**Run in Laravel:** `php artisan migrate` (scan_token backfill + `event_discussions`).
+
+Verification: `npx tsc --noEmit` pass.
 
 ### 2026-08-20 — Organizer Continue with Google
 

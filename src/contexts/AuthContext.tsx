@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
-import { participantSessionStorage } from "@/lib/authStorage";
+import { organizerSessionStorage, participantSessionStorage } from "@/lib/authStorage";
 import { requestGoogleAccessToken } from "@/lib/googleSignIn";
 import { participantAuthService } from "@/services/participantAuth";
 import type { ParticipantProfileUpdate, ParticipantUser } from "@/types/participant";
@@ -100,6 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     const result = await participantAuthService.login(email, password);
+    organizerSessionStorage.clear();
     persistParticipant(result.token, result.user);
     setUser(result.user);
 
@@ -115,6 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginWithGoogle = useCallback(async () => {
     const accessToken = await requestGoogleAccessToken();
     const result = await participantAuthService.googleLogin(accessToken);
+    organizerSessionStorage.clear();
     persistParticipant(result.token, result.user);
     setUser(result.user);
 
