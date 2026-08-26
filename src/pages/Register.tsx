@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useParams, useNavigate } from "react-router-dom";
 import {
   CalendarDays, MapPin, Video, Globe, Loader2, CheckCircle2,
-  Clock, AlertTriangle,
+  Clock, AlertTriangle, XCircle,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBranding } from "@/contexts/BrandingContext";
@@ -431,22 +431,88 @@ const EventInfo = ({ event, className = "" }: { event: Event; className?: string
   );
 };
 
-// ─── Coming soon (registration not open yet) ─────────────────────────────────
+// ─── Locked registration (sold out / closed / coming soon / etc.) ─────────────
 
-const ComingSoonPanel = ({
+type LockedReason =
+  | "coming_soon"
+  | "sold_out"
+  | "registration_closed"
+  | "deadline_passed"
+  | "cancelled"
+  | "completed"
+  | "unavailable";
+
+function resolveLockedReason(event: PublicEventUiModel): LockedReason | null {
+  if (event.registration_gates?.allowed === true) return null;
+  if (event.status === "sold_out") return "sold_out";
+  if (event.status === "cancelled") return "cancelled";
+  if (event.status === "completed") return "completed";
+  if (event.status === "registration_closed") return "registration_closed";
+  if (event.registration_gates?.reason === "deadline_passed") return "deadline_passed";
+  if (event.status === "ongoing") return "registration_closed";
+  if (event.status === "published" || event.status === "draft") return "coming_soon";
+  return "unavailable";
+}
+
+const LOCKED_COPY: Record<
+  LockedReason,
+  { title: string; body: string; icon: "clock" | "sold" | "closed" | "ended" | "cancel" }
+> = {
+  coming_soon: {
+    title: "Coming soon",
+    body: "Registration is not open yet. Check back when the organizer opens tickets.",
+    icon: "clock",
+  },
+  sold_out: {
+    title: "Sold out",
+    body: "All seats for this event have been taken. Registration is no longer available.",
+    icon: "sold",
+  },
+  registration_closed: {
+    title: "Registration closed",
+    body: "The organizer has closed registration for this event.",
+    icon: "closed",
+  },
+  deadline_passed: {
+    title: "Registration ended",
+    body: "The registration deadline has passed. New registrations are no longer accepted.",
+    icon: "ended",
+  },
+  cancelled: {
+    title: "Event cancelled",
+    body: "This event has been cancelled. Registration is not available.",
+    icon: "cancel",
+  },
+  completed: {
+    title: "Event ended",
+    body: "This event has already finished. Registration is closed.",
+    icon: "ended",
+  },
+  unavailable: {
+    title: "Registration unavailable",
+    body: "Registration is not available for this event right now.",
+    icon: "closed",
+  },
+};
+
+const RegistrationLockedPanel = ({
   brandColor,
   isDark,
+  reason,
   startsAt,
 }: {
   brandColor: string;
   isDark: boolean;
+  reason: LockedReason;
   startsAt?: string | null;
 }) => {
+  const copy = LOCKED_COPY[reason];
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
+    if (reason !== "coming_soon") return;
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
-  }, []);
+  }, [reason]);
 
   const target = startsAt ? new Date(startsAt).getTime() : NaN;
   const diff = Number.isFinite(target) ? Math.max(0, target - now) : null;
@@ -455,16 +521,23 @@ const ComingSoonPanel = ({
   const mins = diff != null ? Math.floor((diff % 3_600_000) / 60_000) : null;
   const secs = diff != null ? Math.floor((diff % 60_000) / 1000) : null;
 
+  const Icon =
+    copy.icon === "clock"
+      ? Clock
+      : copy.icon === "sold"
+        ? TicketIcon
+        : copy.icon === "cancel"
+          ? XCircle
+          : AlertTriangle;
+
   return (
     <div className="relative min-h-[280px] pb-24 sm:pb-0">
       <AuroraBackdrop brandColor={brandColor} isDark={isDark} />
       <div className="relative z-10 flex flex-col items-center gap-4 py-10 px-4 text-center">
-        <Clock className="w-10 h-10 text-muted-foreground/70" />
-        <h2 className="font-display text-2xl font-semibold tracking-[-0.02em]">Coming soon</h2>
-        <p className="text-sm text-muted-foreground max-w-sm">
-          Registration is not open yet. Check back when the organizer opens tickets.
-        </p>
-        {diff != null && diff > 0 && (
+        <Icon className="w-10 h-10 text-muted-foreground/70" />
+        <h2 className="font-display text-2xl font-semibold tracking-[-0.02em]">{copy.title}</h2>
+        <p className="text-sm text-muted-foreground max-w-sm">{copy.body}</p>
+        {reason === "coming_soon" && diff != null && diff > 0 && (
           <div className="mt-2 flex gap-3 tabular-nums">
             {[
               { label: "Days", value: days },
@@ -995,15 +1068,7 @@ const Register = () => {
   }, [eventId, retryNonce]);
 
   const registrationAllowed = event?.registration_gates?.allowed === true;
-  const registrationComingSoon =
-    !!event &&
-    !registrationAllowed &&
-    (event.status === "published" || event.status === "draft") &&
-    event.registration_gates?.reason !== "deadline_passed" &&
-    event.status !== "sold_out" &&
-    event.status !== "registration_closed" &&
-    event.status !== "cancelled" &&
-    event.status !== "completed";
+  const lockedReason = event ? resolveLockedReason(event) : null;
 
   const registerLabel = (() => {
     if (!event) return "Register";
@@ -1011,10 +1076,7 @@ const Register = () => {
       const hasPaid = event.ticket_tiers.some((t) => t.price > 0);
       return hasPaid ? "Get Tickets" : "Register";
     }
-    if (event.status === "sold_out") return "Sold out";
-    if (event.status === "registration_closed") return "Registration closed";
-    if (event.registration_gates?.reason === "deadline_passed") return "Registration ended";
-    if (registrationComingSoon) return "Coming soon";
+    if (lockedReason) return LOCKED_COPY[lockedReason].title;
     return "Registration closed";
   })();
 
@@ -1379,12 +1441,13 @@ const Register = () => {
         isDark={isDark}
         formattedDate={event.event_date ? formatEventDateTime(event) : ""}
         registerLabel={registerLabel}
-        registerDisabled={submitDisabled || registrationComingSoon}
+        registerDisabled={submitDisabled || !!lockedReason}
         formSlot={
-          registrationComingSoon ? (
-            <ComingSoonPanel
+          lockedReason ? (
+            <RegistrationLockedPanel
               brandColor={brandColor}
               isDark={isDark}
+              reason={lockedReason}
               startsAt={event.event_date}
             />
           ) : (

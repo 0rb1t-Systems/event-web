@@ -748,6 +748,11 @@ Routes: **main nav** `/organizer/scanner` (token unlock) and studio `/organizer/
 
 ## Change Log
 
+### 2026-08-26 — Admin force-status UI + hide locked register form
+
+- Admin Event Overview: normal state-machine buttons + **Force status (admin rollback)** wired to `POST /events/{id}/force-transition` (confirm dialog). Edit form status dropdown also uses force-transition.
+- Public `/events/:id`: when registration is not allowed (sold out, closed, deadline, cancelled, completed, coming soon), **hide the full join form** and show a status panel with explanation (+ countdown for coming soon). Sticky CTA still shows the status label.
+
 ### 2026-08-26 — Client feedback batch (room, scanner token, discussions)
 
 Implemented locked client notes across Web + Laravel:
