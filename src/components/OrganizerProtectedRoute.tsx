@@ -2,7 +2,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useOrganizer } from "@/contexts/OrganizerContext";
 
 export function OrganizerProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useOrganizer();
+  const { isAuthenticated, isLoading, token } = useOrganizer();
   const location = useLocation();
 
   if (isLoading) {
@@ -13,7 +13,8 @@ export function OrganizerProtectedRoute({ children }: { children: React.ReactNod
     );
   }
 
-  if (!isAuthenticated) {
+  // Require both React session and a live storage token (cross-role clear can race).
+  if (!isAuthenticated || !token) {
     const redirectTarget = `${location.pathname}${location.search}${location.hash}`;
     return (
       <Navigate

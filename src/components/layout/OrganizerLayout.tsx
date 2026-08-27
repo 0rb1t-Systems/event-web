@@ -21,6 +21,7 @@ import {
   LogOut,
   Menu,
   ScanLine,
+  Home,
 } from "lucide-react";
 
 const organizerNavItems = [
@@ -84,6 +85,13 @@ export function OrganizerLayout({ children }: { children: React.ReactNode }) {
         <div className="flex-1 lg:hidden" />
 
         <div className="hidden lg:flex items-center gap-3 shrink-0">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-muted-foreground rounded-full transition-colors hover:text-foreground hover:bg-muted"
+          >
+            <Home className="w-3.5 h-3.5" />
+            Browse events
+          </Link>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -101,6 +109,9 @@ export function OrganizerLayout({ children }: { children: React.ReactNode }) {
             <DropdownMenuContent align="end" className="w-56">
               <div className="px-2 py-1.5 text-xs text-muted-foreground truncate">{displayName}</div>
               <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link to="/"><Home className="w-3.5 h-3.5 mr-2" /> Browse events</Link>
+              </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link to="/organizer/settings"><Settings className="w-3.5 h-3.5 mr-2" /> Settings</Link>
               </DropdownMenuItem>
@@ -146,6 +157,13 @@ export function OrganizerLayout({ children }: { children: React.ReactNode }) {
                   </NavLink>
                 );
               })}
+              <Link
+                to="/"
+                className="flex items-center gap-3 px-4 h-11 text-sm font-medium text-muted-foreground rounded-full transition-colors hover:text-foreground hover:bg-muted"
+              >
+                <Home className="w-4 h-4 shrink-0" />
+                <span>Browse events</span>
+              </Link>
             </nav>
             <div className="p-3 border-t border-border/40 space-y-1">
               {organizer && (

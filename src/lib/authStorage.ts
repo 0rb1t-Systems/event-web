@@ -1,7 +1,7 @@
 /**
  * Independent participant vs organizer localStorage keys.
  * Never share a single auth_token. Product rule: only one role session per browser —
- * logging into one role clears the other.
+ * logging into one role clears the other (storage + in-memory React context).
  */
 
 export const AUTH_STORAGE_KEYS = {
@@ -10,6 +10,11 @@ export const AUTH_STORAGE_KEYS = {
   organizerToken: "organizer_token",
   organizer: "organizer_organizer",
 } as const;
+
+/** Fired after a role’s localStorage session is cleared so React contexts can reset. */
+export const SESSION_CLEARED_EVENT = "eventhub:session-cleared";
+
+export type SessionRole = "participant" | "organizer";
 
 function getItem(key: string): string | null {
   if (typeof window === "undefined") return null;
@@ -26,6 +31,13 @@ function removeItem(key: string): void {
   window.localStorage.removeItem(key);
 }
 
+function notifySessionCleared(role: SessionRole): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(
+    new CustomEvent(SESSION_CLEARED_EVENT, { detail: { role } }),
+  );
+}
+
 export const participantSessionStorage = {
   getToken: () => getItem(AUTH_STORAGE_KEYS.participantToken),
 
@@ -40,6 +52,7 @@ export const participantSessionStorage = {
   clear: () => {
     removeItem(AUTH_STORAGE_KEYS.participantToken);
     removeItem(AUTH_STORAGE_KEYS.participantUser);
+    notifySessionCleared("participant");
   },
 };
 
@@ -57,5 +70,6 @@ export const organizerSessionStorage = {
   clear: () => {
     removeItem(AUTH_STORAGE_KEYS.organizerToken);
     removeItem(AUTH_STORAGE_KEYS.organizer);
+    notifySessionCleared("organizer");
   },
 };

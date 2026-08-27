@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
-import { organizerSessionStorage, participantSessionStorage } from "@/lib/authStorage";
+import { organizerSessionStorage, participantSessionStorage, SESSION_CLEARED_EVENT } from "@/lib/authStorage";
 import { requestGoogleAccessToken } from "@/lib/googleSignIn";
 import { organizerAuthService } from "@/services/organizerAuth";
 import type {
@@ -95,6 +95,20 @@ export function OrganizerProvider({ children }: { children: ReactNode }) {
     void boot();
     return () => { cancelled = true; };
   }, [applyOrganizer]);
+
+  // Participant login clears organizer storage — drop in-memory session immediately
+  // so Organizer Portal does not look authenticated with a missing Bearer token.
+  useEffect(() => {
+    const onCleared = (event: Event) => {
+      const role = (event as CustomEvent<{ role?: string }>).detail?.role;
+      if (role !== "organizer") return;
+      setOrganizer(null);
+      setToken(null);
+      setIsLoading(false);
+    };
+    window.addEventListener(SESSION_CLEARED_EVENT, onCleared);
+    return () => window.removeEventListener(SESSION_CLEARED_EVENT, onCleared);
+  }, []);
 
   const login = useCallback(async (email: string, password: string) => {
     const result = await organizerAuthService.login(email, password);

@@ -22,8 +22,6 @@ import {
   Puzzle,
   ArrowRight,
   Zap,
-  ChevronUp,
-  ChevronDown,
   Sparkles,
   PieChart,
   BarChart2,
@@ -159,13 +157,6 @@ function IllustrationAttendees({ accents }: { accents: BentoAccents }) {
 const ILLUSTRATIONS = [IllustrationPages, IllustrationAnalytics, IllustrationIntegrations, IllustrationAttendees];
 
 const POPULAR_IMAGES = [eventHackathon, eventChill, eventStartup, eventSummit];
-
-const fontWeightOptions = [
-  { label: "Medium (500)", value: 500 },
-  { label: "Semibold (600)", value: 600 },
-  { label: "Bold (700)", value: 700 },
-  { label: "Extrabold (800)", value: 800 },
-];
 
 const CONFETTI_COLORS = ["#FF6B6B", "#FFD93D", "#6BCB77", "#4D96FF", "#FF6BCB", "#FF9F43"];
 const CONFETTI_SHAPES = ["circle", "square", "triangle", "line"] as const;
@@ -320,13 +311,12 @@ const Landing = () => {
 
   const [wordIndex, setWordIndex] = useState(0);
   const [navVisible, setNavVisible] = useState(false);
-  const [devOpen, setDevOpen] = useState(false);
-  const [titleWeight, setTitleWeight] = useState(700);
-  const [confettiSize, setConfettiSize] = useState(2.5);
-  const [confettiOpacity, setConfettiOpacity] = useState(0.8);
-  const [confettiCount, setConfettiCount] = useState(8);
-  const [confettiSpread, setConfettiSpread] = useState(1.0);
-  const [bentoStyle, setBentoStyle] = useState(0);
+  const titleWeight = 700;
+  const confettiSize = 2.5;
+  const confettiOpacity = 0.8;
+  const confettiCount = 8;
+  const confettiSpread = 1.0;
+  const bentoStyle = 0;
 
   // Bento color presets
   const bentoPresets = [
@@ -928,78 +918,6 @@ const Landing = () => {
           <p className="text-sm text-muted-foreground">© 2026 {brandName}. All rights reserved.</p>
         </div>
       </footer>
-
-      {/* Dev picker */}
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 z-[9999]">
-        <button
-          onClick={() => setDevOpen(!devOpen)}
-          className="mx-auto flex items-center gap-1.5 bg-foreground text-background text-xs font-medium px-4 py-1.5 rounded-t-lg shadow-lg"
-        >
-          🎨 Dev tools {devOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />}
-        </button>
-        {devOpen && (
-          <div className="bg-card border border-border rounded-t-xl shadow-2xl p-4 w-[340px] space-y-4">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">Title font weight</label>
-              <select
-                value={titleWeight}
-                onChange={(e) => setTitleWeight(Number(e.target.value))}
-                className="w-full text-sm bg-background border border-input rounded-lg px-3 py-2 text-foreground"
-              >
-                {fontWeightOptions.map((f) => (
-                  <option key={f.value} value={f.value}>{f.label}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">Bento colour style</label>
-              <div className="flex gap-1.5">
-                {bentoPresets.map((preset, idx) => (
-                  <button
-                    key={preset.label}
-                    onClick={() => setBentoStyle(idx)}
-                    className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${bentoStyle === idx ? "bg-primary text-primary-foreground border-primary" : "bg-background border-input text-foreground hover:bg-muted"}`}
-                  >
-                    {preset.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <label className="flex items-center justify-between cursor-pointer">
-              <span className="text-xs font-medium text-muted-foreground">Confetti visible</span>
-              <input type="checkbox" checked={confettiCount > 0} onChange={(e) => setConfettiCount(e.target.checked ? 6 : 0)} className="accent-primary w-4 h-4" />
-            </label>
-            <div className="border-t border-border pt-3 space-y-2">
-              <label className="text-xs font-medium text-muted-foreground block">Confetti</label>
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-muted-foreground">Size</span>
-                  <span className="text-[11px] text-muted-foreground w-8 text-right">{confettiSize.toFixed(1)}</span>
-                </div>
-                <input type="range" min="0.3" max="2.5" step="0.1" value={confettiSize} onChange={(e) => setConfettiSize(Number(e.target.value))} className="w-full h-1.5 accent-primary" />
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-muted-foreground">Boldness</span>
-                  <span className="text-[11px] text-muted-foreground w-8 text-right">{Math.round(confettiOpacity * 100)}%</span>
-                </div>
-                <input type="range" min="0.1" max="1" step="0.05" value={confettiOpacity} onChange={(e) => setConfettiOpacity(Number(e.target.value))} className="w-full h-1.5 accent-primary" />
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-muted-foreground">Amount</span>
-                  <span className="text-[11px] text-muted-foreground w-8 text-right">{confettiCount}</span>
-                </div>
-                <input type="range" min="1" max="8" step="1" value={confettiCount} onChange={(e) => setConfettiCount(Number(e.target.value))} className="w-full h-1.5 accent-primary" />
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-muted-foreground">Spread</span>
-                  <span className="text-[11px] text-muted-foreground w-8 text-right">{confettiSpread.toFixed(1)}</span>
-                </div>
-                <input type="range" min="0.5" max="2" step="0.1" value={confettiSpread} onChange={(e) => setConfettiSpread(Number(e.target.value))} className="w-full h-1.5 accent-primary" />
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
     </div>
   );
 };

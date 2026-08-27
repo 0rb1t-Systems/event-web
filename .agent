@@ -748,6 +748,10 @@ Routes: **main nav** `/organizer/scanner` (token unlock) and studio `/organizer/
 
 ## Change Log
 
+### 2026-08-27 — Fix stale organizer session after participant login
+
+Participant login cleared `organizer_token` in localStorage but left `OrganizerContext` in memory authenticated → Organizer Portal showed dashboard then "Authentication required". `session-cleared` event now resets the other role’s React state; protected route also requires a live token.
+
 ### 2026-08-26 — Admin force-status UI + hide locked register form
 
 - Admin Event Overview: normal state-machine buttons + **Force status (admin rollback)** wired to `POST /events/{id}/force-transition` (confirm dialog). Edit form status dropdown also uses force-transition.

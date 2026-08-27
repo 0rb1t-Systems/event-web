@@ -22,8 +22,8 @@ type Props = {
 };
 
 /**
- * Public site navbar. Participant and organizer sessions may coexist —
- * they are never merged into one identity.
+ * Public site navbar. One role session per browser — Organizer Portal link
+ * only goes to the dashboard when an organizer token is actually present.
  */
 export function PublicSiteHeader({ solid, className }: Props) {
   const { user, loading: authLoading, signOut } = useAuth();

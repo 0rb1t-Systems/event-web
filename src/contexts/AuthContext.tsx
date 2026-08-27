@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
-import { organizerSessionStorage, participantSessionStorage } from "@/lib/authStorage";
+import { organizerSessionStorage, participantSessionStorage, SESSION_CLEARED_EVENT } from "@/lib/authStorage";
 import { requestGoogleAccessToken } from "@/lib/googleSignIn";
 import { participantAuthService } from "@/services/participantAuth";
 import type { ParticipantProfileUpdate, ParticipantUser } from "@/types/participant";
@@ -97,6 +97,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       cancelled = true;
     };
   }, [applyUser]);
+
+  // Organizer login clears participant storage — drop in-memory user immediately.
+  useEffect(() => {
+    const onCleared = (event: Event) => {
+      const role = (event as CustomEvent<{ role?: string }>).detail?.role;
+      if (role !== "participant") return;
+      setUser(null);
+    };
+    window.addEventListener(SESSION_CLEARED_EVENT, onCleared);
+    return () => window.removeEventListener(SESSION_CLEARED_EVENT, onCleared);
+  }, []);
 
   const login = useCallback(async (email: string, password: string) => {
     const result = await participantAuthService.login(email, password);
