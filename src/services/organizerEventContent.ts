@@ -9,6 +9,7 @@ export type OrganizerSpeaker = {
   event_id: number;
   name: string;
   photo_path: string | null;
+  photo_url?: string | null;
   title: string | null;
   organization: string | null;
   bio: string | null;
@@ -76,7 +77,25 @@ export async function listOrganizerSpeakers(eventId: number): Promise<OrganizerS
   return listPaged<OrganizerSpeaker>(`/organizer/events/${eventId}/speakers`);
 }
 
-export async function createOrganizerSpeaker(eventId: number, body: SpeakerWriteBody): Promise<OrganizerSpeaker> {
+export async function createOrganizerSpeaker(
+  eventId: number,
+  body: SpeakerWriteBody,
+  photo?: File | null,
+): Promise<OrganizerSpeaker> {
+  if (photo) {
+    const form = new FormData();
+    if (body.name) form.append("name", body.name);
+    if (body.title) form.append("title", body.title);
+    if (body.organization) form.append("organization", body.organization);
+    if (body.bio) form.append("bio", body.bio);
+    if (body.sort_order != null) form.append("sort_order", String(body.sort_order));
+    form.append("photo", photo);
+    const { data } = await organizerApi.post<WrappedSuccess<OrganizerSpeaker>>(
+      `/organizer/events/${eventId}/speakers`,
+      form,
+    );
+    return data.data;
+  }
   const { data } = await organizerApi.post<WrappedSuccess<OrganizerSpeaker>>(
     `/organizer/events/${eventId}/speakers`,
     body,
@@ -86,6 +105,17 @@ export async function createOrganizerSpeaker(eventId: number, body: SpeakerWrite
 
 export async function updateOrganizerSpeaker(id: number, body: SpeakerWriteBody): Promise<OrganizerSpeaker> {
   const { data } = await organizerApi.patch<WrappedSuccess<OrganizerSpeaker>>(`/organizer/speakers/${id}`, body);
+  return data.data;
+}
+
+/** Multipart field `photo` — jpeg/png/jpg/gif/webp, max 4096 KB. */
+export async function uploadOrganizerSpeakerPhoto(id: number, file: File): Promise<OrganizerSpeaker> {
+  const form = new FormData();
+  form.append("photo", file);
+  const { data } = await organizerApi.post<WrappedSuccess<OrganizerSpeaker>>(
+    `/organizer/speakers/${id}/photo`,
+    form,
+  );
   return data.data;
 }
 

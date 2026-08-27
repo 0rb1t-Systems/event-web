@@ -1,8 +1,17 @@
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MapPin, Plus, Quote } from "lucide-react";
 type EventModule = any;
 import SectionIcon from "@/components/event-detail/SectionIcon";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+  type CarouselApi,
+} from "@/components/ui/carousel";
+import { cn } from "@/lib/utils";
 
 interface ModuleProps {
   module: EventModule;
@@ -391,6 +400,113 @@ function Custom({ module: m, brandColor }: ModuleProps) {
   );
 }
 
+/* ─────────────────────── gallery — slide carousel ─────────────────────── */
+
+function Gallery({ module: m, brandColor }: ModuleProps) {
+  const c = m.content || {};
+  const images: string[] = Array.isArray(c.images)
+    ? c.images.filter((u: unknown): u is string => typeof u === "string" && !!u)
+    : c.image_url
+      ? [c.image_url]
+      : [];
+
+  const [api, setApi] = useState<CarouselApi>();
+  const [current, setCurrent] = useState(0);
+  const [paused, setPaused] = useState(false);
+
+  useEffect(() => {
+    if (!api) return;
+    const onSelect = () => setCurrent(api.selectedScrollSnap());
+    onSelect();
+    api.on("select", onSelect);
+    api.on("reInit", onSelect);
+    return () => {
+      api.off("select", onSelect);
+      api.off("reInit", onSelect);
+    };
+  }, [api]);
+
+  useEffect(() => {
+    if (!api || images.length < 2 || paused) return;
+    const id = window.setInterval(() => {
+      api.scrollNext();
+    }, 4000);
+    return () => window.clearInterval(id);
+  }, [api, images.length, paused]);
+
+  if (images.length === 0) return null;
+
+  return (
+    <SectionShell eyebrow="Gallery" heading={c.heading || "Gallery"} brandColor={brandColor}>
+      <motion.div
+        {...fadeUp}
+        className="relative"
+        onPointerEnter={() => setPaused(true)}
+        onPointerLeave={() => setPaused(false)}
+        onFocusCapture={() => setPaused(true)}
+        onBlurCapture={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+            setPaused(false);
+          }
+        }}
+      >
+        {images.length === 1 ? (
+          <div className="rounded-3xl overflow-hidden bg-muted aspect-[16/10]">
+            <img src={images[0]} alt="" className="w-full h-full object-cover" />
+          </div>
+        ) : (
+          <>
+            <Carousel
+              setApi={setApi}
+              opts={{ loop: true, align: "start" }}
+              className="w-full"
+            >
+              <CarouselContent className="-ml-0">
+                {images.map((src, i) => (
+                  <CarouselItem key={`${src}-${i}`} className="pl-0 basis-full">
+                    <div className="rounded-3xl overflow-hidden bg-muted aspect-[16/10]">
+                      <img
+                        src={src}
+                        alt=""
+                        loading={i === 0 ? "eager" : "lazy"}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious
+                className="left-3 sm:left-4 h-10 w-10 border-0 bg-background/85 backdrop-blur shadow-md hover:bg-background"
+              />
+              <CarouselNext
+                className="right-3 sm:right-4 h-10 w-10 border-0 bg-background/85 backdrop-blur shadow-md hover:bg-background"
+              />
+            </Carousel>
+            <div className="mt-4 flex items-center justify-center gap-2">
+              {images.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  aria-label={`Go to image ${i + 1}`}
+                  onClick={() => api?.scrollTo(i)}
+                  className={cn(
+                    "h-2 rounded-full transition-all",
+                    i === current ? "w-6" : "w-2 bg-muted-foreground/30 hover:bg-muted-foreground/50",
+                  )}
+                  style={i === current ? { background: brandColor } : undefined}
+                />
+              ))}
+            </div>
+            <p className="mt-2 text-center text-xs text-muted-foreground tabular-nums">
+              {current + 1} / {images.length}
+            </p>
+          </>
+        )}
+      </motion.div>
+    </SectionShell>
+  );
+}
+
 /* ─────────────────────── dispatcher ─────────────────────── */
 
 export function PublicModule(props: ModuleProps) {
@@ -401,6 +517,7 @@ export function PublicModule(props: ModuleProps) {
     case "location":   return <Location {...props} />;
     case "faq":        return <Faq {...props} />;
     case "sponsors":   return <Sponsors {...props} />;
+    case "gallery":    return <Gallery {...props} />;
     case "custom":     return <Custom {...props} />;
     default: {
       const c = props.module.content || {};

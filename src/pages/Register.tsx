@@ -301,9 +301,9 @@ const SuccessCard = ({
             <Button
               className="mt-6 rounded-full h-11 px-6 text-white border-0 font-semibold"
               style={{ background: `linear-gradient(135deg, ${brandColor}, hsl(265 90% 62%))` }}
-              onClick={() => navigate(`/registrations/${participationId}`)}
+              onClick={() => navigate(`/registrations/${participationId}/room`)}
             >
-              View your ticket
+              Enter event room
             </Button>
           )}
         </div>
@@ -841,7 +841,7 @@ const Register = () => {
             p.status !== "cancelled",
         );
         if (existing) {
-          navigate(`/registrations/${existing.id}`, { replace: true });
+          navigate(`/registrations/${existing.id}/room`, { replace: true });
         }
       })
       .catch(() => {
@@ -927,7 +927,7 @@ const Register = () => {
         ? speakers.map((sp) => ({
             name: sp.name,
             role: sp.title || sp.organization || "",
-            avatar: sp.photo_path ? getMediaUrl(sp.photo_path) : undefined,
+            avatar: sp.photo_url ?? (sp.photo_path ? getMediaUrl(sp.photo_path) : undefined),
           }))
         : [];
 
@@ -938,7 +938,9 @@ const Register = () => {
             .filter(Boolean) as string[]
         : [];
 
-    const galleryImageUrl = ui.images?.[0]?.path ? getMediaUrl(ui.images[0].path) : undefined;
+    const galleryUrls = (ui.images ?? [])
+      .map((im) => (im.path ? getMediaUrl(im.path) : undefined))
+      .filter(Boolean) as string[];
 
     const whyBullets = (ui.why_attend ?? []).map((b) => String(b).trim()).filter(Boolean).slice(0, 6);
 
@@ -1009,17 +1011,16 @@ const Register = () => {
       });
     }
 
-    if (galleryImageUrl) {
+    if (galleryUrls.length > 0) {
       modulesOut.push({
         id: "gallery",
-        type: "custom",
+        type: "gallery",
         enabled: true,
         position: 5,
         title: "Gallery",
         content: {
           heading: "Gallery",
-          body: "",
-          image_url: galleryImageUrl,
+          images: galleryUrls,
         },
       });
     }
@@ -1152,9 +1153,9 @@ const Register = () => {
         participation.payment_status === "paid"
       ) {
         setStep({ kind: "success", participation, waitlisted: false });
-        // Navigate to ticket after a brief moment
+        // Navigate to event room after a brief moment
         setTimeout(() => {
-          navigate(`/registrations/${participation.id}`);
+          navigate(`/registrations/${participation.id}/room`);
         }, 2200);
         return;
       }
@@ -1220,7 +1221,7 @@ const Register = () => {
     chargeInFlightRef.current = false;
     setStep({ kind: "success", participation, waitlisted: false });
     setTimeout(() => {
-      navigate(`/registrations/${participation.id}`);
+      navigate(`/registrations/${participation.id}/room`);
     }, 2200);
   };
 

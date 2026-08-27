@@ -24,6 +24,7 @@ import {
   updateOrganizerSession,
   updateOrganizerSpeaker,
   updateOrganizerSponsor,
+  uploadOrganizerSpeakerPhoto,
   type OrganizerSession,
   type OrganizerSpeaker,
   type OrganizerSponsor,
@@ -170,8 +171,14 @@ export default function EventStudioContent() {
               setSaving(true);
               try {
                 const body = speakerFormToBody(speakerForm);
-                if (speakerId) await updateOrganizerSpeaker(speakerId, body);
-                else await createOrganizerSpeaker(eventId, body);
+                if (speakerId) {
+                  await updateOrganizerSpeaker(speakerId, body);
+                  if (speakerForm.photo_file) {
+                    await uploadOrganizerSpeakerPhoto(speakerId, speakerForm.photo_file);
+                  }
+                } else {
+                  await createOrganizerSpeaker(eventId, body, speakerForm.photo_file);
+                }
                 toast.success("Speaker saved");
                 setSpeakerForm(null);
                 await load();

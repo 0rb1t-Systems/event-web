@@ -23,6 +23,7 @@ import NotFound from "./pages/NotFound";
 /** Heavy / secondary screens — code-split for faster initial load. */
 const Register = lazy(() => import("./pages/Register"));
 const RegistrationDetail = lazy(() => import("./pages/RegistrationDetail"));
+const EventRoom = lazy(() => import("./pages/EventRoom"));
 const Events = lazy(() => import("./pages/dashboard/Events"));
 const EventDetail = lazy(() => import("./pages/dashboard/EventDetail"));
 const EventStudioOverview = lazy(() => import("./pages/dashboard/event-studio/EventStudioOverview"));
@@ -109,6 +110,7 @@ const App = () => (
                   <Route path="/ticket/:registrationId" element={<TicketRedirect />} />
 
                   {/* Participant */}
+                  <Route path="/registrations/:registrationId/room" element={<EventRoom />} />
                   <Route path="/registrations/:registrationId" element={<RegistrationDetail />} />
                   <Route path="/dashboard" element={<ProtectedRoute><RoleHomeRedirect /></ProtectedRoute>} />
                   <Route

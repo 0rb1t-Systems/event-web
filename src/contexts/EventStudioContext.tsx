@@ -11,6 +11,7 @@ export type EventStudioContextValue = {
   handleUpdate: (fields: Record<string, unknown>) => Promise<void>;
   handleUploadCover: (file: File) => Promise<string | null>;
   handleImagesChange: (images: OrganizerEventImage[]) => void;
+  reloadEvent: () => Promise<void>;
   setDeleteOpen: (open: boolean) => void;
 };
 

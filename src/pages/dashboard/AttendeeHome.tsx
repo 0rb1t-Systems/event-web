@@ -153,7 +153,7 @@ export default function AttendeeHome() {
               return (
                 <li key={p.id} className="min-w-0">
                   <Link
-                    to={`/registrations/${p.id}`}
+                    to={`/registrations/${p.id}/room`}
                     className={`group flex items-stretch gap-4 p-4 rounded-2xl bg-card hover:bg-muted/50 transition-colors min-w-0 overflow-hidden ${isCancelled ? "opacity-60" : ""}`}
                   >
                     <div

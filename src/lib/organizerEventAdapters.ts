@@ -35,6 +35,7 @@ export type OrganizerEventStudio = {
   updated_at?: string;
   latitude: number | null;
   longitude: number | null;
+  scan_token: string | null;
 };
 
 function coverUrl(event: OrganizerEvent): string | null {
@@ -82,6 +83,7 @@ export function toStudioEvent(event: OrganizerEvent): OrganizerEventStudio {
     updated_at: event.updated_at,
     latitude: event.latitude == null ? null : Number(event.latitude),
     longitude: event.longitude == null ? null : Number(event.longitude),
+    scan_token: event.scan_token ?? null,
   };
 }
 

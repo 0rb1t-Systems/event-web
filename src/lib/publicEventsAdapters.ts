@@ -76,6 +76,7 @@ export type PublicEventDetail = PublicEventCatalogItem & {
     id: number;
     name: string;
     photo_path?: string | null;
+    photo_url?: string | null;
     title?: string | null;
     organization?: string | null;
     bio?: string | null;

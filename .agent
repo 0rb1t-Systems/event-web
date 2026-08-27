@@ -1,6 +1,6 @@
 # EventHub Web App — Agent Context
 
-Last updated: 2026-08-26 — Client feedback batch (room, scanner token, discussions)
+Last updated: 2026-08-27 — Scan token visible in Event settings
 Repository: C:\Users\Hp\Documents\personal\event-web
 Default branch: master
 
@@ -285,7 +285,8 @@ PUBLIC:
 - `/auth` → Auth (participant login / sign up / verify / forgot-reset). Safe internal `redirect` or `/dashboard`. `?expired=1` after session 401.
 - `/events/:id` → Register (cinematic public event; numeric PK)
 - `/register/:id` → redirect → `/events/:id`
-- `/registrations/:registrationId` → RegistrationDetail (lazy; may require participant session for own registration)
+- `/registrations/:registrationId/room` → EventRoom (lazy; dedicated participant room: join link, announcements, ask-a-speaker, feedback after ends; not the ticket)
+- `/registrations/:registrationId` → RegistrationDetail (lazy; ticket/invitation/QR only; link to event room)
 - `/ticket/:registrationId` → redirect → `/registrations/:registrationId`
 - `/organizer/login` → OrganizerLogin (`?expired=1` after organizer session 401)
 - `/organizer/register` → OrganizerRegister
@@ -348,14 +349,15 @@ Guards:
 | Auth | existing email/password Lovable UI + verify/forgot + Continue with Google | Laravel `/auth/*` incl. `POST /auth/google/login` | Yes | participant register/login/verify/logout/me/google; admin users can use `/auth/login` as web-participant; Google needs `VITE_GOOGLE_CLIENT_ID` + Laravel `GOOGLE_CLIENT_ID` |
 | Public event page + registration | cinematic Lovable UI | `GET /events/{id}`, `GET /events/{id}/form-fields` (publicApi); `POST /participant/events/{id}/discount-codes/validate`, `POST /participant/participations` (+ optional `discount_code`), `POST /participant/payments/charge`, `GET /participant/participations/{id}` (participantApi) | Yes | Hero from `event_mode` / `why_attend` / `online_url`; tickets with `sales_enabled=false` omitted; paid flow can validate + apply discount quote before join |
 | Participant dashboard (home) | existing Lovable UI | `GET /participant/participations` list + `GET /events` browse (publicApi) | Yes | real own registrations with status badges; browse excludes registered events |
-| Registration detail + invitation + feedback + certificate | RegistrationDetail | `GET .../invitation`, `GET .../feedback`, `POST /participant/event-feedback`, `GET .../certificate` (participantApi) | Yes | `/registrations/:id`; shared invitation canvas; PDF via browser print (clones 800×1100 sheet into `#print-root`, `@page` sized to canvas, scale-to-fit, `afterprint` cleanup — do not move live scaled canvas); certificate `available: false` = deferred backend issue |
+| Registration detail (ticket) | RegistrationDetail | `GET .../invitation`, `GET .../certificate` (participantApi) | Yes | `/registrations/:id`; invitation canvas + in-person door QR + PDF print; link to event room; feedback form lives in room |
+| Event room | EventRoom | invitation + announcements/discussions via EventRoomExtras + feedback | Yes | `/registrations/:id/room`; post-register / already-registered / AttendeeHome primary destination |
 | Organizer event studio — invitation | Event Studio branding tab | invitation-system-templates + invitation-template CRUD + background | Yes | drag overlays / resize QR; mobile preview-only; no delete route |
 | Organizer events | Events under `/organizer/events` | `GET /organizer/events` | Yes | owned events; banner, status, dates, registrations_count, monetized |
 | Organizer event create | multi-section form | `POST /organizer/events` | Yes | required `event_mode`; `online_url` when online/hybrid; `why_attend` |
 | Organizer event detail | EventDetail + Outlet | `GET/PATCH/DELETE`, banner, transition, gallery | Yes | 403/404: "You don't have access to this event." |
 | Organizer event studio — tickets | TicketTypeCard/Form + DiscountCodeForm | ticket-types + discount-codes | Yes | VIP = `is_vip`; sales_enabled pause ≠ sold out |
 | Organizer event studio — form | FormFieldCard/Editor + reorder | form-fields CRUD + reorder | Yes | key immutable after create |
-| Organizer event studio — content | speakers/sponsors/sessions | CRUD | Yes | sponsor tiers; sessions timeline |
+| Organizer event studio — content | speakers/sponsors/sessions | CRUD | Yes | speaker photo file upload (not URL); sponsor tiers; sessions timeline |
 | Attendees / registrations | Event Studio + `/organizer/attendees` | participations promote/cancel | Yes | page-only search/CSV; no auto-refund claim |
 | Announcements | Event Studio attendees tab | announcements GET/POST | Yes | toast includes recipient count |
 | Analytics | `/organizer/analytics` + Recharts | `GET …/analytics` | Yes | scalars only — no fabricated series |
@@ -656,7 +658,7 @@ Form fields:
 
 Speakers / sponsors / sessions (list envelope `{ items, pagination }`):
 
-- Speakers: `GET/POST /organizer/events/{id}/speakers`, `PATCH/DELETE /organizer/speakers/{id}` — name required; photo_path string; no separate upload
+- Speakers: `GET/POST /organizer/events/{id}/speakers`, `PATCH/DELETE /organizer/speakers/{id}` — name required. Photo: multipart field `photo` on create, or `POST /organizer/speakers/{id}/photo` (jpeg/png/jpg/gif/webp, max 4096 KB). Stored `/assets/images/events/speakers/…`. Response includes `photo_path` + `photo_url`. Clearing photo: `PATCH` `photo_path: null`. Do not use a URL text field in studio.
 - Sponsors: `GET/POST /organizer/events/{id}/sponsors`, `PATCH/DELETE /organizer/sponsors/{id}` — `tier` platinum|gold|silver|partner
 - Sessions: `GET/POST /organizer/events/{id}/sessions`, `PATCH/DELETE /organizer/sessions/{id}` — title + starts_at required; speaker_id optional; no reorder endpoint
 
@@ -735,7 +737,7 @@ All under `/api/v1`, `organizerApi` (X-API-Key + Bearer `organizer_token`). Serv
 - `GET /organizer/events/{id}/qr-scan-logs` — `{ event_id, stats, scan_logs }`
 - `GET /organizer/events/{id}/check-in-stats` — door stats
 
-Routes: **main nav** `/organizer/scanner` (token unlock) and studio `/organizer/events/:id/scanner`. Event `scan_token` is generated on create (organizer show makes it visible; Settings tab copies it). Online events: invitation omits door `qr_token`.
+Routes: **main nav** `/organizer/scanner` (token unlock) and studio `/organizer/events/:id/scanner`. Event `scan_token` is generated on create; organizer show/update/banner/transition JSON includes it (`makeVisible`). Studio Settings maps `scan_token` through `toStudioEvent` and Copy; missing tokens are backfilled on GET and can use **Generate token**. Online events: invitation omits door `qr_token`.
 
 ## Participant event room + discussions
 
@@ -747,6 +749,26 @@ Routes: **main nav** `/organizer/scanner` (token unlock) and studio `/organizer/
 - Public `online_url` is hidden; registered participants see it on invitation/event room
 
 ## Change Log
+
+### 2026-08-27 — Scan token visible in Event settings
+
+Settings showed “Token not available — recreate or refresh the event” because `toStudioEvent` dropped `scan_token` (Laravel already returns it on organizer show). Adapter now passes `scan_token`. If the column is empty, organizer GET/PATCH/banner/transition backfills a token. Settings empty state is **Generate token** (reload), not a dead-end message.
+
+Files: `organizerEventAdapters.ts`, `EventStudioSettings.tsx`, `EventStudioContext.tsx`, `EventDetail.tsx`; Laravel `OrganizerEventController.php`, `OrganizerWebCoreApiTest.php`.
+
+### 2026-08-27 — Speaker photo upload (cover/gallery-style)
+
+Replaced speaker “Photo path or URL” with drop/click upload (JPEG/PNG/GIF/WebP, max 4 MB). Laravel: multipart `photo` on `POST /organizer/events/{id}/speakers` and `POST /organizer/speakers/{id}/photo`; files under `public/assets/images/events/speakers/`; `photo_url` appended on EventSpeaker.
+
+Web: `SpeakerForm.tsx`, `EventStudioContent.tsx`, `organizerEventContent.ts`, `SpeakerCard.tsx`, `Register.tsx` (prefer `photo_url`).
+
+Laravel: `OrganizerSpeakerController.php`, `organizer-web-content.php`, `EventSpeaker.php`, `OrganizerSpeakerPhotoApiTest.php`.
+
+### 2026-08-27 — Dedicated Event Room (not ticket view)
+
+Post-register / already-registered / AttendeeHome now open `/registrations/:id/room` (`EventRoom.tsx`): banner, join link, announcements, ask-a-speaker, feedback after ends, link to ticket. `/registrations/:id` remains ticket/invitation/QR only (plus “Open event room”). Removed room extras + feedback form from RegistrationDetail.
+
+Files: `src/pages/EventRoom.tsx`, `src/App.tsx`, `src/pages/Register.tsx`, `src/pages/dashboard/AttendeeHome.tsx`, `src/pages/RegistrationDetail.tsx`.
 
 ### 2026-08-27 — Fix stale organizer session after participant login
 
@@ -761,8 +783,8 @@ Participant login cleared `organizer_token` in localStorage but left `OrganizerC
 
 Implemented locked client notes across Web + Laravel:
 
-- One ticket only (removed qty UI); already-registered → `/registrations/:id`
-- Event room on RegistrationDetail: online join link, announcements, ask-a-speaker discussions; no door QR for online; feedback after event ends
+- One ticket only (removed qty UI); already-registered → `/registrations/:id/room`
+- Dedicated Event Room page (not RegistrationDetail): online join link, announcements, ask-a-speaker; no door QR for online; feedback after event ends
 - Coming soon countdown when registration not open (`published`)
 - Dual session: login clears the other role
 - Custom form answers show field labels in attendees detail

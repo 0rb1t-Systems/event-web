@@ -10,7 +10,7 @@ type Props = {
 };
 
 export default function SpeakerCard({ speaker, onEdit, onDelete }: Props) {
-  const photo = getMediaUrl(speaker.photo_path);
+  const photo = speaker.photo_url ?? getMediaUrl(speaker.photo_path);
   const role = [speaker.title, speaker.organization].filter(Boolean).join(" · ");
 
   return (

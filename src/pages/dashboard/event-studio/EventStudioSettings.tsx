@@ -15,7 +15,9 @@ function toDatetimeLocal(iso: string | null | undefined): string {
 }
 
 export default function EventStudioSettings() {
-  const { event, handleUpdate, setDeleteOpen } = useEventStudio();
+  const { event, raw, handleUpdate, reloadEvent, setDeleteOpen } = useEventStudio();
+  const scanToken = event.scan_token || raw.scan_token || null;
+  const [loadingToken, setLoadingToken] = useState(false);
 
   const baseline = useMemo(
     () => ({
@@ -111,16 +113,16 @@ export default function EventStudioSettings() {
         <p className="text-xs text-muted-foreground">
           Enter this token on <span className="font-medium">Organizer → Scanner</span> to unlock door check-in for this event.
         </p>
-        {event.scan_token ? (
+        {scanToken ? (
           <div className="flex flex-col sm:flex-row gap-2">
-            <Input readOnly value={event.scan_token} className="rounded-full font-mono text-xs" />
+            <Input readOnly value={scanToken} className="rounded-full font-mono text-xs" />
             <Button
               type="button"
               variant="outline"
               className="rounded-full shrink-0"
               onClick={async () => {
                 try {
-                  await navigator.clipboard.writeText(event.scan_token!);
+                  await navigator.clipboard.writeText(scanToken);
                   toast.success("Scan token copied");
                 } catch {
                   toast.error("Could not copy");
@@ -132,7 +134,32 @@ export default function EventStudioSettings() {
             </Button>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">Token not available — recreate or refresh the event.</p>
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">
+              No token on this event yet. Generate one to unlock door check-in.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="rounded-full"
+              disabled={loadingToken}
+              onClick={async () => {
+                setLoadingToken(true);
+                try {
+                  await reloadEvent();
+                  toast.success("Scan token ready");
+                } catch (err) {
+                  toast.error(getApiErrorMessage(err, "Couldn't generate token"));
+                } finally {
+                  setLoadingToken(false);
+                }
+              }}
+            >
+              {loadingToken ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <KeyRound className="w-4 h-4 mr-1.5" />}
+              Generate token
+            </Button>
+          </div>
         )}
       </div>
 

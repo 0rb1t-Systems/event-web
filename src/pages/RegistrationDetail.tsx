@@ -13,28 +13,23 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import QRCode from "qrcode";
 import {
   ArrowLeft, Award, CalendarDays, ExternalLink, MapPin, CheckCircle2, Clock,
-  AlertTriangle, Download, Loader2, MessageSquare, Star,
+  AlertTriangle, Download, Loader2,
   Ticket as TicketIcon, RefreshCw, XCircle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   getParticipationInvitation,
-  getParticipationFeedback,
-  submitFeedback,
   getParticipationCertificate,
   type ApiInvitationDetail,
-  type ApiFeedback,
   type ApiCertificateResult,
 } from "@/services/participationService";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { getMediaUrl } from "@/lib/mediaUrl";
 import { toast } from "sonner";
 import { ParticipantWaafiPayment } from "@/components/participant/ParticipantWaafiPayment";
-import { EventRoomExtras } from "@/components/participant/EventRoomExtras";
 import InvitationCanvasPreview, { InvitationScaled } from "@/components/invitation/InvitationCanvasPreview";
 import { INVITATION_BRAND } from "@/lib/invitationCanvas";
 import { asEventMode } from "@/lib/eventMode";
@@ -88,151 +83,6 @@ function hasValidTicket(status: Status, paymentStatus: PaymentStatus): boolean {
   if (status === "cancelled" || status === "waitlisted") return false;
   return paymentStatus === "paid" || paymentStatus === "not_required";
 }
-
-// ─── Feedback panel ───────────────────────────────────────────────────────────
-
-const StarRating = ({
-  value,
-  onChange,
-  readonly,
-}: {
-  value: number;
-  onChange?: (n: number) => void;
-  readonly?: boolean;
-}) => (
-  <div className="flex gap-1">
-    {[1, 2, 3, 4, 5].map((n) => (
-      <button
-        key={n}
-        type="button"
-        disabled={readonly}
-        onClick={() => onChange?.(n)}
-        className={`transition-transform ${readonly ? "cursor-default" : "hover:scale-110 active:scale-95"}`}
-        aria-label={`${n} star${n !== 1 ? "s" : ""}`}
-      >
-        <Star
-          className="w-7 h-7"
-          fill={n <= value ? "#FBBF24" : "none"}
-          stroke={n <= value ? "#FBBF24" : "currentColor"}
-          strokeWidth={1.5}
-        />
-      </button>
-    ))}
-  </div>
-);
-
-const FeedbackPanel = ({
-  participationId,
-  initialFeedback,
-}: {
-  participationId: number;
-  initialFeedback: ApiFeedback | null;
-}) => {
-  const [feedback, setFeedback] = useState<ApiFeedback | null>(initialFeedback);
-  const [rating, setRating] = useState(0);
-  const [comment, setComment] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (rating === 0) {
-      toast.error("Please select a rating.");
-      return;
-    }
-    setSubmitting(true);
-    try {
-      const result = await submitFeedback({
-        participation_id: participationId,
-        rating,
-        comment: comment.trim() || null,
-      });
-      setFeedback(result);
-      toast.success("Thank you for your feedback!");
-    } catch (err) {
-      toast.error(getApiErrorMessage(err, "Could not submit feedback. Please try again."));
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  // Already submitted — show read-only confirmation
-  if (feedback) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-card rounded-3xl p-6 space-y-4 shadow-sm"
-      >
-        <div className="flex items-center gap-2">
-          <MessageSquare className="w-5 h-5 text-primary" />
-          <h2 className="font-display font-semibold text-lg tracking-[-0.01em]">Your feedback</h2>
-        </div>
-        <div className="flex items-center gap-3">
-          <StarRating value={feedback.rating} readonly />
-          <span className="text-sm text-muted-foreground">{feedback.rating} / 5</span>
-        </div>
-        {feedback.comment && (
-          <p className="text-sm text-muted-foreground leading-relaxed bg-muted/40 rounded-2xl px-4 py-3">
-            {feedback.comment}
-          </p>
-        )}
-        <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-          <CheckCircle2 className="w-3.5 h-3.5" />
-          Submitted{feedback.submitted_at ? ` on ${new Date(feedback.submitted_at).toLocaleDateString()}` : ""}
-        </div>
-      </motion.div>
-    );
-  }
-
-  // Form
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="bg-card rounded-3xl p-6 space-y-4 shadow-sm"
-    >
-      <div className="flex items-center gap-2">
-        <MessageSquare className="w-5 h-5 text-primary" />
-        <h2 className="font-display font-semibold text-lg tracking-[-0.01em]">How was the event?</h2>
-      </div>
-      <p className="text-sm text-muted-foreground">Your feedback helps organizers improve future events.</p>
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-foreground/70 uppercase tracking-wider">Rating</p>
-          <StarRating value={rating} onChange={setRating} />
-          {rating > 0 && (
-            <p className="text-xs text-muted-foreground">
-              {["", "Poor", "Fair", "Good", "Very good", "Excellent"][rating]}
-            </p>
-          )}
-        </div>
-
-        <div className="space-y-1.5">
-          <p className="text-xs font-medium text-foreground/70 uppercase tracking-wider">
-            Comment <span className="normal-case font-normal text-muted-foreground">(optional)</span>
-          </p>
-          <Textarea
-            placeholder="Share your thoughts about the event…"
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            maxLength={5000}
-            rows={3}
-            className="rounded-2xl resize-none bg-muted/40 border-0 text-sm placeholder:text-muted-foreground/60 focus-visible:ring-2 focus-visible:ring-offset-0"
-          />
-        </div>
-
-        <Button
-          type="submit"
-          disabled={submitting || rating === 0}
-          className="rounded-full h-11 px-6 font-semibold"
-        >
-          {submitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting…</> : "Submit feedback"}
-        </Button>
-      </form>
-    </motion.div>
-  );
-};
 
 // ─── Certificate panel ─────────────────────────────────────────────────────────
 
@@ -379,7 +229,6 @@ export default function RegistrationDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState("");
-  const [feedback, setFeedback] = useState<ApiFeedback | null | "unloaded">("unloaded");
   const [certificate, setCertificate] = useState<ApiCertificateResult | null>(null);
 
   const printRef = useRef<HTMLDivElement>(null!);
@@ -401,29 +250,14 @@ export default function RegistrationDetail() {
         if (cancelled) return;
         setDetail(d);
 
-        const eventEnded =
-          d.event?.status === "completed" ||
-          (!!d.event?.ends_at && new Date(d.event.ends_at).getTime() < Date.now());
-
-        // Feedback after event ends; certificate still only for checked-in.
-        const tasks: PromiseSettledResult<unknown>[] = [];
-        if (eventEnded && d.status !== "cancelled") {
-          tasks.push(
-            getParticipationFeedback(numericId).then((fb) => {
-              if (!cancelled) setFeedback(fb);
-            }),
-          );
-        } else if (!cancelled) {
-          setFeedback("unloaded");
-        }
         if (d.status === "checked_in") {
-          tasks.push(
-            getParticipationCertificate(numericId).then((cert) => {
-              if (!cancelled) setCertificate(cert);
-            }),
-          );
+          try {
+            const cert = await getParticipationCertificate(numericId);
+            if (!cancelled) setCertificate(cert);
+          } catch {
+            /* optional */
+          }
         }
-        if (tasks.length) await Promise.allSettled(tasks);
       })
       .catch((err: any) => {
         if (cancelled) return;
@@ -594,9 +428,7 @@ export default function RegistrationDetail() {
   const eventTitle = detail.event?.title ?? "Event";
   const eventId = detail.event?.id;
   const invitation = detail.invitation;
-  const feedbackLoaded = feedback !== "unloaded";
-  const feedbackValue = feedbackLoaded ? feedback : null;
-  const showFeedback = eventEnded && detail.status !== "cancelled" && feedbackLoaded;
+  const showFeedbackHint = eventEnded && detail.status !== "cancelled";
 
   return (
     <div className="min-h-screen bg-background px-4 py-8 sm:py-14 overflow-x-hidden">
@@ -607,14 +439,22 @@ export default function RegistrationDetail() {
         className="max-w-2xl mx-auto space-y-6"
       >
         {/* Back */}
-        <button
-          type="button"
-          onClick={handleBack}
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors -ml-1 px-2 h-9 rounded-full hover:bg-muted"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          My tickets
-        </button>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={handleBack}
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors -ml-1 px-2 h-9 rounded-full hover:bg-muted"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            My tickets
+          </button>
+          <Link
+            to={`/registrations/${detail.id}/room`}
+            className="text-sm font-medium text-primary hover:underline"
+          >
+            Open event room
+          </Link>
+        </div>
 
         {/* Header */}
         <div className="space-y-2">
@@ -800,15 +640,6 @@ export default function RegistrationDetail() {
           </div>
         )}
 
-        {ticketValid && eventId && (
-          <EventRoomExtras
-            participationId={detail.id}
-            eventId={eventId}
-            onlineUrl={detail.event?.online_url}
-            isOnline={isOnline || eventMode === "hybrid"}
-          />
-        )}
-
         {/* ── Certificate — only for checked-in ── */}
         <AnimatePresence>
           {isCheckedIn && certificate && (
@@ -823,22 +654,16 @@ export default function RegistrationDetail() {
           )}
         </AnimatePresence>
 
-        {/* ── Feedback — after event ends ── */}
-        <AnimatePresence>
-          {showFeedback && (
-            <motion.div
-              key="feedback"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-            >
-              <FeedbackPanel
-                participationId={detail.id}
-                initialFeedback={feedbackValue}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Feedback lives in the event room after the event ends */}
+        {showFeedbackHint && (
+          <div className="rounded-3xl border border-border/60 bg-muted/30 p-4 text-center text-sm text-muted-foreground">
+            Feedback is available in the{" "}
+            <Link to={`/registrations/${detail.id}/room`} className="text-primary font-medium hover:underline">
+              event room
+            </Link>
+            .
+          </div>
+        )}
 
         {/* View event link */}
         {eventId && (

@@ -92,6 +92,13 @@ const EventDetail = () => {
     setRaw(null);
   }, []);
 
+  const reloadEvent = useCallback(async () => {
+    if (!Number.isFinite(eventId) || eventId <= 0) return;
+    const data = await getOrganizerEvent(eventId);
+    setRaw(data);
+    setDenied(false);
+  }, [eventId]);
+
   const handleUpdate = useCallback(async (fields: Record<string, unknown>) => {
     if (!raw) return;
     const body = studioPatchToWriteBody(fields);
@@ -179,9 +186,10 @@ const EventDetail = () => {
       handleUpdate,
       handleUploadCover,
       handleImagesChange,
+      reloadEvent,
       setDeleteOpen,
     };
-  }, [event, raw, eventId, categories, handleDenied, handleUpdate, handleUploadCover, handleImagesChange]);
+  }, [event, raw, eventId, categories, handleDenied, handleUpdate, handleUploadCover, handleImagesChange, reloadEvent]);
 
   if (isLoading) {
     return <div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
