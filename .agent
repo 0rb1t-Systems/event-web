@@ -1,6 +1,6 @@
 # EventHub Web App — Agent Context
 
-Last updated: 2026-08-27 — Scan token visible in Event settings
+Last updated: 2026-08-29 — Organizer Event Studio lucky wheel tab
 Repository: C:\Users\Hp\Documents\personal\event-web
 Default branch: master
 
@@ -296,7 +296,7 @@ Removed (do not restore): Lovable slug public URLs (`/register/:slug…`); produ
 PARTICIPANT (`ProtectedRoute` + `participant_token` + `/auth/me`; `DashboardLayout`):
 
 - `/dashboard` → `RoleHomeRedirect` → `/dashboard/home` only (never organizer)
-- `/dashboard/home` → AttendeeHome (My Registrations + browse)
+- `/dashboard/home` → AttendeeHome (My Registrations → **ticket** `/registrations/:id`; separate **Event room** button → `/registrations/:id/room`; browse)
 - `/dashboard/settings` → SettingsPage (profile / password / appearance)
 
 ORGANIZER (`OrganizerProtectedRoute` + `organizer_token` + `/organizer-auth/me`; `OrganizerLayout`):
@@ -348,9 +348,9 @@ Guards:
 | Platform branding | `Logo` + document title/favicon | `GET /platform/branding` (publicApi) | Yes | Admin Settings → Organization is the write UI; Web App read-only; fallback `VITE_APP_NAME` + glyph when empty |
 | Auth | existing email/password Lovable UI + verify/forgot + Continue with Google | Laravel `/auth/*` incl. `POST /auth/google/login` | Yes | participant register/login/verify/logout/me/google; admin users can use `/auth/login` as web-participant; Google needs `VITE_GOOGLE_CLIENT_ID` + Laravel `GOOGLE_CLIENT_ID` |
 | Public event page + registration | cinematic Lovable UI | `GET /events/{id}`, `GET /events/{id}/form-fields` (publicApi); `POST /participant/events/{id}/discount-codes/validate`, `POST /participant/participations` (+ optional `discount_code`), `POST /participant/payments/charge`, `GET /participant/participations/{id}` (participantApi) | Yes | Hero from `event_mode` / `why_attend` / `online_url`; tickets with `sales_enabled=false` omitted; paid flow can validate + apply discount quote before join |
-| Participant dashboard (home) | existing Lovable UI | `GET /participant/participations` list + `GET /events` browse (publicApi) | Yes | real own registrations with status badges; browse excludes registered events |
-| Registration detail (ticket) | RegistrationDetail | `GET .../invitation`, `GET .../certificate` (participantApi) | Yes | `/registrations/:id`; invitation canvas + in-person door QR + PDF print; link to event room; feedback form lives in room |
-| Event room | EventRoom | invitation + announcements/discussions via EventRoomExtras + feedback | Yes | `/registrations/:id/room`; post-register / already-registered / AttendeeHome primary destination |
+| Participant dashboard (home) | existing Lovable UI | `GET /participant/participations` list + `GET /events` browse (publicApi) | Yes | My registrations → ticket; browse shows **all** public events with event status + registration flags; registered browse cards link to room/ticket (not form) |
+| Registration detail (ticket) | RegistrationDetail | `GET .../invitation`, `GET .../certificate` (participantApi) | Yes | `/registrations/:id`; My registrations primary open target; invitation + in-person QR + PDF; **Open event room** CTA when ticket valid |
+| Event room | EventRoom | invitation + announcements/discussions via EventRoomExtras + feedback | Yes | `/registrations/:id/room`; cinematic hero + glass nav; join/announcements/ask-speaker panels; separate from ticket |
 | Organizer event studio — invitation | Event Studio branding tab | invitation-system-templates + invitation-template CRUD + background | Yes | drag overlays / resize QR; mobile preview-only; no delete route |
 | Organizer events | Events under `/organizer/events` | `GET /organizer/events` | Yes | owned events; banner, status, dates, registrations_count, monetized |
 | Organizer event create | multi-section form | `POST /organizer/events` | Yes | required `event_mode`; `online_url` when online/hybrid; `why_attend` |
@@ -359,6 +359,7 @@ Guards:
 | Organizer event studio — form | FormFieldCard/Editor + reorder | form-fields CRUD + reorder | Yes | key immutable after create |
 | Organizer event studio — content | speakers/sponsors/sessions | CRUD | Yes | speaker photo file upload (not URL); sponsor tiers; sessions timeline |
 | Attendees / registrations | Event Studio + `/organizer/attendees` | participations promote/cancel | Yes | page-only search/CSV; no auto-refund claim |
+| Lucky wheel | Event Studio `/lucky-wheel` (`LuckyWheelPanel`) | `GET/POST …/lucky-wheel` | Yes | confirmed seats only (`joined`/`paid`/`checked_in`); waitlisted + cancelled excluded; spin stores attempts + unique winners |
 | Announcements | Event Studio attendees tab | announcements GET/POST | Yes | toast includes recipient count |
 | Analytics | `/organizer/analytics` + Recharts | `GET …/analytics` | Yes | scalars only — no fabricated series |
 | QR check-in scanner | Event Studio `/scanner` (`CheckInScanner`) | `POST /organizer/qr-scan-logs/validate`; `GET …/qr-scan-logs`; `GET …/check-in-stats` | Yes | body `{ token, gate? }` only; results valid/already_used/invalid; network ≠ invalid; Wake Lock; manual token; lazy-loaded |
@@ -619,14 +620,15 @@ Documented paths (all under OrganizerLayout):
 - `/organizer/events/:id/content`
 - `/organizer/events/:id/branding` (invitation designer; `/invitation` redirects here)
 - `/organizer/events/:id/attendees` (registrations + announcements)
+- `/organizer/events/:id/lucky-wheel` (random winner picker + spin history)
 - `/organizer/events/:id/scanner` (QR check-in; `/checkin` redirects here)
 - `/organizer/events/:id/finance` (shared EventFinancePanel)
 - `/organizer/events/:id/settings` (capacity / deadline / delete)
 - `/organizer/events/:id/promotion` → redirects to overview (permanently removed)
 
-Side nav: Overview, Tickets, Registration form, Speakers & agenda, Invitation, Attendees, Check-in scanner, Finance, Settings. Branding nav label is **Invitation**. No Promotion item.
+Side nav: Overview, Tickets, Registration form, Speakers & agenda, Invitation, Attendees, Lucky wheel, Check-in scanner, Finance, Settings. Branding nav label is **Invitation**. No Promotion item.
 
-Reusable UI lives in `src/components/event-studio/` (`TicketTypeCard`, `TicketTypeForm`, `DiscountCodeForm`, `FormFieldCard`, `FormFieldEditor`, `SpeakerCard`, `SpeakerForm`, `SponsorCard`, `SponsorForm`, `SessionTimeline`, `SessionForm`, `InvitationDesigner`, `EventRegistrationsPanel`, `AnnouncementsPanel`, `EventFinancePanel`, `SubscriptionQuotaPanel`). Scanner UI: `src/components/event-detail/CheckInScanner.tsx` via `EventStudioScanner`. Shared ticket canvas: `src/components/invitation/InvitationCanvasPreview.tsx`. Overlay drag layer: `InvitationOverlayEditor.tsx`. Coordinate helpers: `src/lib/invitationCanvas.ts`.
+Reusable UI lives in `src/components/event-studio/` (`TicketTypeCard`, `TicketTypeForm`, `DiscountCodeForm`, `FormFieldCard`, `FormFieldEditor`, `SpeakerCard`, `SpeakerForm`, `SponsorCard`, `SponsorForm`, `SessionTimeline`, `SessionForm`, `InvitationDesigner`, `EventRegistrationsPanel`, `AnnouncementsPanel`, `LuckyWheelPanel`, `EventFinancePanel`, `SubscriptionQuotaPanel`). Scanner UI: `src/components/event-detail/CheckInScanner.tsx` via `EventStudioScanner`. Lucky wheel UI: `LuckyWheelPanel.tsx` via `EventStudioLuckyWheel`. Shared ticket canvas: `src/components/invitation/InvitationCanvasPreview.tsx`. Overlay drag layer: `InvitationOverlayEditor.tsx`. Coordinate helpers: `src/lib/invitationCanvas.ts`.
 
 Organizer top nav (`OrganizerLayout`): Dashboard, Events, Plans (`/organizer/subscription`), Payouts, Settings. Attendees and Analytics remain secondary URLs.
 
@@ -680,7 +682,7 @@ Ownership: cross-organizer IDs return 404. UI uses `isOrganizerEventAccessError`
 
 ## Organizer Registrations + Announcements + Analytics API Contracts Confirmed
 
-All under `/api/v1`, `organizerApi` (X-API-Key + Bearer `organizer_token`). Owned events only. Services: `src/services/organizerParticipations.ts`, `organizerAnnouncements.ts`, `organizerAnalytics.ts`.
+All under `/api/v1`, `organizerApi` (X-API-Key + Bearer `organizer_token`). Owned events only. Services: `src/services/organizerParticipations.ts`, `organizerAnnouncements.ts`, `organizerAnalytics.ts`, `organizerLuckyWheel.ts`.
 
 Participations (registrations):
 
@@ -690,6 +692,11 @@ Participations (registrations):
 - `POST /organizer/participations/{id}/cancel` — body `{ reason? }` (`nullable|string|max:500`). Does **not** claim automatic refund. UI confirms strongly and states cancellation does not auto-refund.
 
 Participation status enum: `joined | waitlisted | paid | checked_in | cancelled`. Payment status: `not_required | pending | paid | refunded | failed`.
+
+Lucky wheel:
+
+- `GET /organizer/events/{id}/lucky-wheel` — `{ event_id, participant_count, participants[], attempts[] }`. Participants = confirmed-seat registrations only (`joined`, `paid`, `checked_in` with `user` + ticket). **Waitlisted and cancelled are excluded.** Attempts include `winner_count`, `participant_count`, `created_at`, nested `winners[]` with `participation` + `user`.
+- `POST /organizer/events/{id}/lucky-wheel/spin` — body `{ winner_count }` (required int ≥ 1, must be ≤ participant count). Randomly picks that many unique winners, stores `lucky_wheel_attempts` + `lucky_wheel_winners`. Returns attempt (201). 422 when no participants or winner count too high.
 
 Announcements:
 
@@ -749,6 +756,40 @@ Routes: **main nav** `/organizer/scanner` (token unlock) and studio `/organizer/
 - Public `online_url` is hidden; registered participants see it on invitation/event room
 
 ## Change Log
+
+### 2026-08-29 — Lucky wheel excludes waitlisted participants
+
+Lucky wheel pool now uses confirmed-seat statuses only (`joined`, `paid`, `checked_in`). Waitlisted and cancelled registrations are excluded from the participant list and cannot be picked as winners. Laravel: `LuckyWheelService::eligibleParticipations()` uses `ParticipationStatus::seatOccupying()`. Web: `LuckyWheelPanel` copy updated.
+
+### 2026-08-29 — Organizer Event Studio lucky wheel
+
+New **Lucky wheel** tab under Day of. Organizer sees all non-cancelled registered participants, sets winner count (1…total), spins a wheel (animated; server picks winners), and views spin history with stored winners per attempt.
+
+Web: `EventStudioLuckyWheel.tsx`, `LuckyWheelPanel.tsx`, `organizerLuckyWheel.ts`, `EventSideNav.tsx`, `organizerStudioRoutes.ts`, `App.tsx`.
+
+Laravel (sibling repo): migration `lucky_wheel_attempts` + `lucky_wheel_winners`, `LuckyWheelService`, `OrganizerLuckyWheelController`, routes in `organizer-web-content.php`, `OrganizerLuckyWheelApiTest.php`. Run `php artisan migrate` on the API before using in dev.
+
+### 2026-08-29 — Register redirect before form flash; browse all events with flags
+
+- `/events/:id`: logged-in users with an active registration redirect to event room **during initial load** (no form flash).
+- AttendeeHome browse: show all catalog events (not hide registered); badges for event status + “You’re registered” + participation status; registered cards open room/ticket directly.
+
+Files: `Register.tsx`, `AttendeeHome.tsx`.
+
+### 2026-08-29 — Modern cinematic Event Room UI
+
+Restyled `/registrations/:id/room`: full-bleed banner hero, glass top bar, staggered live panels (join / announcements / ask speaker / feedback). Still separate from ticket + My registrations. Files: `EventRoom.tsx`, `EventRoomExtras.tsx`.
+
+### 2026-08-29 — Separate My registrations (ticket) from Event Room
+
+Client: ticket view was mixed with event room; room must stay separate from My registrations.
+
+- My registrations list opens **ticket** (`/registrations/:id`) with explicit **View ticket** + **Event room** actions (room only when paid/not_required/waitlisted).
+- Ticket page labeled “Your ticket”; **Open event room** button when valid.
+- Event room back goes to ticket (not the list as primary).
+- Post-register / already-registered on public page still enter `/registrations/:id/room`.
+
+Files: `AttendeeHome.tsx`, `RegistrationDetail.tsx`, `EventRoom.tsx`.
 
 ### 2026-08-27 — Scan token visible in Event settings
 

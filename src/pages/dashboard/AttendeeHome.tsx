@@ -1,12 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar, MapPin, Ticket, ArrowRight, RefreshCw } from "lucide-react";
+import { Calendar, MapPin, Ticket, RefreshCw } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { listParticipations, type ApiParticipation } from "@/services/participationService";
 import { publicApi } from "@/lib/api";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { getMediaUrl } from "@/lib/mediaUrl";
+import { EVENT_STATUS_LABELS } from "@/lib/organizerEventAdapters";
 import type { PublicEventCatalogItem, PublicEventCatalogResponse } from "@/lib/publicEventsAdapters";
 
 function formatDate(iso: string | null | undefined) {
@@ -21,7 +22,7 @@ function formatDate(iso: string | null | undefined) {
   });
 }
 
-function statusBadge(p: ApiParticipation) {
+function participationBadge(p: ApiParticipation) {
   const s = p.status;
   const ps = p.payment_status;
   if (s === "cancelled") return { label: "Cancelled", color: "bg-muted text-muted-foreground" };
@@ -33,10 +34,50 @@ function statusBadge(p: ApiParticipation) {
   return { label: s, color: "bg-muted text-muted-foreground" };
 }
 
+function eventStatusBadge(status: string | null | undefined) {
+  const key = status ?? "";
+  const label = EVENT_STATUS_LABELS[key] ?? key.replace(/_/g, " ") ?? "Event";
+  switch (key) {
+    case "registration_open":
+      return { label, color: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300" };
+    case "ongoing":
+      return { label, color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" };
+    case "sold_out":
+      return { label, color: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300" };
+    case "registration_closed":
+    case "completed":
+      return { label, color: "bg-muted text-muted-foreground" };
+    case "published":
+      return { label, color: "bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300" };
+    default:
+      return { label, color: "bg-muted text-muted-foreground" };
+  }
+}
+
 function isUpcoming(p: ApiParticipation) {
   const starts = p.event?.starts_at;
   if (!starts) return true;
   return new Date(starts) > new Date();
+}
+
+function canEnterEventRoom(p: ApiParticipation) {
+  if (p.status === "cancelled") return false;
+  return p.payment_status === "paid" || p.payment_status === "not_required" || p.status === "waitlisted";
+}
+
+function registrationPrimaryHref(p: ApiParticipation) {
+  if (canEnterEventRoom(p)) return `/registrations/${p.id}/room`;
+  return `/registrations/${p.id}`;
+}
+
+function browseEventHref(eventId: number, participation: ApiParticipation | undefined) {
+  if (!participation || participation.status === "cancelled") {
+    return `/events/${eventId}`;
+  }
+  if (canEnterEventRoom(participation)) {
+    return `/registrations/${participation.id}/room`;
+  }
+  return `/registrations/${participation.id}`;
 }
 
 export default function AttendeeHome() {
@@ -50,7 +91,16 @@ export default function AttendeeHome() {
   const [browseEvents, setBrowseEvents] = useState<PublicEventCatalogItem[]>([]);
   const [browseLoading, setBrowseLoading] = useState(true);
 
-  // Fetch own registrations
+  const participationByEventId = useMemo(() => {
+    const map = new Map<number, ApiParticipation>();
+    for (const p of participations) {
+      if (!map.has(p.event_id) || p.status !== "cancelled") {
+        map.set(p.event_id, p);
+      }
+    }
+    return map;
+  }, [participations]);
+
   useEffect(() => {
     let cancelled = false;
     setTicketsLoading(true);
@@ -61,7 +111,7 @@ export default function AttendeeHome() {
         if (cancelled) return;
         setParticipations(items);
       })
-      .catch((err: any) => {
+      .catch((err: unknown) => {
         if (cancelled) return;
         setTicketsError(getApiErrorMessage(err) || "Couldn't load your registrations.");
       })
@@ -73,19 +123,15 @@ export default function AttendeeHome() {
     return () => { cancelled = true; };
   }, []);
 
-  // Fetch public catalog for Browse section
   useEffect(() => {
     let cancelled = false;
     setBrowseLoading(true);
 
     publicApi
-      .get<PublicEventCatalogResponse>("/events", { params: { per_page: 6 } })
+      .get<PublicEventCatalogResponse>("/events", { params: { per_page: 24 } })
       .then((resp) => {
         if (cancelled) return;
-        const registeredIds = new Set(participations.map((p) => p.event_id));
-        setBrowseEvents(
-          (resp.data.data ?? []).filter((e) => !registeredIds.has(e.id)),
-        );
+        setBrowseEvents(resp.data.data ?? []);
       })
       .catch(() => {
         if (cancelled) return;
@@ -97,15 +143,11 @@ export default function AttendeeHome() {
       });
 
     return () => { cancelled = true; };
-    // Re-run when participations change so already-registered events are excluded
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [participations]);
+  }, []);
 
   const upcoming = participations.filter((p) => p.status !== "cancelled" && isUpcoming(p));
   const past = participations.filter((p) => p.status !== "cancelled" && !isUpcoming(p));
   const cancelled = participations.filter((p) => p.status === "cancelled");
-
-  // Show all non-cancelled first, then cancelled at the bottom
   const displayTickets = [...upcoming, ...past, ...cancelled];
 
   return (
@@ -115,11 +157,10 @@ export default function AttendeeHome() {
           {firstName ? `Hi, ${firstName}` : "Your events"}
         </h1>
         <p className="text-muted-foreground text-sm sm:text-base">
-          Tickets you've registered for and live events you can join.
+          Your tickets live here. Browse shows every public event — yours are flagged with your registration status.
         </p>
       </header>
 
-      {/* My Registrations */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-xl sm:text-2xl tracking-[-0.02em]">My registrations</h2>
@@ -146,44 +187,68 @@ export default function AttendeeHome() {
         ) : displayTickets.length > 0 ? (
           <ul className="grid gap-3">
             {displayTickets.map((p) => {
-              const badge = statusBadge(p);
+              const regBadge = participationBadge(p);
+              const evtBadge = eventStatusBadge(p.event?.status);
               const coverPath = p.event?.banner_path;
               const coverUrl = p.event?.banner_url ?? (coverPath ? getMediaUrl(coverPath) : null);
               const isCancelled = p.status === "cancelled";
+              const cardHref = registrationPrimaryHref(p);
               return (
                 <li key={p.id} className="min-w-0">
-                  <Link
-                    to={`/registrations/${p.id}/room`}
-                    className={`group flex items-stretch gap-4 p-4 rounded-2xl bg-card hover:bg-muted/50 transition-colors min-w-0 overflow-hidden ${isCancelled ? "opacity-60" : ""}`}
+                  <div
+                    className={`flex flex-col sm:flex-row sm:items-stretch gap-3 p-4 rounded-2xl bg-card min-w-0 overflow-hidden ${
+                      isCancelled ? "opacity-60" : ""
+                    }`}
                   >
-                    <div
-                      className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-muted shrink-0 flex items-center justify-center overflow-hidden"
-                      style={coverUrl ? { backgroundImage: `url(${coverUrl})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
+                    <Link
+                      to={cardHref}
+                      className="group flex items-stretch gap-4 flex-1 min-w-0"
                     >
-                      {!coverUrl && <Ticket className="w-6 h-6 text-muted-foreground" />}
-                    </div>
-                    <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
-                      <div className="font-display text-base sm:text-lg tracking-[-0.01em] truncate">
-                        {p.event?.title ?? "Event"}
+                      <div
+                        className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-muted shrink-0 flex items-center justify-center overflow-hidden"
+                        style={coverUrl ? { backgroundImage: `url(${coverUrl})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
+                      >
+                        {!coverUrl && <Ticket className="w-6 h-6 text-muted-foreground" />}
                       </div>
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground min-w-0">
-                        <span className="flex items-center gap-1.5 min-w-0">
-                          <Calendar className="w-3 h-3 shrink-0" />
-                          <span className="truncate">{formatDate(p.event?.starts_at)}</span>
-                        </span>
-                        {p.event?.address && (
+                      <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5">
+                        <div className="font-display text-base sm:text-lg tracking-[-0.01em] truncate group-hover:underline underline-offset-2">
+                          {p.event?.title ?? "Event"}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground min-w-0">
                           <span className="flex items-center gap-1.5 min-w-0">
-                            <MapPin className="w-3 h-3 shrink-0" />
-                            <span className="truncate">{p.event.address}</span>
+                            <Calendar className="w-3 h-3 shrink-0" />
+                            <span className="truncate">{formatDate(p.event?.starts_at)}</span>
                           </span>
-                        )}
+                          {p.event?.address && (
+                            <span className="flex items-center gap-1.5 min-w-0">
+                              <MapPin className="w-3 h-3 shrink-0" />
+                              <span className="truncate">{p.event.address}</span>
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${regBadge.color}`}>
+                            {regBadge.label}
+                          </span>
+                          {p.event?.status && (
+                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${evtBadge.color}`}>
+                              {evtBadge.label}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <span className={`self-start text-[10px] font-semibold px-2 py-0.5 rounded-full ${badge.color}`}>
-                        {badge.label}
-                      </span>
+                    </Link>
+
+                    <div className="flex sm:flex-col gap-2 sm:justify-center shrink-0">
+                      <Link
+                        to={`/registrations/${p.id}`}
+                        className="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-full text-xs font-semibold bg-muted hover:bg-muted/80 text-foreground transition-colors"
+                      >
+                        <Ticket className="w-3.5 h-3.5" />
+                        View ticket
+                      </Link>
                     </div>
-                    <ArrowRight className="w-4 h-4 shrink-0 self-center text-muted-foreground group-hover:text-foreground transition-colors" />
-                  </Link>
+                  </div>
                 </li>
               );
             })}
@@ -191,12 +256,11 @@ export default function AttendeeHome() {
         ) : (
           <div className="rounded-2xl bg-muted/40 p-8 text-center">
             <Ticket className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
-            <p className="text-sm text-muted-foreground">You haven't registered for any events yet.</p>
+            <p className="text-sm text-muted-foreground">You haven&apos;t registered for any events yet.</p>
           </div>
         )}
       </section>
 
-      {/* Browse */}
       <section className="space-y-4">
         <h2 className="font-display text-xl sm:text-2xl tracking-[-0.02em]">Browse events</h2>
 
@@ -211,18 +275,45 @@ export default function AttendeeHome() {
                 e.banner_url ??
                 (e.banner_path ? getMediaUrl(e.banner_path) : null) ??
                 (e.images?.[0]?.path ? getMediaUrl(e.images[0].path) : null);
+              const participation = participationByEventId.get(e.id);
+              const registered = participation && participation.status !== "cancelled";
+              const evtBadge = eventStatusBadge(e.status);
+              const regBadge = registered ? participationBadge(participation) : null;
+              const href = browseEventHref(e.id, participation);
+
               return (
                 <li key={e.id} className="min-w-0">
                   <Link
-                    to={`/events/${e.id}`}
+                    to={href}
                     className="group block rounded-2xl bg-card hover:bg-muted/50 transition-colors overflow-hidden min-w-0"
                   >
-                    <div
-                      className="aspect-[16/9] bg-muted"
-                      style={bg ? { backgroundImage: `url(${bg})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
-                    />
+                    <div className="relative aspect-[16/9] bg-muted">
+                      {bg && (
+                        <div
+                          className="absolute inset-0"
+                          style={{ backgroundImage: `url(${bg})`, backgroundSize: "cover", backgroundPosition: "center" }}
+                        />
+                      )}
+                      <div className="absolute inset-x-0 top-0 p-2.5 flex flex-wrap gap-1.5">
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full backdrop-blur-sm ${evtBadge.color}`}>
+                          {evtBadge.label}
+                        </span>
+                        {registered && regBadge && (
+                          <>
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary text-primary-foreground">
+                              You&apos;re registered
+                            </span>
+                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full backdrop-blur-sm ${regBadge.color}`}>
+                              {regBadge.label}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
                     <div className="p-4 space-y-1 min-w-0">
-                      <div className="font-display text-base tracking-[-0.01em] truncate">{e.title}</div>
+                      <div className="font-display text-base tracking-[-0.01em] truncate group-hover:underline underline-offset-2">
+                        {e.title}
+                      </div>
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground min-w-0">
                         <span className="flex items-center gap-1.5 min-w-0">
                           <Calendar className="w-3 h-3 shrink-0" />

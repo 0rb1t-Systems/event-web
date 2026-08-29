@@ -438,7 +438,7 @@ export default function RegistrationDetail() {
         transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
         className="max-w-2xl mx-auto space-y-6"
       >
-        {/* Back */}
+        {/* Back + enter room (room is a separate page from this ticket) */}
         <div className="flex flex-wrap items-center justify-between gap-2">
           <button
             type="button"
@@ -446,15 +446,20 @@ export default function RegistrationDetail() {
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors -ml-1 px-2 h-9 rounded-full hover:bg-muted"
           >
             <ArrowLeft className="w-4 h-4" />
-            My tickets
+            My registrations
           </button>
-          <Link
-            to={`/registrations/${detail.id}/room`}
-            className="text-sm font-medium text-primary hover:underline"
-          >
-            Open event room
-          </Link>
+          {ticketValid && (
+            <Button asChild className="rounded-full" size="sm">
+              <Link to={`/registrations/${detail.id}/room`}>
+                Open event room
+              </Link>
+            </Button>
+          )}
         </div>
+
+        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+          Your ticket
+        </p>
 
         {/* Header */}
         <div className="space-y-2">

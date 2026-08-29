@@ -33,6 +33,7 @@ const EventStudioContent = lazy(() => import("./pages/dashboard/event-studio/Eve
 const EventStudioBranding = lazy(() => import("./pages/dashboard/event-studio/EventStudioBranding"));
 const EventStudioSettings = lazy(() => import("./pages/dashboard/event-studio/EventStudioSettings"));
 const EventStudioAttendees = lazy(() => import("./pages/dashboard/event-studio/EventStudioAttendees"));
+const EventStudioLuckyWheel = lazy(() => import("./pages/dashboard/event-studio/EventStudioLuckyWheel"));
 const EventStudioFinance = lazy(() => import("./pages/dashboard/event-studio/EventStudioFinance"));
 const EventStudioScanner = lazy(() => import("./pages/dashboard/event-studio/EventStudioScanner"));
 const AttendeeHome = lazy(() => import("./pages/dashboard/AttendeeHome"));
@@ -163,6 +164,7 @@ const App = () => (
                                 <Route path="invitation" element={<EventStudioInvitationRedirect />} />
                                 <Route path="promotion" element={<Navigate to=".." relative="path" replace />} />
                                 <Route path="attendees" element={<EventStudioAttendees />} />
+                                <Route path="lucky-wheel" element={<EventStudioLuckyWheel />} />
                                 <Route path="scanner" element={<EventStudioScanner />} />
                                 <Route path="checkin" element={<EventStudioCheckInRedirect />} />
                                 <Route path="finance" element={<EventStudioFinance />} />

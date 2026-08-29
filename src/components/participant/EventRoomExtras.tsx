@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { ExternalLink, Loader2, Megaphone, MessageCircle, Pencil, Trash2, Send } from "lucide-react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { ExternalLink, Loader2, Megaphone, MessageCircle, Pencil, Trash2, Send, Video } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,6 +33,42 @@ type Props = {
   isOnline: boolean;
 };
 
+function Panel({
+  icon,
+  title,
+  subtitle,
+  children,
+  accent = "muted",
+}: {
+  icon: ReactNode;
+  title: string;
+  subtitle?: string;
+  children: ReactNode;
+  accent?: "muted" | "primary" | "live";
+}) {
+  const accentCls =
+    accent === "primary"
+      ? "bg-primary/10 text-primary"
+      : accent === "live"
+        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+        : "bg-muted text-muted-foreground";
+
+  return (
+    <section className="rounded-[1.75rem] border border-border/50 bg-card/90 backdrop-blur-sm p-5 sm:p-6 space-y-4 shadow-sm">
+      <header className="flex items-start gap-3">
+        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${accentCls}`}>
+          {icon}
+        </span>
+        <div className="min-w-0 pt-0.5">
+          <h2 className="font-display font-semibold text-lg tracking-[-0.01em]">{title}</h2>
+          {subtitle && <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{subtitle}</p>}
+        </div>
+      </header>
+      {children}
+    </section>
+  );
+}
+
 export function EventRoomExtras({ participationId, eventId, onlineUrl, isOnline }: Props) {
   const [announcements, setAnnouncements] = useState<ApiAnnouncement[]>([]);
   const [discussions, setDiscussions] = useState<ApiDiscussion[]>([]);
@@ -57,7 +93,6 @@ export function EventRoomExtras({ participationId, eventId, onlineUrl, isOnline 
   }, [refresh]);
 
   useEffect(() => {
-    // Speakers come from public event show (already registered participant can load).
     publicApi
       .get<WrappedSuccess<{ speakers?: SpeakerOption[] }>>(`/events/${eventId}`)
       .then((resp) => {
@@ -119,55 +154,68 @@ export function EventRoomExtras({ participationId, eventId, onlineUrl, isOnline 
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {isOnline && onlineUrl && (
-        <div className="bg-card rounded-3xl p-5 sm:p-6 space-y-3 shadow-sm">
-          <h2 className="font-display font-semibold text-lg">Join online</h2>
-          <p className="text-sm text-muted-foreground">
-            Your meeting link is available here after registration.
-          </p>
-          <Button asChild className="rounded-full">
-            <a href={onlineUrl} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="w-4 h-4 mr-2" />
-              Open meeting link
-            </a>
-          </Button>
-        </div>
+        <section className="relative overflow-hidden rounded-[1.75rem] border border-primary/20 bg-gradient-to-br from-primary/15 via-card to-card p-5 sm:p-7 shadow-sm">
+          <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-primary/20 blur-2xl pointer-events-none" />
+          <div className="relative flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
+              <Video className="w-5 h-5" />
+            </span>
+            <div className="flex-1 min-w-0 space-y-1">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Live session</p>
+              <h2 className="font-display font-semibold text-xl tracking-[-0.02em]">Join online</h2>
+              <p className="text-sm text-muted-foreground">
+                Your meeting link stays private here after registration.
+              </p>
+            </div>
+            <Button asChild size="lg" className="rounded-full h-12 px-6 shrink-0 font-semibold">
+              <a href={onlineUrl} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Open meeting
+              </a>
+            </Button>
+          </div>
+        </section>
       )}
 
-      <div className="bg-card rounded-3xl p-5 sm:p-6 space-y-3 shadow-sm">
-        <div className="flex items-center gap-2">
-          <Megaphone className="w-4 h-4 text-muted-foreground" />
-          <h2 className="font-display font-semibold text-lg">Announcements</h2>
-        </div>
+      <Panel
+        icon={<Megaphone className="w-5 h-5" />}
+        title="Announcements"
+        subtitle="Updates from the organizer appear here first"
+        accent="primary"
+      >
         {announcements.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No announcements yet.</p>
+          <div className="rounded-2xl border border-dashed border-border/70 bg-muted/20 px-4 py-8 text-center">
+            <p className="text-sm text-muted-foreground">No announcements yet — check back soon.</p>
+          </div>
         ) : (
-          <ul className="space-y-3">
+          <ul className="space-y-2.5">
             {announcements.map((a) => (
-              <li key={a.id} className="rounded-2xl bg-muted/40 p-3">
-                <p className="text-sm font-medium">{a.subject}</p>
-                <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{a.body}</p>
+              <li
+                key={a.id}
+                className="rounded-2xl bg-muted/35 hover:bg-muted/50 transition-colors px-4 py-3.5 space-y-1"
+              >
+                <p className="text-sm font-medium tracking-[-0.01em]">{a.subject}</p>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{a.body}</p>
               </li>
             ))}
           </ul>
         )}
-      </div>
+      </Panel>
 
-      <div className="bg-card rounded-3xl p-5 sm:p-6 space-y-4 shadow-sm">
-        <div className="flex items-center gap-2">
-          <MessageCircle className="w-4 h-4 text-muted-foreground" />
-          <h2 className="font-display font-semibold text-lg">Ask a speaker</h2>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Questions go to the organizer. Speakers answer live — you will not see other participants&apos; questions.
-        </p>
-        <div className="space-y-2">
+      <Panel
+        icon={<MessageCircle className="w-5 h-5" />}
+        title="Ask a speaker"
+        subtitle="Questions go to the organizer. You won’t see other participants’ questions."
+        accent="live"
+      >
+        <div className="space-y-3">
           {speakers.length > 0 && (
             <div className="space-y-1.5">
               <Label className="text-xs">Speaker (optional)</Label>
               <Select value={speakerId || "none"} onValueChange={(v) => setSpeakerId(v === "none" ? "" : v)}>
-                <SelectTrigger className="rounded-full">
+                <SelectTrigger className="rounded-full bg-muted/30 border-0">
                   <SelectValue placeholder="Any / general" />
                 </SelectTrigger>
                 <SelectContent>
@@ -186,11 +234,11 @@ export function EventRoomExtras({ participationId, eventId, onlineUrl, isOnline 
             onChange={(e) => setBody(e.target.value)}
             placeholder="Your question…"
             rows={3}
-            className="rounded-2xl"
+            className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-2 min-h-[96px]"
           />
           <Button
             type="button"
-            className="rounded-full"
+            className="rounded-full h-11 px-5"
             disabled={busy || !body.trim()}
             onClick={() => void handleAsk()}
           >
@@ -200,16 +248,16 @@ export function EventRoomExtras({ participationId, eventId, onlineUrl, isOnline 
         </div>
 
         {discussions.length > 0 && (
-          <ul className="space-y-3 pt-2 border-t border-border/60">
+          <ul className="space-y-2.5 pt-4 border-t border-border/50">
             {discussions.map((d) => (
-              <li key={d.id} className="rounded-2xl bg-muted/30 p-3 space-y-2">
+              <li key={d.id} className="rounded-2xl bg-muted/30 px-4 py-3 space-y-2">
                 {editingId === d.id ? (
                   <>
                     <Textarea
                       value={editBody}
                       onChange={(e) => setEditBody(e.target.value)}
                       rows={2}
-                      className="rounded-2xl"
+                      className="rounded-2xl bg-background/60 border-0"
                     />
                     <div className="flex gap-2">
                       <Button size="sm" className="rounded-full" disabled={busy} onClick={() => void handleSaveEdit(d.id)}>
@@ -222,17 +270,17 @@ export function EventRoomExtras({ participationId, eventId, onlineUrl, isOnline 
                   </>
                 ) : (
                   <>
-                    <p className="text-sm whitespace-pre-wrap">{d.body}</p>
+                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{d.body}</p>
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-[11px] text-muted-foreground">
                         {d.speaker?.name ? `To ${d.speaker.name}` : "General"} · {d.status}
                       </p>
-                      <div className="flex gap-1">
+                      <div className="flex gap-0.5">
                         <Button
                           type="button"
                           size="icon"
                           variant="ghost"
-                          className="h-8 w-8"
+                          className="h-8 w-8 rounded-full"
                           onClick={() => {
                             setEditingId(d.id);
                             setEditBody(d.body);
@@ -244,7 +292,7 @@ export function EventRoomExtras({ participationId, eventId, onlineUrl, isOnline 
                           type="button"
                           size="icon"
                           variant="ghost"
-                          className="h-8 w-8 text-destructive"
+                          className="h-8 w-8 rounded-full text-destructive"
                           disabled={busy}
                           onClick={() => void handleDelete(d.id)}
                         >
@@ -258,7 +306,7 @@ export function EventRoomExtras({ participationId, eventId, onlineUrl, isOnline 
             ))}
           </ul>
         )}
-      </div>
+      </Panel>
     </div>
   );
 }

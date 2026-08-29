@@ -15,15 +15,17 @@ import {
   MapPin,
   MessageSquare,
   RefreshCw,
+  Sparkles,
   Ticket as TicketIcon,
   Video,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
 import { EventRoomExtras } from "@/components/participant/EventRoomExtras";
+import { Reveal, StaggerGroup, StaggerItem } from "@/components/motion/Reveal";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { getMediaUrl } from "@/lib/mediaUrl";
 import { asEventMode } from "@/lib/eventMode";
@@ -60,16 +62,16 @@ function StarRating({
   readonly?: boolean;
 }) {
   return (
-    <div className="flex gap-1">
+    <div className="flex gap-1.5">
       {[1, 2, 3, 4, 5].map((n) => (
         <button
           key={n}
           type="button"
           disabled={readonly}
           onClick={() => onChange?.(n)}
-          className={`text-xl leading-none ${readonly ? "cursor-default" : "cursor-pointer"} ${
-            n <= value ? "text-amber-400" : "text-muted-foreground/30"
-          }`}
+          className={`text-2xl leading-none transition-transform ${
+            readonly ? "cursor-default" : "cursor-pointer hover:scale-110 active:scale-95"
+          } ${n <= value ? "text-amber-400" : "text-muted-foreground/25"}`}
           aria-label={`${n} stars`}
         >
           ★
@@ -115,41 +117,52 @@ function FeedbackBlock({
 
   if (feedback) {
     return (
-      <div className="bg-card rounded-3xl p-5 sm:p-6 space-y-3 shadow-sm">
-        <div className="flex items-center gap-2">
-          <MessageSquare className="w-4 h-4 text-muted-foreground" />
-          <h2 className="font-display font-semibold text-lg">Your feedback</h2>
+      <div className="rounded-[1.75rem] border border-border/50 bg-card/80 backdrop-blur-sm p-6 sm:p-7 space-y-4 shadow-sm">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+            <CheckCircle2 className="w-5 h-5" />
+          </span>
+          <div>
+            <h2 className="font-display font-semibold text-lg tracking-[-0.01em]">Your feedback</h2>
+            <p className="text-xs text-muted-foreground">Thanks for helping improve future events</p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <StarRating value={feedback.rating} readonly />
-          <span className="text-sm text-muted-foreground">{feedback.rating} / 5</span>
+          <span className="text-sm text-muted-foreground tabular-nums">{feedback.rating} / 5</span>
         </div>
         {feedback.comment && (
-          <p className="text-sm text-muted-foreground whitespace-pre-wrap">{feedback.comment}</p>
+          <p className="text-sm text-muted-foreground whitespace-pre-wrap rounded-2xl bg-muted/40 px-4 py-3">
+            {feedback.comment}
+          </p>
         )}
-        <p className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-          <CheckCircle2 className="w-3.5 h-3.5" /> Submitted
-        </p>
       </div>
     );
   }
 
   return (
-    <form onSubmit={(e) => void handleSubmit(e)} className="bg-card rounded-3xl p-5 sm:p-6 space-y-4 shadow-sm">
-      <div className="flex items-center gap-2">
-        <MessageSquare className="w-4 h-4 text-muted-foreground" />
-        <h2 className="font-display font-semibold text-lg">How was the event?</h2>
+    <form
+      onSubmit={(e) => void handleSubmit(e)}
+      className="rounded-[1.75rem] border border-border/50 bg-card/80 backdrop-blur-sm p-6 sm:p-7 space-y-5 shadow-sm"
+    >
+      <div className="flex items-center gap-3">
+        <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <MessageSquare className="w-5 h-5" />
+        </span>
+        <div>
+          <h2 className="font-display font-semibold text-lg tracking-[-0.01em]">How was the event?</h2>
+          <p className="text-xs text-muted-foreground">Only you and the organizer see this</p>
+        </div>
       </div>
-      <p className="text-sm text-muted-foreground">Share a rating after the event ends. Only you and the organizer see it.</p>
       <StarRating value={rating} onChange={setRating} />
       <Textarea
         value={comment}
         onChange={(e) => setComment(e.target.value)}
         placeholder="Optional comment…"
         rows={3}
-        className="rounded-2xl"
+        className="rounded-2xl bg-muted/30 border-0 focus-visible:ring-2"
       />
-      <Button type="submit" className="rounded-full" disabled={submitting || rating === 0}>
+      <Button type="submit" className="rounded-full h-11 px-6" disabled={submitting || rating === 0}>
         {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
         Submit feedback
       </Button>
@@ -161,6 +174,7 @@ export default function EventRoom() {
   const { registrationId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const reduceMotion = useReducedMotion();
 
   const [detail, setDetail] = useState<ApiInvitationDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -228,8 +242,9 @@ export default function EventRoom() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Opening your event room…</p>
       </div>
     );
   }
@@ -237,12 +252,12 @@ export default function EventRoom() {
   if (error || !detail) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4 bg-background">
-        <div className="max-w-md w-full bg-card rounded-3xl p-10 text-center space-y-4">
+        <div className="max-w-md w-full rounded-[1.75rem] border border-border/60 bg-card p-10 text-center space-y-4 shadow-sm">
           <TicketIcon className="w-10 h-10 mx-auto text-muted-foreground" />
-          <h1 className="text-2xl font-display font-bold">Event room unavailable</h1>
+          <h1 className="text-2xl font-display font-bold tracking-[-0.02em]">Event room unavailable</h1>
           <p className="text-sm text-muted-foreground">{error ?? "Registration not found."}</p>
-          <Button variant="outline" className="rounded-full" onClick={() => navigate("/dashboard/home")}>
-            <ArrowLeft className="w-4 h-4 mr-2" /> My registrations
+          <Button variant="outline" className="rounded-full" onClick={() => navigate(`/registrations/${registrationId}`)}>
+            <ArrowLeft className="w-4 h-4 mr-2" /> View ticket
           </Button>
         </div>
       </div>
@@ -263,107 +278,140 @@ export default function EventRoom() {
     detail.status !== "cancelled" &&
     detail.status !== "waitlisted" &&
     (detail.payment_status === "paid" || detail.payment_status === "not_required");
+  const firstName = user?.name?.split(" ")[0];
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="relative h-40 sm:h-52 bg-muted overflow-hidden">
+      {/* Cinematic hero */}
+      <section className="relative min-h-[48vh] sm:min-h-[52vh] overflow-hidden">
         {banner ? (
-          <img src={banner} alt="" className="w-full h-full object-cover" />
+          <motion.img
+            src={banner}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+            initial={reduceMotion ? false : { scale: 1.06 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+          />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-primary/20 via-muted to-background" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_hsl(var(--primary)/0.28),_transparent_55%),linear-gradient(160deg,_hsl(var(--muted))_0%,_hsl(var(--background))_70%)]" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
-      </div>
+        <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/35 to-background" />
+        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-background to-transparent" />
 
-      <div className="max-w-2xl mx-auto px-4 -mt-16 relative z-10 pb-16 space-y-6">
-        <button
-          type="button"
-          onClick={() => navigate("/dashboard/home")}
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors px-2 h-9 rounded-full hover:bg-muted"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          My registrations
-        </button>
-
-        <div className="bg-card rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
-          <div className="space-y-1">
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
-              Event room
-            </p>
-            <h1 className="font-display font-bold text-2xl sm:text-3xl tracking-[-0.02em] leading-tight">
-              {eventTitle}
-            </h1>
-            {user?.name && (
-              <p className="text-sm text-muted-foreground">Welcome, {user.name}</p>
-            )}
-          </div>
-
-          <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-            {event?.starts_at && (
-              <span className="inline-flex items-center gap-1.5">
-                <CalendarDays className="w-4 h-4" />
-                {fmtDate(event.starts_at)}
-              </span>
-            )}
-            {isOnline ? (
-              <span className="inline-flex items-center gap-1.5">
-                <Video className="w-4 h-4" />
-                Online event
-              </span>
-            ) : event?.city || event?.address ? (
-              <span className="inline-flex items-center gap-1.5">
-                <MapPin className="w-4 h-4" />
-                {event.city || event.address}
-              </span>
-            ) : null}
-          </div>
-
-          <div className="flex flex-wrap gap-2 pt-1">
-            <Button asChild className="rounded-full" variant="outline" size="sm">
-              <Link to={`/registrations/${detail.id}`}>
-                <TicketIcon className="w-3.5 h-3.5 mr-1.5" />
-                View ticket
-              </Link>
-            </Button>
-            <Button
+        {/* Glass top bar */}
+        <div className="absolute inset-x-0 top-0 z-20">
+          <div className="max-w-3xl mx-auto px-4 pt-4 sm:pt-5 flex items-center justify-between gap-2">
+            <button
               type="button"
-              variant="ghost"
-              size="sm"
-              className="rounded-full"
-              onClick={() => load()}
+              onClick={() => navigate("/dashboard/home")}
+              className="inline-flex items-center gap-1.5 text-sm text-white/90 hover:text-white transition-colors px-3 h-9 rounded-full bg-white/10 backdrop-blur-md border border-white/15"
             >
-              <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
-              Refresh
-            </Button>
+              <ArrowLeft className="w-4 h-4" />
+              My registrations
+            </button>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="rounded-full h-9 text-white/90 hover:text-white hover:bg-white/10"
+                onClick={() => load()}
+              >
+                <RefreshCw className="w-3.5 h-3.5 sm:mr-1.5" />
+                <span className="hidden sm:inline">Refresh</span>
+              </Button>
+              <Button asChild size="sm" className="rounded-full h-9 bg-white text-foreground hover:bg-white/90">
+                <Link to={`/registrations/${detail.id}`}>
+                  <TicketIcon className="w-3.5 h-3.5 mr-1.5" />
+                  View ticket
+                </Link>
+              </Button>
+            </div>
           </div>
         </div>
 
+        {/* Hero copy */}
+        <div className="relative z-10 max-w-3xl mx-auto px-4 pt-24 sm:pt-28 pb-16 sm:pb-20">
+          <motion.div
+            initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+            className="space-y-5"
+          >
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/12 backdrop-blur-md border border-white/20 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/90">
+              <Sparkles className="w-3.5 h-3.5" />
+              Event room
+            </div>
+            <h1 className="font-display font-bold text-3xl sm:text-5xl tracking-[-0.03em] leading-[1.05] text-white max-w-2xl drop-shadow-sm">
+              {eventTitle}
+            </h1>
+            {firstName && (
+              <p className="text-base sm:text-lg text-white/80">
+                Welcome in, {firstName} — this is your live hub for the event.
+              </p>
+            )}
+            <div className="flex flex-wrap gap-2 pt-1">
+              {event?.starts_at && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/12 backdrop-blur-md border border-white/15 px-3 py-1.5 text-xs text-white/90">
+                  <CalendarDays className="w-3.5 h-3.5" />
+                  {fmtDate(event.starts_at)}
+                </span>
+              )}
+              {isOnline ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/12 backdrop-blur-md border border-white/15 px-3 py-1.5 text-xs text-white/90">
+                  <Video className="w-3.5 h-3.5" />
+                  Online
+                </span>
+              ) : event?.city || event?.address ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/12 backdrop-blur-md border border-white/15 px-3 py-1.5 text-xs text-white/90">
+                  <MapPin className="w-3.5 h-3.5" />
+                  {event.city || event.address}
+                </span>
+              ) : null}
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Live features */}
+      <div className="relative z-10 max-w-3xl mx-auto px-4 -mt-6 sm:-mt-8 pb-20 space-y-5">
         {detail.status === "waitlisted" && (
-          <div className="rounded-3xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-900 dark:text-amber-200">
-            You are on the waitlist. Room features unlock when you get a confirmed seat.
-          </div>
+          <Reveal>
+            <div className="rounded-[1.5rem] border border-amber-500/25 bg-amber-500/10 backdrop-blur-sm p-4 sm:p-5 text-sm text-amber-950 dark:text-amber-100">
+              You are on the waitlist. Room features unlock when you get a confirmed seat.
+            </div>
+          </Reveal>
         )}
 
         {detail.status === "cancelled" && (
-          <div className="rounded-3xl border border-destructive/30 bg-destructive/10 p-4 text-sm">
-            This registration was cancelled.
-          </div>
+          <Reveal>
+            <div className="rounded-[1.5rem] border border-destructive/25 bg-destructive/10 p-4 sm:p-5 text-sm">
+              This registration was cancelled.
+            </div>
+          </Reveal>
         )}
 
         {ticketValid && eventId && (
-          <EventRoomExtras
-            participationId={detail.id}
-            eventId={eventId}
-            onlineUrl={event?.online_url}
-            isOnline={isOnline}
-          />
+          <StaggerGroup className="space-y-5" amount={0.12}>
+            <StaggerItem>
+              <EventRoomExtras
+                participationId={detail.id}
+                eventId={eventId}
+                onlineUrl={event?.online_url}
+                isOnline={isOnline}
+              />
+            </StaggerItem>
+          </StaggerGroup>
         )}
 
         {showFeedback && (
-          <FeedbackBlock
-            participationId={detail.id}
-            initialFeedback={feedback === "unloaded" ? null : feedback}
-          />
+          <Reveal delay={0.08}>
+            <FeedbackBlock
+              participationId={detail.id}
+              initialFeedback={feedback === "unloaded" ? null : feedback}
+            />
+          </Reveal>
         )}
       </div>
     </div>

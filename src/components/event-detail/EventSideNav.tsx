@@ -4,12 +4,12 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, Layout, FormInput, Palette, Users,
   Settings as SettingsIcon, ChevronLeft, ChevronRight, ArrowLeft,
-  Share2, Trophy, ScanLine, Ticket, Wallet,
+  Share2, Trophy, ScanLine, Ticket, Wallet, CircleDot,
 } from "lucide-react";
 
 export type EventSection =
   | "overview" | "tickets" | "form" | "content" | "branding"
-  | "attendees" | "scanner" | "finance" | "settings";
+  | "attendees" | "lucky-wheel" | "scanner" | "finance" | "settings";
 
 interface SubItem {
   id: string; // DOM id to scroll to
@@ -48,6 +48,7 @@ const GROUPS: NavGroup[] = [
     label: "Day of",
     items: [
       { key: "attendees", label: "Attendees", icon: Users },
+      { key: "lucky-wheel", label: "Lucky wheel", icon: CircleDot },
       { key: "scanner", label: "Scanner (token)", icon: ScanLine },
     ],
   },

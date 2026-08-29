@@ -828,30 +828,6 @@ const Register = () => {
     if (tickets.length === 1 && !selectedTicketId) setSelectedTicketId(tickets[0].id);
   }, [tickets, selectedTicketId]);
 
-  // Registered participants must not see the join form — send them to their event room.
-  useEffect(() => {
-    if (!user || !Number.isFinite(eventId)) return;
-    let cancelled = false;
-    listParticipations({ per_page: 50 })
-      .then(({ items }) => {
-        if (cancelled) return;
-        const existing = items.find(
-          (p) =>
-            p.event_id === eventId &&
-            p.status !== "cancelled",
-        );
-        if (existing) {
-          navigate(`/registrations/${existing.id}/room`, { replace: true });
-        }
-      })
-      .catch(() => {
-        /* non-blocking */
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [user, eventId, navigate]);
-
   const clearDiscount = useCallback(() => {
     setDiscountQuote(null);
     setDiscountError(null);
@@ -1036,16 +1012,33 @@ const Register = () => {
     }
 
     let cancelled = false;
+    let redirected = false;
     setLoading(true);
     setNotFound(false);
     setLoadError(null);
 
-    Promise.all([
-      publicApi.get<PublicEventDetailResponse>(`/events/${eventId}`),
-      publicApi.get<PublicEventFormFieldResponse>(`/events/${eventId}/form-fields`),
-    ])
-      .then(([eventResp, formFieldsResp]) => {
+    const eventPromise = publicApi.get<PublicEventDetailResponse>(`/events/${eventId}`);
+    const fieldsPromise = publicApi.get<PublicEventFormFieldResponse>(`/events/${eventId}/form-fields`);
+    const participationPromise =
+      user && Number.isFinite(eventId)
+        ? listParticipations({ per_page: 50 }).catch(() => null)
+        : Promise.resolve(null);
+
+    Promise.all([eventPromise, fieldsPromise, participationPromise])
+      .then(([eventResp, formFieldsResp, participationResult]) => {
         if (cancelled) return;
+
+        if (participationResult) {
+          const existing = participationResult.items.find(
+            (p) => p.event_id === eventId && p.status !== "cancelled",
+          );
+          if (existing) {
+            redirected = true;
+            navigate(`/registrations/${existing.id}/room`, { replace: true });
+            return;
+          }
+        }
+
         const apiEvent = eventResp.data.data;
         setEvent(adaptPublicEventDetailToUi(apiEvent));
         setFormFields(adaptUiFormFields(formFieldsResp.data));
@@ -1061,12 +1054,12 @@ const Register = () => {
         }
       })
       .finally(() => {
-        if (cancelled) return;
+        if (cancelled || redirected) return;
         setLoading(false);
       });
 
     return () => { cancelled = true; };
-  }, [eventId, retryNonce]);
+  }, [eventId, retryNonce, user, navigate]);
 
   const registrationAllowed = event?.registration_gates?.allowed === true;
   const lockedReason = event ? resolveLockedReason(event) : null;
