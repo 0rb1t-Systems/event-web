@@ -3,14 +3,16 @@ import { useLocation } from "react-router-dom";
 import Lenis from "lenis";
 
 /**
- * Mounts Lenis smooth-scrolling globally (including dashboard).
- * Disabled when the user prefers reduced motion.
+ * Mounts Lenis smooth-scrolling on public/participant pages.
+ * Organizer console uses native scroll — nested studio overflow + Lenis
+ * swallowed wheel/touchpad events (only the scrollbar dragged).
  */
 export function SmoothScroll() {
   const { pathname } = useLocation();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (pathname.startsWith("/organizer")) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     const lenis = new Lenis({
@@ -32,7 +34,7 @@ export function SmoothScroll() {
       cancelAnimationFrame(raf);
       lenis.destroy();
     };
-  }, []);
+  }, [pathname]);
 
   // Reset scroll on every public route change (Lenis-aware).
   useEffect(() => {

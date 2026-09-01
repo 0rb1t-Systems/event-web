@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { Loader2, Megaphone, Plus } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { IconMegaphone, IconPlus } from "@/components/organizer-console/orgIcons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -81,19 +82,19 @@ export default function AnnouncementsPanel({ eventId, onDenied }: Props) {
   };
 
   return (
-    <div className="bg-card rounded-xl p-5 sm:p-6 space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <div>
+    <div className="bg-card rounded-xl p-4 sm:p-6 space-y-4 min-w-0">
+      <div className="flex items-start justify-between gap-2 min-w-0">
+        <div className="min-w-0">
           <h3 className="font-display font-semibold flex items-center gap-2">
-            <Megaphone className="w-4 h-4 text-muted-foreground" />
+            <IconMegaphone className="w-4 h-4 text-muted-foreground shrink-0" />
             Announcements
           </h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5 text-pretty">
             Messages are emailed to non-cancelled participants and stored as sent.
           </p>
         </div>
-        <Button size="sm" className="rounded-full gap-1.5" onClick={() => setOpen(true)}>
-          <Plus className="w-3.5 h-3.5" /> Send
+        <Button size="sm" className="rounded-full gap-1.5 shrink-0" onClick={() => setOpen(true)}>
+          <IconPlus className="w-3.5 h-3.5" /> Send
         </Button>
       </div>
 

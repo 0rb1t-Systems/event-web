@@ -19,6 +19,7 @@ import { RouteFallback } from "@/components/RouteFallback";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import BrowseEvents from "./pages/BrowseEvents";
 
 /** Heavy / secondary screens — code-split for faster initial load. */
 const Register = lazy(() => import("./pages/Register"));
@@ -37,17 +38,17 @@ const EventStudioLuckyWheel = lazy(() => import("./pages/dashboard/event-studio/
 const EventStudioFinance = lazy(() => import("./pages/dashboard/event-studio/EventStudioFinance"));
 const EventStudioScanner = lazy(() => import("./pages/dashboard/event-studio/EventStudioScanner"));
 const AttendeeHome = lazy(() => import("./pages/dashboard/AttendeeHome"));
-const Attendees = lazy(() => import("./pages/dashboard/Attendees"));
-const Analytics = lazy(() => import("./pages/dashboard/Analytics"));
+const EventRooms = lazy(() => import("./pages/dashboard/EventRooms"));
 const SettingsPage = lazy(() => import("./pages/dashboard/SettingsPage"));
 const OrganizerLogin = lazy(() => import("./pages/organizer/OrganizerLogin"));
 const OrganizerRegister = lazy(() => import("./pages/organizer/OrganizerRegister"));
 const OrganizerDashboard = lazy(() => import("./pages/organizer/OrganizerDashboard"));
 const OrganizerEventCreate = lazy(() => import("./pages/organizer/OrganizerEventCreate"));
 const OrganizerSettings = lazy(() => import("./pages/organizer/OrganizerSettings"));
-const OrganizerPayouts = lazy(() => import("./pages/organizer/OrganizerPayouts"));
-const OrganizerSubscription = lazy(() => import("./pages/organizer/OrganizerSubscription"));
 const OrganizerScannerPage = lazy(() => import("./pages/organizer/OrganizerScannerPage"));
+const OrganizerFinance = lazy(() => import("./pages/organizer/OrganizerFinance"));
+const EventStudioAnalytics = lazy(() => import("./pages/dashboard/event-studio/EventStudioAnalytics"));
+const StudioAnalyticsRedirect = lazy(() => import("./pages/organizer/StudioAnalyticsRedirect"));
 
 /** Cheap bookmark redirects — keep until traffic dies down. */
 const EventDetailEditRedirect = () => {
@@ -91,7 +92,7 @@ function ScrollToTop() {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} storageKey="app-theme">
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem storageKey="app-theme">
       <BrandingProvider>
       <AuthProvider>
         <OrganizerProvider>
@@ -106,6 +107,7 @@ const App = () => (
                   {/* Public */}
                   <Route path="/" element={<Index />} />
                   <Route path="/auth" element={<Auth />} />
+                  <Route path="/events" element={<BrowseEvents />} />
                   <Route path="/events/:id" element={<Register />} />
                   <Route path="/register/:id" element={<PublicRegisterRedirect />} />
                   <Route path="/ticket/:registrationId" element={<TicketRedirect />} />
@@ -122,6 +124,7 @@ const App = () => (
                           <Suspense fallback={<RouteFallback />}>
                             <Routes>
                               <Route path="home" element={<AttendeeHome />} />
+                              <Route path="rooms" element={<EventRooms />} />
                               <Route path="settings" element={<SettingsPage />} />
                               <Route path="events/create" element={<Navigate to="/organizer/events/new" replace />} />
                               <Route path="events/:id" element={<LegacyDashboardEventRedirect />} />
@@ -168,14 +171,16 @@ const App = () => (
                                 <Route path="scanner" element={<EventStudioScanner />} />
                                 <Route path="checkin" element={<EventStudioCheckInRedirect />} />
                                 <Route path="finance" element={<EventStudioFinance />} />
+                                <Route path="analytics" element={<EventStudioAnalytics />} />
                                 <Route path="settings" element={<EventStudioSettings />} />
                               </Route>
                               <Route path="scanner" element={<OrganizerScannerPage />} />
-                              <Route path="attendees" element={<Attendees />} />
-                              <Route path="analytics" element={<Analytics />} />
-                              <Route path="subscription" element={<OrganizerSubscription />} />
-                              <Route path="billing" element={<Navigate to="/organizer/subscription" replace />} />
-                              <Route path="payouts" element={<OrganizerPayouts />} />
+                              <Route path="attendees" element={<Navigate to="/organizer/events" replace />} />
+                              <Route path="analytics" element={<StudioAnalyticsRedirect />} />
+                              <Route path="finance" element={<OrganizerFinance />} />
+                              <Route path="subscription" element={<Navigate to="/organizer/finance?tab=plans" replace />} />
+                              <Route path="billing" element={<Navigate to="/organizer/finance?tab=plans" replace />} />
+                              <Route path="payouts" element={<Navigate to="/organizer/finance" replace />} />
                               <Route path="settings" element={<OrganizerSettings />} />
                             </Routes>
                           </Suspense>

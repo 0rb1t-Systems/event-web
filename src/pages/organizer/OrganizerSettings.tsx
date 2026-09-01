@@ -1,13 +1,34 @@
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Loader2, Sun, Moon, Monitor } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { IconMonitor, IconMoon, IconSun } from "@/components/organizer-console/orgIcons";
 import { useTheme } from "next-themes";
+import { OrgButton } from "@/components/organizer-console/OrgButton";
 import { useOrganizer } from "@/contexts/OrganizerContext";
 import { getApiErrorMessage } from "@/lib/apiError";
+import { cn } from "@/lib/utils";
+
+const fieldLabel = "block text-xs font-semibold text-oc-ink mb-1.5";
+const inputBox =
+  "flex items-center gap-2 rounded-[12px] bg-oc-bg px-3.5 py-3 transition-shadow focus-within:ring-2 focus-within:ring-oc-brand/40";
+const inputEl = "w-full bg-transparent text-sm text-oc-ink placeholder:text-oc-faint outline-none";
+
+function Field({
+  id,
+  label,
+  children,
+}: {
+  id: string;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label htmlFor={id} className={fieldLabel}>{label}</label>
+      {children}
+    </div>
+  );
+}
 
 export default function OrganizerSettings() {
   const { theme, setTheme } = useTheme();
@@ -71,108 +92,124 @@ export default function OrganizerSettings() {
   };
 
   if (!organizer) {
-    return <div className="flex justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
+    return <div className="flex justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-oc-brand" /></div>;
   }
 
   return (
-    <div className="space-y-8 max-w-3xl mx-auto">
-      <div>
-        <h1 className="text-3xl font-display font-bold">Settings</h1>
-        <p className="text-muted-foreground">Organizer profile and password.</p>
+    <div className="flex flex-col gap-4 max-w-3xl" data-testid="page-account">
+      <div className="px-2 pt-1 lg:pt-0">
+        <h1 className="font-head text-[22px] lg:text-2xl font-semibold text-oc-ink tracking-tight">Account</h1>
+        <p className="mt-1 text-[13px] text-oc-muted">Your organizer profile and workspace preferences.</p>
       </div>
 
-      <Tabs defaultValue="profile">
-        <TabsList className="bg-muted rounded-full p-1">
-          <TabsTrigger value="profile" className="rounded-full data-[state=active]:bg-card data-[state=active]:shadow-sm">Profile</TabsTrigger>
-          <TabsTrigger value="appearance" className="rounded-full data-[state=active]:bg-card data-[state=active]:shadow-sm">Appearance</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="profile" className="mt-6 space-y-6">
-          <div className="bg-card rounded-xl p-6 space-y-5">
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Business name</Label>
-                <Input value={businessName} onChange={(e) => setBusinessName(e.target.value)} className="rounded-full" />
-              </div>
-              <div className="space-y-2">
-                <Label>Contact name</Label>
-                <Input value={contactName} onChange={(e) => setContactName(e.target.value)} className="rounded-full" />
-              </div>
+      {/* Organizer profile */}
+      <div className="org-card p-5 flex flex-col gap-4">
+        <h2 className="font-head text-[17px] font-semibold text-oc-ink">Organizer profile</h2>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Field id="acct-business" label="Business name">
+            <div className={inputBox}>
+              <input id="acct-business" className={inputEl} value={businessName} onChange={(e) => setBusinessName(e.target.value)} />
             </div>
-            <div className="space-y-2">
-              <Label>Email</Label>
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="rounded-full" />
+          </Field>
+          <Field id="acct-contact" label="Contact name">
+            <div className={inputBox}>
+              <input id="acct-contact" className={inputEl} value={contactName} onChange={(e) => setContactName(e.target.value)} />
             </div>
-            <div className="space-y-2">
-              <Label>Phone</Label>
-              <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+252…" className="rounded-full" />
-            </div>
-            <Button onClick={handleSave} disabled={savingProfile} className="rounded-full">
-              {savingProfile ? "Saving…" : "Save changes"}
-            </Button>
+          </Field>
+        </div>
+        <Field id="acct-email" label="Email">
+          <div className={inputBox}>
+            <input id="acct-email" type="email" className={inputEl} value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
-
-          <div className="bg-card rounded-xl p-6 space-y-5">
-            <div>
-              <h3 className="font-display font-semibold text-lg mb-1">Password</h3>
-              <p className="text-sm text-muted-foreground">Use a password at least 8 characters long.</p>
-            </div>
-            <div className="space-y-2">
-              <Label>Current password</Label>
-              <Input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="rounded-full" />
-            </div>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>New password</Label>
-                <Input type="password" minLength={8} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="rounded-full" />
-              </div>
-              <div className="space-y-2">
-                <Label>Confirm new password</Label>
-                <Input type="password" minLength={8} value={newPasswordConfirmation} onChange={(e) => setNewPasswordConfirmation(e.target.value)} className="rounded-full" />
-              </div>
-            </div>
-            <Button onClick={handlePassword} disabled={savingPassword || !currentPassword || !newPassword} className="rounded-full">
-              {savingPassword ? "Updating…" : "Update password"}
-            </Button>
+        </Field>
+        <div>
+          <label htmlFor="acct-phone" className={fieldLabel}>Payout phone</label>
+          <p className="text-xs text-oc-faint mb-1.5">
+            Approved payouts are sent to this WaafiPay (EVC Plus) number.
+          </p>
+          <div className={inputBox}>
+            <input id="acct-phone" className={cn(inputEl, "font-data")} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+252…" />
           </div>
-        </TabsContent>
+        </div>
+        <div>
+          <OrgButton onClick={handleSave} disabled={savingProfile} data-testid="account-save">
+            {savingProfile ? <Loader2 className="animate-spin" /> : null}
+            {savingProfile ? "Saving…" : "Save changes"}
+          </OrgButton>
+        </div>
+      </div>
 
-        <TabsContent value="appearance" className="mt-6">
-          <div className="bg-card rounded-xl p-6 space-y-6">
-            <div>
-              <h3 className="font-display font-semibold text-lg mb-1">Theme</h3>
-              <p className="text-sm text-muted-foreground">Choose how the application looks for you.</p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {([
-                { value: "light", label: "Light", icon: Sun, desc: "Clean and bright interface" },
-                { value: "dark", label: "Dark", icon: Moon, desc: "Easy on the eyes" },
-                { value: "system", label: "System", icon: Monitor, desc: "Match your device settings" },
-              ] as const).map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => { setTheme(opt.value); toast.success(`Theme set to ${opt.label}`); }}
-                  className={`relative flex flex-col items-center gap-3 rounded-xl p-6 transition-all cursor-pointer ${
-                    theme === opt.value
-                      ? "bg-muted ring-2 ring-foreground shadow-sm"
-                      : "bg-muted/50 hover:bg-muted"
-                  }`}
-                >
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                    theme === opt.value ? "bg-foreground text-background" : "bg-background text-muted-foreground"
-                  }`}>
-                    <opt.icon className="w-5 h-5" />
-                  </div>
-                  <div className="text-center">
-                    <p className="font-medium text-sm">{opt.label}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{opt.desc}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
+      {/* Appearance */}
+      <div className="org-card p-5 flex flex-col gap-4">
+        <div>
+          <h2 className="font-head text-[17px] font-semibold text-oc-ink">Appearance</h2>
+          <p className="text-[13px] text-oc-muted mt-0.5">Light, dark, or match the device. Public event pages stay on their cover design.</p>
+        </div>
+        <div className="flex gap-1 rounded-full bg-oc-bg p-1 w-fit">
+          {([
+            { value: "light", label: "Light", icon: IconSun },
+            { value: "dark", label: "Dark", icon: IconMoon },
+            { value: "system", label: "System", icon: IconMonitor },
+          ] as const).map((opt) => {
+            const active = theme === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                aria-pressed={active}
+                onClick={() => { setTheme(opt.value); toast.success(`Theme set to ${opt.label}`); }}
+                className={cn(
+                  "flex items-center gap-2 rounded-full px-4 py-2 text-[13px] transition-colors",
+                  active
+                    ? "bg-oc-surface text-oc-ink font-semibold ring-1 ring-oc-line"
+                    : "text-oc-muted font-medium hover:text-oc-ink",
+                )}
+              >
+                <opt.icon className={cn("w-[15px] h-[15px]", active ? "text-oc-brand" : "text-oc-muted")} />
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-xs text-oc-faint">
+          Brand color <span className="font-data font-semibold text-oc-muted">#0F6E56</span> · set by platform
+        </p>
+      </div>
+
+      {/* Password */}
+      <div className="org-card p-5 flex flex-col gap-4">
+        <div>
+          <h2 className="font-head text-[17px] font-semibold text-oc-ink">Password</h2>
+          <p className="text-[13px] text-oc-muted mt-0.5">Use a password at least 8 characters long.</p>
+        </div>
+        <Field id="acct-pass-current" label="Current password">
+          <div className={inputBox}>
+            <input id="acct-pass-current" type="password" className={inputEl} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
           </div>
-        </TabsContent>
-      </Tabs>
+        </Field>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Field id="acct-pass-new" label="New password">
+            <div className={inputBox}>
+              <input id="acct-pass-new" type="password" minLength={8} className={inputEl} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+            </div>
+          </Field>
+          <Field id="acct-pass-confirm" label="Confirm new password">
+            <div className={inputBox}>
+              <input id="acct-pass-confirm" type="password" minLength={8} className={inputEl} value={newPasswordConfirmation} onChange={(e) => setNewPasswordConfirmation(e.target.value)} />
+            </div>
+          </Field>
+        </div>
+        <div>
+          <OrgButton
+            variant="dark"
+            onClick={handlePassword}
+            disabled={savingPassword || !currentPassword || !newPassword}
+          >
+            {savingPassword ? <Loader2 className="animate-spin" /> : null}
+            {savingPassword ? "Updating…" : "Update password"}
+          </OrgButton>
+        </div>
+      </div>
     </div>
   );
 }

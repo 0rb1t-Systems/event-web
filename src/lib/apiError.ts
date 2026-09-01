@@ -80,6 +80,22 @@ function friendlyValidationMessage(message: string): string {
   return message;
 }
 
+function isGenericApiMessage(message: string): boolean {
+  const text = message.trim();
+  return (
+    text === "Validation failed" ||
+    text === "The given data was invalid." ||
+    /^server error\.?$/i.test(text)
+  );
+}
+
+function looksLikeInternalDump(message: string): boolean {
+  return (
+    message.length > 400 ||
+    /stack trace|exception|sqlstate|cURL error|SSL certificate/i.test(message)
+  );
+}
+
 /**
  * Human-readable API error for toasts/forms. Never returns raw JSON or stack traces.
  *
@@ -117,14 +133,8 @@ export function getApiErrorMessage(
 
     if (data && typeof data === "object") {
       const message = (data as { message?: unknown }).message;
-      if (
-        typeof message === "string" &&
-        message.trim() &&
-        message !== "Validation failed" &&
-        message !== "The given data was invalid."
-      ) {
-        // Never surface PHP/stack-looking blobs
-        if (message.length > 400 || /stack trace|exception|sqlstate/i.test(message)) {
+      if (typeof message === "string" && message.trim() && !isGenericApiMessage(message)) {
+        if (looksLikeInternalDump(message)) {
           return fallback;
         }
         return message;
@@ -132,7 +142,7 @@ export function getApiErrorMessage(
     }
 
     const fieldMessage = firstValidationMessage(data);
-    if (fieldMessage) {
+    if (fieldMessage && !looksLikeInternalDump(fieldMessage) && !isGenericApiMessage(fieldMessage)) {
       return friendlyValidationMessage(fieldMessage);
     }
 

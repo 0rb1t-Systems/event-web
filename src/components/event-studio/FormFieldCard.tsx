@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { GripVertical, Pencil, Trash2 } from "lucide-react";
+import { IconGrip, IconPencil, IconTrash } from "@/components/organizer-console/orgIcons";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { OrganizerFormField } from "@/services/organizerFormFields";
@@ -33,7 +33,7 @@ export default function FormFieldCard({ field, onEdit, onDelete, onActiveToggle 
         {...attributes}
         {...listeners}
       >
-        <GripVertical className="w-4 h-4" />
+        <IconGrip className="w-4 h-4" />
       </button>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
@@ -46,10 +46,10 @@ export default function FormFieldCard({ field, onEdit, onDelete, onActiveToggle 
       </div>
       <Switch checked={field.active} onCheckedChange={onActiveToggle} aria-label="Toggle active" />
       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit}>
-        <Pencil className="w-3.5 h-3.5" />
+        <IconPencil className="w-3.5 h-3.5" />
       </Button>
       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onDelete}>
-        <Trash2 className="w-3.5 h-3.5 text-destructive" />
+        <IconTrash className="w-3.5 h-3.5 text-destructive" />
       </Button>
     </div>
   );

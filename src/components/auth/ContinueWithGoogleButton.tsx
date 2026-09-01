@@ -11,7 +11,7 @@ export function ContinueWithGoogleButton({ onClick, disabled, className }: Props
     <Button
       type="button"
       variant="outline"
-      className={className ?? "w-full mt-5 rounded-full h-11 border-input hover:bg-muted font-medium"}
+      className={className ?? "w-full mt-4 rounded-full border-input hover:bg-muted font-medium"}
       onClick={onClick}
       disabled={disabled}
     >

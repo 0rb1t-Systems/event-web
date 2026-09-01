@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, Star } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { IconStar } from "@/components/organizer-console/orgIcons";
 import { toast } from "sonner";
 import { getApiErrorMessage, isOrganizerEventAccessError } from "@/lib/apiError";
 import { organizerApi } from "@/lib/api";
@@ -58,7 +59,7 @@ export default function EventFeedbackPanel({ eventId, onDenied }: Props) {
         <h3 className="font-display font-semibold">Attendee feedback</h3>
         {average != null && (
           <p className="text-sm text-muted-foreground flex items-center gap-1">
-            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+            <IconStar className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
             {average} avg · {rows.length} responses
           </p>
         )}
@@ -79,7 +80,7 @@ export default function EventFeedbackPanel({ eventId, onDenied }: Props) {
                   {row.participation?.user?.name ?? "Attendee"}
                 </p>
                 <p className="text-xs tabular-nums text-muted-foreground flex items-center gap-1">
-                  <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                  <IconStar className="w-3 h-3 fill-amber-400 text-amber-400" />
                   {row.rating}/5
                 </p>
               </div>

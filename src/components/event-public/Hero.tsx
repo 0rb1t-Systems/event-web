@@ -1,169 +1,129 @@
-import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
-import { useRef } from "react";
-import { CalendarDays, MapPin, Video, Globe, ChevronDown } from "lucide-react";
-type Event = any;
+import { motion, useReducedMotion } from "framer-motion";
+import { ArrowUpRight } from "lucide-react";
+import { EventCountdown } from "./EventCountdown";
+import { EventPulseHeader } from "./EventPulseHeader";
+import type { EventSectionLink } from "./EventSectionNav";
+import { PULSE } from "./pulseTheme";
+
+type Event = {
+  name: string;
+  description?: string | null;
+  event_date?: string | null;
+  background_image_url?: string;
+  category_name?: string;
+  location_type?: string;
+};
 
 interface Props {
   event: Event;
-  brandColor: string;
-  formattedDate: string;
+  sections: EventSectionLink[];
   onRegisterClick: () => void;
   registerLabel?: string;
   registerDisabled?: boolean;
 }
 
-/**
- * Cinematic full-bleed hero. The flyer/cover image becomes the entire stage with a
- * slow Ken-Burns scale, layered scrim, and parallax title. If no image exists, a
- * brand-tinted gradient stage is rendered instead — never an empty box.
- */
+function trimWords(text: string, max = 20) {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  if (words.length <= max) return text.trim();
+  return `${words.slice(0, max).join(" ").replace(/[,;:]$/, "")}.`;
+}
+
+function accessBadge(event: Event) {
+  if (event.category_name) return event.category_name;
+  if (event.location_type === "physical") return "In person";
+  if (event.location_type === "hybrid") return "Hybrid";
+  if (event.location_type === "virtual") return "Online";
+  return null;
+}
+
 export function Hero({
   event,
-  brandColor,
-  formattedDate,
+  sections,
   onRegisterClick,
-  registerLabel = "Register now",
+  registerLabel = "Register",
   registerDisabled = false,
 }: Props) {
-  const ref = useRef<HTMLDivElement>(null);
   const reduce = useReducedMotion();
-  const { scrollY } = useScroll();
-  const titleY = useTransform(scrollY, [0, 600], [0, 120]);
-  const titleOpacity = useTransform(scrollY, [0, 400], [1, 0]);
-  const imageScale = useTransform(scrollY, [0, 600], [1, 1.18]);
-
-  const flyer = event.background_image_url;
-  const locationLabel =
-    event.location_type === "physical" ? "In-Person" :
-    event.location_type === "hybrid" ? "Hybrid" : "Virtual";
-  const LocationIcon =
-    event.location_type === "physical" ? MapPin :
-    event.location_type === "hybrid" ? Globe : Video;
+  const cover = event.background_image_url;
+  const blurb = event.description ? trimWords(event.description) : "";
+  const badge = accessBadge(event);
 
   return (
-    <section
-      ref={ref}
-      className="relative w-full overflow-hidden text-white"
-      style={{ height: "100svh", minHeight: 560 }}
-    >
-      {/* Image stage with Ken-Burns + scroll parallax */}
-      <motion.div
-        className="absolute inset-0"
-        style={reduce ? undefined : { scale: imageScale }}
-      >
-        {flyer ? (
-          <motion.img
-            src={flyer}
-            alt={event.name}
-            className="w-full h-full object-cover"
-            initial={{ scale: 1 }}
-            animate={reduce ? undefined : { scale: 1.08 }}
-            transition={{ duration: 18, ease: "easeOut", repeat: Infinity, repeatType: "reverse" }}
+    <div className="px-2.5 pt-2.5 sm:px-4 sm:pt-3 lg:px-5">
+      <section className="relative min-h-[18rem] overflow-hidden rounded-[1.25rem] text-white sm:min-h-[22rem] sm:rounded-[1.5rem] lg:min-h-[24rem] lg:rounded-[1.75rem]">
+        {cover ? (
+          <img
+            src={cover}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover object-center"
           />
         ) : (
           <div
-            className="w-full h-full"
-            style={{
-              background: `radial-gradient(at 30% 20%, ${brandColor}cc, transparent 55%), radial-gradient(at 80% 80%, hsl(265 90% 55% / 0.7), transparent 55%), linear-gradient(135deg, hsl(240 40% 8%), hsl(260 50% 15%))`,
-            }}
+            className="absolute inset-0"
+            style={{ background: `linear-gradient(165deg, ${PULSE.navy} 0%, ${PULSE.navyMid} 50%, ${PULSE.sky} 100%)` }}
           />
         )}
-      </motion.div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/10" />
 
-      {/* Scrim — top-to-bottom for legibility, plus brand vignette */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background: `linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.05) 35%, rgba(0,0,0,0.55) 75%, rgba(0,0,0,0.85) 100%), radial-gradient(circle at 75% 25%, ${brandColor}30, transparent 55%)`,
-        }}
-      />
+        <EventPulseHeader
+          sections={sections}
+          onRegisterClick={onRegisterClick}
+          registerLabel={registerLabel}
+          registerDisabled={registerDisabled}
+        />
 
-      {/* Grain */}
-      <div
-        className="absolute inset-0 opacity-[0.05] mix-blend-overlay pointer-events-none"
-        style={{
-          backgroundImage:
-            "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.6'/></svg>\")",
-        }}
-      />
+        <div className="relative z-10 flex min-h-[16rem] flex-col justify-end px-4 pb-16 pt-4 sm:min-h-[20rem] sm:px-8 sm:pb-24 lg:px-10 lg:pb-28">
+          <div className="max-w-xl">
+            {badge ? (
+              <motion.p
+                initial={reduce ? false : { opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-3 inline-flex items-center gap-2 rounded-full bg-black/50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] backdrop-blur-sm"
+                style={{ color: PULSE.teal }}
+              >
+                <span className="h-1.5 w-1.5 rounded-full" style={{ background: PULSE.teal }} />
+                {badge}
+              </motion.p>
+            ) : null}
 
-      {/* Foreground content */}
-      <motion.div
-        className="relative h-full flex flex-col justify-end px-5 sm:px-10 lg:px-16 pb-16 sm:pb-20 lg:pb-24 max-w-[1400px] mx-auto"
-        style={reduce ? undefined : { y: titleY, opacity: titleOpacity }}
-      >
-        <motion.div
-          initial={{ opacity: 0, y: 28, filter: "blur(12px)" }}
-          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-          transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
-          className="max-w-4xl"
-        >
-          {formattedDate && (
-            <div className="inline-flex items-center gap-2 text-xs sm:text-sm font-medium text-white/85 mb-5 sm:mb-6 backdrop-blur-md bg-white/10 rounded-full px-4 py-2">
-              <CalendarDays className="w-3.5 h-3.5" />
-              {formattedDate}
-            </div>
-          )}
-          {(event.organizer_business_name || event.category_name) && (
-            <div className="mt-2 flex flex-wrap items-center gap-2 sm:gap-2.5">
-              {event.organizer_business_name && (
-                <span className="inline-flex items-center gap-2 h-9 px-4 rounded-full text-sm font-medium text-white/90 bg-white/10 backdrop-blur-md">
-                  Presented by <span className="font-semibold text-white">{event.organizer_business_name}</span>
-                </span>
-              )}
-              {event.category_name && (
-                <span className="inline-flex items-center gap-2 h-9 px-4 rounded-full text-sm font-medium text-white/90 bg-white/10 backdrop-blur-md">
-                  {event.category_name}
-                </span>
-              )}
-            </div>
-          )}
-          <h1
-            className="font-display font-bold tracking-[-0.035em] leading-[1.0] sm:leading-[0.95] text-white break-words hyphens-auto"
-            style={{ fontSize: "clamp(2.25rem, 6.5vw, 7.5rem)" }}
-          >
-            {event.name}
-          </h1>
-          {event.description && (
-            <p className="mt-5 sm:mt-7 max-w-2xl text-base sm:text-lg lg:text-xl text-white/85 leading-relaxed line-clamp-3">
-              {event.description}
-            </p>
-          )}
-          <div className="mt-7 sm:mt-9 flex flex-wrap items-center gap-3">
-            <button
+            <motion.h1
+              initial={reduce ? false : { opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+              className="break-words font-display text-[1.5rem] font-bold leading-[1.15] tracking-tight sm:text-[1.75rem] lg:text-[2.125rem]"
+            >
+              {event.name}
+            </motion.h1>
+
+            {blurb ? (
+              <motion.p
+                initial={reduce ? false : { opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.45, delay: 0.05 }}
+                className="mt-3 max-w-md text-sm leading-relaxed text-white/85"
+              >
+                {blurb}
+              </motion.p>
+            ) : null}
+
+            <EventCountdown targetIso={event.event_date} tone="dark" size="compact" className="mt-4 justify-start sm:mt-5" />
+
+            <motion.button
               type="button"
-              onClick={onRegisterClick}
+              initial={reduce ? false : { opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: 0.08 }}
               disabled={registerDisabled}
-              className={`group inline-flex items-center justify-center gap-2 h-12 sm:h-14 px-7 sm:px-9 rounded-full text-base sm:text-lg font-semibold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.99] ${
-                registerDisabled ? "opacity-60 cursor-not-allowed hover:scale-[1] active:scale-[1]" : ""
-              }`}
-              style={{
-                background: `linear-gradient(135deg, ${brandColor}, hsl(265 90% 62%))`,
-                boxShadow: `0 18px 50px -12px ${brandColor}aa`,
-              }}
+              onClick={onRegisterClick}
+              className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-full bg-black/80 px-4 text-sm font-semibold backdrop-blur-sm disabled:opacity-60 sm:mt-5"
+              style={{ color: PULSE.teal }}
             >
               {registerLabel}
-              {!registerDisabled && <span className="transition-transform group-hover:translate-x-1">→</span>}
-            </button>
-            <span className="inline-flex items-center gap-2 h-12 sm:h-14 px-5 sm:px-6 rounded-full text-sm font-medium text-white bg-white/10 backdrop-blur-md">
-              <LocationIcon className="w-4 h-4" />
-              {locationLabel}
-            </span>
+              <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={2.25} />
+            </motion.button>
           </div>
-        </motion.div>
-
-        {!reduce && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1, y: [0, 8, 0] }}
-            transition={{ opacity: { delay: 1.4, duration: 0.8 }, y: { delay: 1.6, duration: 2.2, repeat: Infinity, ease: "easeInOut" } }}
-            className="hidden sm:flex absolute bottom-6 left-1/2 -translate-x-1/2 flex-col items-center gap-1 text-white/65 text-[10px] tracking-[0.25em] uppercase"
-          >
-            Scroll
-            <ChevronDown className="w-4 h-4" />
-          </motion.div>
-        )}
-      </motion.div>
-    </section>
+        </div>
+      </section>
+    </div>
   );
 }

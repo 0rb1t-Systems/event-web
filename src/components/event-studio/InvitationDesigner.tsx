@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Image as ImageIcon, Loader2, RotateCcw, Save, Upload } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { IconPhoto, IconRefresh, IconSave, IconUpload } from "@/components/organizer-console/orgIcons";
 import QRCode from "qrcode";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -244,10 +245,10 @@ export default function InvitationDesigner({ eventId, eventTitle, startsAt, venu
         </div>
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="outline" className="rounded-full" onClick={resetDefaults}>
-            <RotateCcw className="w-4 h-4 mr-2" /> Reset defaults
+            <IconRefresh className="w-4 h-4 mr-2" /> Reset defaults
           </Button>
           <Button className="rounded-full" onClick={() => void persist()} disabled={saving}>
-            {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+            {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <IconSave className="w-4 h-4 mr-2" />}
             Save invitation
           </Button>
         </div>
@@ -305,7 +306,7 @@ export default function InvitationDesigner({ eventId, eventTitle, startsAt, venu
               <p className="text-xs text-muted-foreground mt-0.5">JPEG, PNG, or WebP · max 5 MB · recommended 800×1100</p>
             </div>
             <Button type="button" variant="outline" size="sm" className="rounded-full" disabled={uploading} onClick={() => fileRef.current?.click()}>
-              {uploading ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Upload className="w-3.5 h-3.5 mr-1.5" />}
+              {uploading ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <IconUpload className="w-3.5 h-3.5 mr-1.5" />}
               Upload
             </Button>
           </div>
@@ -326,7 +327,7 @@ export default function InvitationDesigner({ eventId, eventTitle, startsAt, venu
               <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" />
             ) : (
               <>
-                <ImageIcon className="w-8 h-8 mx-auto text-muted-foreground/40 mb-2" />
+                <IconPhoto className="w-8 h-8 mx-auto text-muted-foreground/40 mb-2" />
                 <p className="text-sm text-muted-foreground">Drop a background here or use Upload</p>
               </>
             )}

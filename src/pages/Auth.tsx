@@ -6,13 +6,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { Logo } from "@/components/Logo";
 import { motion } from "framer-motion";
 import { staggerContainer, staggerItem } from "@/components/motion/Reveal";
 import { getApiErrorMessage, isUnverifiedAccountError } from "@/lib/apiError";
 import { getSafeInternalPath } from "@/lib/authRedirect";
 import { VerifyEmailPanel } from "@/components/auth/VerifyEmailPanel";
 import { ForgotPasswordPanel } from "@/components/auth/ForgotPasswordPanel";
+import { PublicSiteHeader } from "@/components/layout/PublicSiteHeader";
+import { SiteFooter } from "@/components/layout/SiteFooter";
 
 type AuthPanel = "tabs" | "verify" | "forgot";
 
@@ -112,55 +113,21 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 py-10 sm:py-12 relative overflow-hidden" data-testid="page-auth">
-      {/* Floating decorative shapes — animated parallax */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {[
-          { c: "top-[10%] left-[8%] w-16 h-16 rounded-full bg-primary/10 blur-sm", d: 0, m: 14 },
-          { c: "top-[20%] right-[12%] w-12 h-12 rounded-lg bg-primary/10 rotate-12 blur-sm", d: 0.4, m: -10 },
-          { c: "bottom-[15%] left-[15%] w-10 h-10 rounded-full bg-primary/10 blur-sm", d: 0.8, m: 12 },
-          { c: "bottom-[25%] right-[8%] w-14 h-14 rounded-lg bg-primary/10 -rotate-12 blur-sm", d: 0.2, m: -16 },
-          { c: "top-[50%] left-[5%] w-8 h-8 rounded-full bg-muted-foreground/10 blur-sm", d: 0.6, m: 8 },
-          { c: "top-[40%] right-[5%] w-20 h-20 rounded-full bg-primary/5 blur-md", d: 1, m: -20 },
-        ].map((s, i) => (
-          <motion.div
-            key={i}
-            className={`absolute ${s.c}`}
-            initial={{ opacity: 0, scale: 0.6 }}
-            animate={{
-              opacity: 1,
-              scale: 1,
-              y: [0, s.m, 0],
-              x: [0, s.m / 2, 0],
-            }}
-            transition={{
-              opacity: { duration: 0.8, delay: s.d * 0.4 },
-              scale: { duration: 0.8, delay: s.d * 0.4, ease: [0.22, 1, 0.36, 1] },
-              y: { duration: 7 + i, repeat: Infinity, ease: "easeInOut", delay: s.d },
-              x: { duration: 9 + i, repeat: Infinity, ease: "easeInOut", delay: s.d },
-            }}
-          />
-        ))}
-      </div>
+    <div className="house-page min-h-[100dvh] flex flex-col" data-testid="page-auth">
+    <PublicSiteHeader />
+    <div className="flex-1 flex flex-col items-center justify-center px-4 py-6 sm:py-8">
 
       <motion.div
         variants={staggerContainer}
         initial="hidden"
         animate="show"
-        className="w-full max-w-md relative z-10"
+        className="w-full max-w-sm relative z-10"
       >
-        {/* Logo */}
-        <motion.div variants={staggerItem} className="text-center mb-8">
-          <Link to="/" className="inline-block transition-transform duration-300 hover:scale-[1.03]">
-            <Logo size="lg" />
-          </Link>
-          <p className="text-muted-foreground mt-2 text-sm font-body">
-            Create events people actually want to attend
-          </p>
-        </motion.div>
+        <motion.h1 variants={staggerItem} className="mb-4 text-center font-display text-base font-semibold tracking-tight">
+          Log in or sign up
+        </motion.h1>
 
-        {/* Auth card */}
-        <motion.div variants={staggerItem} className="bg-card rounded-2xl border border-border shadow-lg p-6 sm:p-7">
+        <motion.div variants={staggerItem} className="house-card bg-card rounded-2xl border border-border p-4 sm:p-5">
           {authLoading ? (
             <div className="flex justify-center py-10">
               <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
@@ -236,11 +203,11 @@ const Auth = () => {
             />
           ) : (
           <Tabs defaultValue="login">
-            <TabsList className="grid w-full grid-cols-2 rounded-full bg-muted p-1 mb-6">
-              <TabsTrigger value="login" className="rounded-full data-[state=active]:bg-card data-[state=active]:shadow-sm text-sm font-medium">
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="login">
                 Log in
               </TabsTrigger>
-              <TabsTrigger value="signup" className="rounded-full data-[state=active]:bg-card data-[state=active]:shadow-sm text-sm font-medium">
+              <TabsTrigger value="signup">
                 Sign up
               </TabsTrigger>
             </TabsList>
@@ -256,7 +223,6 @@ const Auth = () => {
                     required
                     value={loginEmail}
                     onChange={e => setLoginEmail(e.target.value)}
-                    className="rounded-full h-11 px-4 border-input"
                     data-testid="login-email"
                   />
                 </div>
@@ -269,11 +235,10 @@ const Auth = () => {
                     required
                     value={loginPassword}
                     onChange={e => setLoginPassword(e.target.value)}
-                    className="rounded-full h-11 px-4 border-input"
                     data-testid="login-password"
                   />
                 </div>
-                <Button type="submit" className="w-full rounded-full h-11 bg-foreground text-background hover:bg-foreground/90 hover:scale-[1.02] transition-transform font-medium" disabled={loading} data-testid="login-submit">
+                <Button type="submit" className="w-full rounded-full" disabled={loading} data-testid="login-submit">
                   {loading ? "Signing in…" : "Sign in"}
                 </Button>
                 <button
@@ -292,7 +257,7 @@ const Auth = () => {
 
               <Button
                 variant="outline"
-                className="w-full mt-5 rounded-full h-11 border-input hover:bg-muted font-medium"
+                className="w-full mt-5 rounded-full"
                 onClick={handleGoogle}
                 disabled={loading}
                 type="button"
@@ -313,11 +278,10 @@ const Auth = () => {
                   <Label htmlFor="name-signup" className="text-sm font-medium text-foreground">Full name</Label>
                   <Input
                     id="name-signup"
-                    placeholder="Jane Doe"
+                    placeholder="Your name"
                     required
                     value={signupName}
                     onChange={e => setSignupName(e.target.value)}
-                    className="rounded-full h-11 px-4 border-input"
                     data-testid="signup-name"
                   />
                 </div>
@@ -330,7 +294,6 @@ const Auth = () => {
                     required
                     value={signupEmail}
                     onChange={e => setSignupEmail(e.target.value)}
-                    className="rounded-full h-11 px-4 border-input"
                     data-testid="signup-email"
                   />
                 </div>
@@ -344,7 +307,6 @@ const Auth = () => {
                     minLength={8}
                     value={signupPassword}
                     onChange={e => setSignupPassword(e.target.value)}
-                    className="rounded-full h-11 px-4 border-input"
                     data-testid="signup-password"
                   />
                 </div>
@@ -358,11 +320,10 @@ const Auth = () => {
                     minLength={8}
                     value={signupPasswordConfirm}
                     onChange={e => setSignupPasswordConfirm(e.target.value)}
-                    className="rounded-full h-11 px-4 border-input"
                     data-testid="signup-password-confirm"
                   />
                 </div>
-                <Button type="submit" className="w-full rounded-full h-11 bg-foreground text-background hover:bg-foreground/90 hover:scale-[1.02] transition-transform font-medium" disabled={loading} data-testid="signup-submit">
+                <Button type="submit" className="w-full rounded-full" disabled={loading} data-testid="signup-submit">
                   {loading ? "Creating account…" : "Create account"}
                 </Button>
               </form>
@@ -374,7 +335,7 @@ const Auth = () => {
 
               <Button
                 variant="outline"
-                className="w-full mt-5 rounded-full h-11 border-input hover:bg-muted font-medium"
+                className="w-full mt-5 rounded-full"
                 onClick={handleGoogle}
                 disabled={loading}
                 type="button"
@@ -392,14 +353,16 @@ const Auth = () => {
           )}
         </motion.div>
 
-        <motion.p variants={staggerItem} className="text-center text-xs text-muted-foreground mt-6">
+        <motion.p variants={staggerItem} className="text-center text-xs text-muted-foreground mt-4">
           By continuing, you agree to our Terms of Service and Privacy Policy.
         </motion.p>
-        <motion.p variants={staggerItem} className="text-center text-xs text-muted-foreground mt-3">
+        <motion.p variants={staggerItem} className="text-center text-xs text-muted-foreground mt-2">
           Hosting events?{" "}
-          <Link to="/organizer/login" className="hover:underline">Organizer Portal</Link>
+          <Link to="/organizer/login" className="hover:underline">Organizer</Link>
         </motion.p>
       </motion.div>
+    </div>
+    <SiteFooter />
     </div>
   );
 };

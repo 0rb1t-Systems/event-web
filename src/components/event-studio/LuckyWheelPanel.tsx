@@ -1,17 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { Loader2 } from "lucide-react";
 import {
-  Crown,
-  History,
-  Loader2,
-  Minus,
-  Plus,
-  Sparkles,
-  Trophy,
-  Users,
-  Zap,
-} from "lucide-react";
+  IconBolt,
+  IconClock,
+  IconMinus,
+  IconPlus,
+  IconSparkles,
+  IconTrophy,
+  IconUsers,
+} from "@/components/organizer-console/orgIcons";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -344,10 +343,10 @@ function LuckyWheelVisual({
                     animate={{ rotate: 360 }}
                     transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
                   >
-                    <Sparkles className="w-5 h-5 text-primary relative z-10" />
+                    <IconSparkles className="w-5 h-5 text-primary relative z-10" />
                   </motion.div>
                 ) : (
-                  <Zap className="w-5 h-5 text-primary relative z-10" />
+                  <IconBolt className="w-5 h-5 text-primary relative z-10" />
                 )}
               </div>
             )}
@@ -412,7 +411,7 @@ function WinnerCountStepper({
           disabled={disabled || value <= 1}
           onClick={() => onChange(Math.max(1, value - 1))}
         >
-          <Minus className="w-4 h-4" />
+          <IconMinus className="w-4 h-4" />
         </Button>
         <div className="min-w-[4.5rem] text-center">
           <span className="font-display font-bold text-4xl tabular-nums tracking-tight">{value}</span>
@@ -425,7 +424,7 @@ function WinnerCountStepper({
           disabled={disabled || value >= max}
           onClick={() => onChange(Math.min(max, value + 1))}
         >
-          <Plus className="w-4 h-4" />
+          <IconPlus className="w-4 h-4" />
         </Button>
       </div>
       {presets.length > 1 && (
@@ -598,7 +597,7 @@ export default function LuckyWheelPanel({ eventId, onDenied }: Props) {
     window.setTimeout(() => setShowConfetti(false), reduceMotion ? 600 : 2200);
     toast.success(
       `${attempt.winner_count} winner${attempt.winner_count === 1 ? "" : "s"} selected!`,
-      { icon: <Trophy className="w-4 h-4 text-amber-500" /> },
+      { icon: <IconTrophy className="w-4 h-4 text-amber-500" /> },
     );
     void load();
   };
@@ -671,7 +670,7 @@ export default function LuckyWheelPanel({ eventId, onDenied }: Props) {
       setCenterRevealName(null);
       spinLock.current = false;
       setShowConfetti(false);
-      toast.success("Winner selected!", { icon: <Trophy className="w-4 h-4 text-amber-500" /> });
+      toast.success("Winner selected!", { icon: <IconTrophy className="w-4 h-4 text-amber-500" /> });
       void load();
     } catch (err) {
       setPhase("idle");
@@ -699,7 +698,7 @@ export default function LuckyWheelPanel({ eventId, onDenied }: Props) {
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
           <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 text-primary px-3 py-1 text-xs font-semibold mb-3">
-            <Sparkles className="w-3.5 h-3.5" />
+            <IconSparkles className="w-3.5 h-3.5" />
             Live draw
           </div>
           <h2 className="text-2xl sm:text-3xl font-display font-bold tracking-tight">Lucky wheel</h2>
@@ -711,7 +710,7 @@ export default function LuckyWheelPanel({ eventId, onDenied }: Props) {
           </p>
         </div>
         <div className="flex items-center gap-2 rounded-2xl bg-card border border-border/60 px-4 py-3 shrink-0">
-          <Users className="w-4 h-4 text-primary" />
+          <IconUsers className="w-4 h-4 text-primary" />
           <div>
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Pool</p>
             <p className="font-display font-bold text-xl tabular-nums leading-none">{participantCount}</p>
@@ -754,7 +753,7 @@ export default function LuckyWheelPanel({ eventId, onDenied }: Props) {
                         </>
                       ) : (
                         <>
-                          <Trophy className="w-4 h-4 text-amber-500" />
+                          <IconTrophy className="w-4 h-4 text-amber-500" />
                           Winner {drawProgress.current} selected
                         </>
                       )}
@@ -817,7 +816,7 @@ export default function LuckyWheelPanel({ eventId, onDenied }: Props) {
                             <p className="text-sm text-muted-foreground">Waiting</p>
                           )}
                         </div>
-                        {winner && <Trophy className="w-4 h-4 text-amber-500 shrink-0" />}
+                        {winner && <IconTrophy className="w-4 h-4 text-amber-500 shrink-0" />}
                       </div>
                     );
                   })}
@@ -851,12 +850,12 @@ export default function LuckyWheelPanel({ eventId, onDenied }: Props) {
                 </>
               ) : phase === "revealing" ? (
                 <>
-                  <Trophy className="w-5 h-5 mr-2" />
+                  <IconTrophy className="w-5 h-5 mr-2" />
                   {isMultiDraw ? "Revealing winner…" : "Winner selected!"}
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-5 h-5 mr-2" />
+                  <IconSparkles className="w-5 h-5 mr-2" />
                   {isMultiDraw ? `Start ${winnerCount} draws` : "Spin the wheel"}
                 </>
               )}
@@ -873,7 +872,7 @@ export default function LuckyWheelPanel({ eventId, onDenied }: Props) {
                 >
                   <div className="flex items-center gap-2">
                     <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/15">
-                      <Crown className="w-4 h-4 text-primary" />
+                      <IconSparkles className="w-4 h-4 text-primary" />
                     </div>
                     <div>
                       <p className="font-display font-semibold">Winners</p>
@@ -897,7 +896,7 @@ export default function LuckyWheelPanel({ eventId, onDenied }: Props) {
                           </AvatarFallback>
                         </Avatar>
                         <span className="text-sm font-semibold truncate">{winner.name}</span>
-                        <Trophy className="w-4 h-4 text-amber-500 ml-auto shrink-0" />
+                        <IconTrophy className="w-4 h-4 text-amber-500 ml-auto shrink-0" />
                       </motion.div>
                     ))}
                   </div>
@@ -917,7 +916,7 @@ export default function LuckyWheelPanel({ eventId, onDenied }: Props) {
           {participantCount === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
               <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
-                <Users className="w-6 h-6 text-muted-foreground" />
+                <IconUsers className="w-6 h-6 text-muted-foreground" />
               </div>
               <p className="font-medium">No registrations yet</p>
               <p className="text-sm text-muted-foreground mt-1 max-w-xs">
@@ -939,7 +938,7 @@ export default function LuckyWheelPanel({ eventId, onDenied }: Props) {
       {(state?.attempts?.length ?? 0) > 0 && (
         <div className="rounded-3xl border border-border/60 bg-card p-6 space-y-5">
           <div className="flex items-center gap-2">
-            <History className="w-4 h-4 text-muted-foreground" />
+            <IconClock className="w-4 h-4 text-muted-foreground" />
             <h3 className="font-display font-semibold">Spin history</h3>
             <Badge variant="secondary" className="ml-auto tabular-nums border-0">
               {state!.attempts.length} attempt{state!.attempts.length === 1 ? "" : "s"}

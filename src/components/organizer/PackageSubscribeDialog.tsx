@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Phone } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { IconPhone } from "@/components/organizer-console/orgIcons";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -179,7 +180,7 @@ export default function PackageSubscribeDialog({
               <div className="space-y-1.5">
                 <Label htmlFor="pkg-payer-phone">EVC Plus phone number</Label>
                 <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <IconPhone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     id="pkg-payer-phone"
                     className="rounded-full pl-9"

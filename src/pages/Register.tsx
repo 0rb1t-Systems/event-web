@@ -8,11 +8,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  CalendarDays, MapPin, Video, Globe, Loader2, CheckCircle2,
+  Loader2, CheckCircle2,
   Clock, AlertTriangle, XCircle,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useBranding } from "@/contexts/BrandingContext";
 import { publicApi } from "@/lib/api";
 import { getApiErrorMessage } from "@/lib/apiError";
 import {
@@ -22,9 +21,10 @@ import {
 } from "@/lib/publicEventsAdapters";
 
 import { PublicEventPage } from "@/components/event-public/PublicEventPage";
+import { EventCountdown } from "@/components/event-public/EventCountdown";
+import { PULSE } from "@/components/event-public/pulseTheme";
 import { toast } from "sonner";
-import { motion, AnimatePresence } from "framer-motion";
-import { AuroraBackdrop, GlassCard } from "@/components/register/AuroraBackdrop";
+import { motion } from "framer-motion";
 import { getMediaUrl } from "@/lib/mediaUrl";
 import type { TicketTier } from "@/components/event-detail/TicketTiersManager";
 import { Ticket as TicketIcon, Crown, Check } from "lucide-react";
@@ -66,7 +66,7 @@ const TicketPicker = ({
 }) => (
   <div className="space-y-2.5">
     <div className="flex items-baseline justify-between">
-      <Label className="text-xs font-semibold tracking-[0.12em] uppercase text-muted-foreground">
+      <Label className="text-sm font-medium text-slate-600">
         Choose your ticket
       </Label>
       <span className="text-[10px] text-muted-foreground">{tickets.length} available</span>
@@ -82,12 +82,12 @@ const TicketPicker = ({
             onClick={() => !soldOut && onSelect(t.id)}
             whileTap={soldOut ? undefined : { scale: 0.99 }}
             disabled={soldOut}
-            className={`group w-full text-left relative overflow-hidden rounded-2xl p-4 transition-all ${
+            className={`group relative w-full overflow-hidden rounded-[1.25rem] border p-4 text-left transition-all ${
               soldOut
-                ? "opacity-50 cursor-not-allowed bg-muted/30"
+                ? "cursor-not-allowed border-slate-200 bg-slate-50 opacity-50"
                 : selected
-                  ? "bg-card"
-                  : "bg-muted/40 hover:bg-muted/70"
+                  ? "border-transparent bg-slate-50"
+                  : "border-slate-200 bg-white hover:border-slate-300"
             }`}
             style={selected && !soldOut ? {
               boxShadow: `0 0 0 1.5px ${brandColor}, 0 18px 40px -20px ${brandColor}66`,
@@ -102,19 +102,17 @@ const TicketPicker = ({
             )}
             <div className="flex items-center gap-3.5">
               <div
-                className={`shrink-0 w-10 h-10 rounded-full inline-flex items-center justify-center transition ${
+            className={`shrink-0 w-10 h-10 inline-flex items-center justify-center rounded-full transition ${
                   selected && !soldOut
                     ? "text-white"
                     : t.is_vip
-                      ? "text-foreground bg-background"
-                      : "bg-background text-muted-foreground"
+                      ? "text-slate-700 bg-slate-100"
+                      : "bg-slate-100 text-slate-500"
                 }`}
                 style={
                   selected && !soldOut
                     ? {
-                        background: t.is_vip
-                          ? `linear-gradient(135deg, ${brandColor}, hsl(265 90% 62%))`
-                          : brandColor,
+                        background: brandColor,
                       }
                     : undefined
                 }
@@ -123,7 +121,7 @@ const TicketPicker = ({
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-display font-semibold tracking-[-0.01em] truncate">
+                  <span className="truncate text-sm font-semibold text-slate-900">
                     {t.name || "Untitled"}
                   </span>
                   {t.is_vip && (
@@ -178,7 +176,7 @@ const DynamicField = ({
   onChange: (key: string, value: string) => void;
   brandColor: string;
 }) => {
-  const inputClass = "h-12 rounded-2xl bg-muted/40 border-0 px-4 text-sm placeholder:text-muted-foreground/60 focus-visible:ring-2 focus-visible:ring-offset-0";
+  const inputClass = "h-12 rounded-full border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-offset-0";
 
   switch (field.field_type) {
     case "select": {
@@ -253,13 +251,12 @@ const DynamicField = ({
 // ─── Result screens ───────────────────────────────────────────────────────────
 
 const SuccessCard = ({
-  brandColor, eventName, waitlisted, participationId, isDark,
+  brandColor, eventName, waitlisted, participationId,
 }: {
   brandColor: string;
   eventName: string;
   waitlisted: boolean;
   participationId: number | null;
-  isDark?: boolean;
 }) => {
   const navigate = useNavigate();
   return (
@@ -268,168 +265,71 @@ const SuccessCard = ({
       initial={{ opacity: 0, scale: 0.92, y: 20 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ type: "spring", damping: 18 }}
-      className="w-full max-w-lg mx-auto relative z-10"
+      className="w-full mx-auto"
     >
-      <GlassCard isDark={isDark} brandColor={brandColor}>
-        <div className="p-10 text-center">
-          <motion.div
-            initial={{ scale: 0, rotate: -90 }}
-            animate={{ scale: 1, rotate: 0 }}
-            transition={{ type: "spring", delay: 0.2, damping: 12 }}
-            className="relative inline-block mb-5"
+      <div className="rounded-[1.75rem] bg-slate-50 p-8 text-center sm:p-10">
+        <div className="relative inline-block mb-5">
+          <div
+            className="relative w-20 h-20 rounded-full flex items-center justify-center"
+            style={{ background: brandColor }}
           >
-            <div className="absolute inset-0 blur-2xl rounded-full" style={{ background: brandColor, opacity: 0.5 }} />
-            <div
-              className="relative w-20 h-20 rounded-full flex items-center justify-center"
-              style={{
-                background: `linear-gradient(135deg, ${brandColor}, hsl(265 90% 65%))`,
-                boxShadow: `0 12px 40px -8px ${brandColor}88`,
-              }}
-            >
-              {waitlisted ? <Clock className="w-9 h-9 text-white" /> : <CheckCircle2 className="w-9 h-9 text-white" />}
-            </div>
-          </motion.div>
-          <h2 className="text-3xl font-display font-bold mb-3 tracking-[-0.02em]">
-            {waitlisted ? "You're on the waitlist" : "You're registered!"}
-          </h2>
-          <p className="text-muted-foreground leading-relaxed">
-            {waitlisted
-              ? <>This event is at capacity. We&apos;ve added you to the waitlist for <strong>{eventName}</strong> and will notify you if a spot opens up.</>
-              : <>Thank you for registering for <strong>{eventName}</strong>. You&apos;ll receive a confirmation email shortly.</>}
-          </p>
-          {!waitlisted && participationId && (
-            <Button
-              className="mt-6 rounded-full h-11 px-6 text-white border-0 font-semibold"
-              style={{ background: `linear-gradient(135deg, ${brandColor}, hsl(265 90% 62%))` }}
-              onClick={() => navigate(`/registrations/${participationId}/room`)}
-            >
-              Enter event room
-            </Button>
-          )}
+            {waitlisted ? <Clock className="w-9 h-9 text-white" /> : <CheckCircle2 className="w-9 h-9 text-white" />}
+          </div>
         </div>
-      </GlassCard>
+        <h2 className="mb-3 font-display text-xl font-semibold tracking-tight">
+          {waitlisted ? "You're on the waitlist" : "You're registered!"}
+        </h2>
+        <p className="text-slate-500 leading-relaxed">
+          {waitlisted
+            ? <>This event is at capacity. We&apos;ve added you to the waitlist for <strong className="text-slate-800">{eventName}</strong> and will notify you if a spot opens up.</>
+            : <>Thank you for registering for <strong className="text-slate-800">{eventName}</strong>. You&apos;ll receive a confirmation email shortly.</>}
+        </p>
+        {!waitlisted && participationId && (
+          <Button
+            className="mt-6 h-10 rounded-full px-6 text-white border-0 font-semibold"
+            style={{ background: brandColor }}
+            onClick={() => navigate(`/registrations/${participationId}/room`)}
+          >
+            Enter event room
+          </Button>
+        )}
+      </div>
     </motion.div>
   );
 };
 
 const PaymentFailCard = ({
-  brandColor, reason, onRetry, isDark,
+  brandColor, reason, onRetry,
 }: {
   brandColor: string;
   reason: string;
   onRetry: () => void;
-  isDark?: boolean;
 }) => (
   <motion.div
     key="fail"
     initial={{ opacity: 0, scale: 0.92, y: 20 }}
     animate={{ opacity: 1, scale: 1, y: 0 }}
     transition={{ type: "spring", damping: 18 }}
-    className="w-full max-w-lg mx-auto relative z-10"
+    className="w-full mx-auto"
   >
-    <GlassCard isDark={isDark} brandColor={brandColor}>
-      <div className="p-10 text-center">
-        <div className="relative inline-block mb-5">
-          <div className="w-20 h-20 rounded-full flex items-center justify-center bg-destructive/10 mx-auto">
-            <AlertTriangle className="w-9 h-9 text-destructive" />
-          </div>
+    <div className="rounded-[1.75rem] bg-slate-50 p-8 text-center sm:p-10">
+      <div className="relative inline-block mb-5">
+        <div className="w-20 h-20 rounded-full flex items-center justify-center bg-red-50 mx-auto">
+          <AlertTriangle className="w-9 h-9 text-destructive" />
         </div>
-        <h2 className="text-2xl font-display font-bold mb-3 tracking-[-0.02em]">Payment failed</h2>
-        <p className="text-muted-foreground text-sm leading-relaxed mb-6">{reason}</p>
-        <Button
-          className="rounded-full h-11 px-6 text-white border-0 font-semibold"
-          style={{ background: `linear-gradient(135deg, ${brandColor}, hsl(265 90% 62%))` }}
-          onClick={onRetry}
-        >
-          Try again
-        </Button>
       </div>
-    </GlassCard>
+      <h2 className="mb-3 font-display text-lg font-semibold tracking-tight">Payment failed</h2>
+      <p className="text-slate-500 text-sm leading-relaxed mb-6">{reason}</p>
+      <Button
+        className="h-10 rounded-full px-6 text-white border-0 font-semibold"
+        style={{ background: brandColor }}
+        onClick={onRetry}
+      >
+        Try again
+      </Button>
+    </div>
   </motion.div>
 );
-
-// ─── Event info sidebar ───────────────────────────────────────────────────────
-
-type Event = PublicEventUiModel;
-
-function formatEventDateTime(event: Event) {
-  const tz = event.timezone || "Africa/Mogadishu";
-  const parts: string[] = [];
-
-  if (event.event_date) {
-    const start = new Date(event.event_date);
-    const dateStr = start.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: tz });
-    const timeStr = start.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: tz });
-
-    let line = `${dateStr} · ${timeStr}`;
-
-    if (event.event_end_date) {
-      const end = new Date(event.event_end_date);
-      const endDateStr = end.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: tz });
-      const endTimeStr = end.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: tz });
-      if (endDateStr === dateStr) {
-        line += ` – ${endTimeStr}`;
-      } else {
-        line += ` – ${endDateStr} · ${endTimeStr}`;
-      }
-    }
-
-    const tzAbbr = start.toLocaleTimeString("en-US", { timeZone: tz, timeZoneName: "short" }).split(" ").pop() || tz;
-    line += ` ${tzAbbr}`;
-    parts.push(line);
-  }
-
-  return parts.join("");
-}
-
-const EventInfo = ({ event, className = "" }: { event: Event; className?: string }) => {
-  const [expanded, setExpanded] = useState(false);
-  const locationIcon =
-    event.location_type === "physical" ? <MapPin className="w-4 h-4" /> :
-    event.location_type === "hybrid" ? <Globe className="w-4 h-4" /> :
-    <Video className="w-4 h-4" />;
-  const locationLabel =
-    event.location_type === "physical" ? "In-Person" :
-    event.location_type === "hybrid" ? "Hybrid" : "Virtual";
-  const dateTimeStr = formatEventDateTime(event);
-
-  const description = event.description || "";
-  const sentences = description.match(/[^.!?]*[.!?]+/g) || [description];
-  const isTruncatable = sentences.length > 1;
-  const truncated = isTruncatable ? sentences.slice(0, 1).join("").trim() + "…" : description;
-
-  return (
-    <div className={`pt-6 md:pt-0 ${className}`}>
-      {dateTimeStr && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-          <CalendarDays className="w-4 h-4 shrink-0" />
-          {dateTimeStr}
-        </div>
-      )}
-      <h1 className="text-2xl sm:text-4xl md:text-7xl font-display font-bold">{event.name}</h1>
-      {description && (
-        <div className="mt-4 mb-4">
-          <p className="text-muted-foreground text-sm leading-relaxed">
-            {expanded || !isTruncatable ? description : truncated}
-          </p>
-          {isTruncatable && (
-            <button
-              type="button"
-              onClick={() => setExpanded(!expanded)}
-              className="text-sm font-medium mt-1 hover:underline"
-              style={{ color: "hsl(var(--primary))" }}
-            >
-              {expanded ? "Show less" : "Read more"}
-            </button>
-          )}
-        </div>
-      )}
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        {locationIcon} {locationLabel}
-      </div>
-    </div>
-  );
-};
 
 // ─── Locked registration (sold out / closed / coming soon / etc.) ─────────────
 
@@ -496,31 +396,13 @@ const LOCKED_COPY: Record<
 };
 
 const RegistrationLockedPanel = ({
-  brandColor,
-  isDark,
   reason,
   startsAt,
 }: {
-  brandColor: string;
-  isDark: boolean;
   reason: LockedReason;
   startsAt?: string | null;
 }) => {
   const copy = LOCKED_COPY[reason];
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    if (reason !== "coming_soon") return;
-    const id = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(id);
-  }, [reason]);
-
-  const target = startsAt ? new Date(startsAt).getTime() : NaN;
-  const diff = Number.isFinite(target) ? Math.max(0, target - now) : null;
-  const days = diff != null ? Math.floor(diff / 86_400_000) : null;
-  const hours = diff != null ? Math.floor((diff % 86_400_000) / 3_600_000) : null;
-  const mins = diff != null ? Math.floor((diff % 3_600_000) / 60_000) : null;
-  const secs = diff != null ? Math.floor((diff % 60_000) / 1000) : null;
-
   const Icon =
     copy.icon === "clock"
       ? Clock
@@ -531,33 +413,11 @@ const RegistrationLockedPanel = ({
           : AlertTriangle;
 
   return (
-    <div className="relative min-h-[280px] pb-24 sm:pb-0">
-      <AuroraBackdrop brandColor={brandColor} isDark={isDark} />
-      <div className="relative z-10 flex flex-col items-center gap-4 py-10 px-4 text-center">
-        <Icon className="w-10 h-10 text-muted-foreground/70" />
-        <h2 className="font-display text-2xl font-semibold tracking-[-0.02em]">{copy.title}</h2>
-        <p className="text-sm text-muted-foreground max-w-sm">{copy.body}</p>
-        {reason === "coming_soon" && diff != null && diff > 0 && (
-          <div className="mt-2 flex gap-3 tabular-nums">
-            {[
-              { label: "Days", value: days },
-              { label: "Hrs", value: hours },
-              { label: "Min", value: mins },
-              { label: "Sec", value: secs },
-            ].map((unit) => (
-              <div
-                key={unit.label}
-                className="rounded-2xl bg-card/80 backdrop-blur px-3 py-2 min-w-[4.25rem] border border-border/50"
-              >
-                <div className="text-xl font-display font-bold" style={{ color: brandColor }}>
-                  {String(unit.value).padStart(2, "0")}
-                </div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{unit.label}</div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+    <div className="flex flex-col items-start gap-4 py-2">
+      <Icon className="h-8 w-8 text-slate-400" />
+      <h2 className="font-display text-2xl font-bold tracking-tight text-slate-900">{copy.title}</h2>
+      <p className="max-w-sm text-sm leading-relaxed text-slate-500">{copy.body}</p>
+      {reason === "coming_soon" ? <EventCountdown targetIso={startsAt} tone="light" className="mt-2 justify-start" /> : null}
     </div>
   );
 };
@@ -640,7 +500,7 @@ const RegistrationForm = ({
 
       {isPaid && selectedTicketId && (
         <div className="space-y-2">
-          <Label className="text-xs font-semibold tracking-[0.12em] uppercase text-muted-foreground">
+          <Label className="text-sm font-medium text-slate-600">
             Discount code
           </Label>
           <div className="flex gap-2">
@@ -648,7 +508,7 @@ const RegistrationForm = ({
               value={discountCode}
               onChange={(e) => onDiscountCodeChange(e.target.value.toUpperCase())}
               placeholder="SAVE10"
-              className="rounded-full uppercase"
+            className="rounded-full uppercase"
               autoComplete="off"
               disabled={!!discountQuote || discountApplying}
             />
@@ -679,7 +539,7 @@ const RegistrationForm = ({
           {discountQuote && (
             <p className="text-xs text-muted-foreground">
               Code <span className="font-medium text-foreground">{discountQuote.code}</span> applied
-              {" — "}
+              {": "}
               save {formatMoneyString(discountQuote.discount_amount, selectedTicket?.currency || "USD")}
             </p>
           )}
@@ -688,7 +548,7 @@ const RegistrationForm = ({
 
       {(formFields?.length ?? 0) > 0 && (
         <div className="space-y-1">
-          <Label className="text-xs font-semibold tracking-[0.12em] uppercase text-muted-foreground">
+          <Label className="text-sm font-medium text-slate-600">
             Your details
           </Label>
         </div>
@@ -716,10 +576,10 @@ const RegistrationForm = ({
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between rounded-2xl bg-muted/40 px-4 py-3"
+          className="flex items-center justify-between rounded-2xl bg-slate-50 px-5 py-4"
         >
           <div>
-            <p className="text-[10px] uppercase tracking-[0.18em] font-bold text-muted-foreground">Order total</p>
+            <p className="text-xs font-medium text-slate-500">Order total</p>
             <p className="text-xs text-muted-foreground mt-0.5">
               {selectedTicket!.name}
               {discountQuote
@@ -733,7 +593,7 @@ const RegistrationForm = ({
                 {formatMoneyString(discountQuote.original_amount, selectedTicket!.currency || "USD")}
               </div>
             )}
-            <div className="text-2xl font-display font-bold tabular-nums tracking-[-0.02em]" style={{ color: brandColor }}>
+            <div className="text-xl font-display font-bold tabular-nums tracking-[-0.02em]" style={{ color: brandColor }}>
               {formatTicketPrice(displayTotal, selectedTicket!.currency || "USD")}
             </div>
           </div>
@@ -749,35 +609,13 @@ const RegistrationForm = ({
 
       <Button
         type="submit"
-        className="w-full h-14 text-base border-0 text-white rounded-full font-display font-semibold tracking-[-0.01em] transition-transform hover:scale-[1.01] active:scale-[0.99]"
-        style={{
-          background: `linear-gradient(135deg, ${brandColor}, hsl(265 90% 62%))`,
-          boxShadow: `0 18px 40px -12px ${brandColor}99, 0 0 0 1px rgba(255,255,255,0.08) inset`,
-        }}
+        className="h-14 w-full rounded-full border-0 text-base font-semibold text-white"
+        style={{ background: brandColor }}
         disabled={isPending || !!submitDisabled}
       >
         {isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing…</> : effectiveLabel}
       </Button>
     </form>
-  );
-};
-
-// ─── Flyer decorative ─────────────────────────────────────────────────────────
-
-const FlyerImage = ({ flyerUrl, eventName, className = "" }: { flyerUrl: string | null; eventName: string; className?: string }) => (
-  flyerUrl ? (
-    <div className={`flex items-start justify-center ${className}`}>
-      <img src={flyerUrl} alt={eventName} className="w-full h-full object-contain" />
-    </div>
-  ) : null
-);
-
-const PoweredBy = () => {
-  const { name } = useBranding();
-  return (
-    <p className="text-center text-xs text-muted-foreground mt-6">
-      Powered by <span className="font-semibold">{name}</span>
-    </p>
   );
 };
 
@@ -887,15 +725,31 @@ const Register = () => {
     const speakers = ui.speakers ?? [];
     const sponsors = ui.sponsors ?? [];
 
+    const speakerPhoto = (sp: { photo_url?: string | null; photo_path?: string | null }) =>
+      sp.photo_url ?? (sp.photo_path ? getMediaUrl(sp.photo_path) : undefined);
+
     const scheduleItems =
       sessions.length > 0
         ? sessions
             .slice()
             .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
-            .map((s) => ({
-              time: formatSessionTime(s.starts_at),
-              title: s.title || s.room || "Session",
-            }))
+            .map((s) => {
+              const nested = s.speaker ?? null;
+              const byId =
+                s.speaker_id != null ? speakers.find((sp) => sp.id === s.speaker_id) : undefined;
+              const sp = nested ?? byId;
+              return {
+                time: formatSessionTime(s.starts_at),
+                endTime: formatSessionTime(s.ends_at),
+                title: s.title || s.room || "Session",
+                description: s.description || undefined,
+                room: s.room || undefined,
+                starts_at: s.starts_at,
+                speaker: sp
+                  ? { name: sp.name, avatar: speakerPhoto(sp) }
+                  : undefined,
+              };
+            })
         : [];
 
     const people =
@@ -903,15 +757,21 @@ const Register = () => {
         ? speakers.map((sp) => ({
             name: sp.name,
             role: sp.title || sp.organization || "",
-            avatar: sp.photo_url ?? (sp.photo_path ? getMediaUrl(sp.photo_path) : undefined),
+            avatar: speakerPhoto(sp),
+            bio: sp.bio || undefined,
           }))
         : [];
 
-    const logos =
+    const partners =
       sponsors.length > 0
-        ? sponsors
-            .map((s) => (s.logo_path ? getMediaUrl(s.logo_path) : undefined))
-            .filter(Boolean) as string[]
+        ? sponsors.map((s) => {
+            const raw =
+              (s as { logo_url?: string | null }).logo_url || s.logo_path || null;
+            return {
+              name: s.name,
+              logo: raw ? getMediaUrl(raw) : undefined,
+            };
+          })
         : [];
 
     const galleryUrls = (ui.images ?? [])
@@ -943,7 +803,7 @@ const Register = () => {
         enabled: true,
         position: 1,
         title: "Schedule",
-        content: { heading: "What to expect", items: scheduleItems },
+        content: { heading: "Agenda overview", items: scheduleItems },
       });
     }
 
@@ -954,18 +814,22 @@ const Register = () => {
         enabled: true,
         position: 2,
         title: "Speakers",
-        content: { heading: "Speakers", people },
+        content: { heading: "Meet our speakers", people },
       });
     }
 
-    if (logos.length > 0) {
+    if (partners.length > 0) {
       modulesOut.push({
         id: "sponsors",
         type: "sponsors",
         enabled: true,
         position: 3,
         title: "Partners",
-        content: { heading: "Our partners", logos },
+        content: {
+          heading: "Partners",
+          partners,
+          logos: partners.map((p) => p.logo).filter(Boolean) as string[],
+        },
       });
     }
 
@@ -980,9 +844,11 @@ const Register = () => {
         position: 4,
         title: "Location",
         content: {
-          heading: ui.location_type === "virtual" ? "Online event" : "Where to find us",
+          heading: ui.location_type === "virtual" ? "Online event" : "Find us here",
           venue: ui.city ?? (ui.location_type === "virtual" ? "Online event" : undefined),
           address: ui.location ?? (isOnline && !hasVenue ? "Meeting link shared after registration" : undefined),
+          image_url: ui.background_image_url || galleryUrls[0],
+          showMap: hasVenue,
         },
       });
     }
@@ -1231,7 +1097,7 @@ const Register = () => {
     // would let the user re-submit and get a "already has an active participation" error.
     // Instead, go to the registration detail page where they can resume payment.
     if (step.kind === "waafi") {
-      toast("Payment cancelled. Your registration is saved — you can complete payment anytime from your tickets.");
+        toast("Payment cancelled. Your registration is saved. You can complete payment anytime from My Tickets.");
       navigate(`/registrations/${step.participation.id}`);
     } else {
       setStep({ kind: "form" });
@@ -1247,15 +1113,12 @@ const Register = () => {
   // Loading
   if (loading) {
     return (
-      <div className="min-h-screen bg-background overflow-x-hidden">
-        <div className="h-[40vh] bg-muted/40" />
-        <div className="px-4 py-10 space-y-4 max-w-3xl mx-auto">
-          <Skeleton className="h-10 w-2/3" />
-          <Skeleton className="h-5 w-full" />
-          <Skeleton className="h-5 w-5/6" />
-          <Skeleton className="h-10 w-full rounded-3xl" />
-          <Skeleton className="h-10 w-full rounded-3xl" />
-          <Skeleton className="h-10 w-full rounded-3xl" />
+      <div className="pulse-event min-h-screen overflow-x-hidden" style={{ background: PULSE.paper }}>
+        <div className="mx-4 mt-4 h-[42vh] rounded-[1.75rem] sm:mx-6" style={{ background: `linear-gradient(180deg, ${PULSE.navy}, ${PULSE.sky})` }} />
+        <div className="mx-auto max-w-3xl space-y-4 px-4 py-10">
+          <Skeleton className="h-10 w-2/3 rounded-full" />
+          <Skeleton className="h-5 w-full rounded-full" />
+          <Skeleton className="h-5 w-5/6 rounded-full" />
         </div>
       </div>
     );
@@ -1263,38 +1126,41 @@ const Register = () => {
 
   if (loadError) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <Card className="w-full max-w-md">
+      <div className="pulse-event flex min-h-screen flex-col" style={{ background: PULSE.paper }}>
+        <div className="flex flex-1 items-center justify-center px-4">
+        <Card className="w-full max-w-md rounded-[1.75rem] border-slate-200 bg-white">
           <CardContent className="p-8 text-center">
-            <h1 className="text-2xl font-display font-bold mb-2">Couldn&apos;t load event</h1>
-            <p className="text-muted-foreground mb-6">{loadError}</p>
+            <h1 className="mb-2 font-display text-2xl font-bold">Couldn&apos;t load event</h1>
+            <p className="mb-6 text-slate-500">{loadError}</p>
             <Button className="rounded-full" onClick={() => setRetryNonce((n) => n + 1)}>
               Retry
             </Button>
           </CardContent>
         </Card>
+        </div>
       </div>
     );
   }
 
   if (notFound || !event) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <Card className="w-full max-w-md">
+      <div className="pulse-event flex min-h-screen flex-col" style={{ background: PULSE.paper }}>
+        <div className="flex flex-1 items-center justify-center px-4">
+        <Card className="w-full max-w-md rounded-[1.75rem] border-slate-200 bg-white">
           <CardContent className="p-8 text-center">
-            <h1 className="text-2xl font-display font-bold mb-2">Event Not Found</h1>
-            <p className="text-muted-foreground mb-6">This event may have ended or is not publicly available.</p>
+            <h1 className="mb-2 font-display text-2xl font-bold">Event not found</h1>
+            <p className="mb-6 text-slate-500">This event may have ended or is not publicly available.</p>
             <Button className="rounded-full" onClick={() => navigate("/")}>
               Return to Home
             </Button>
           </CardContent>
         </Card>
+        </div>
       </div>
     );
   }
 
-  const brandColor = event.primary_color || "#7C3AED";
-  const isDark = (event as any).color_mode === "dark";
+  const brandColor = PULSE.teal;
 
   // Non-form steps are overlaid in place of the form slot inside PublicEventPage
   if (step.kind === "waafi") {
@@ -1305,33 +1171,24 @@ const Register = () => {
         <PublicEventPage
           event={event}
           modules={modules}
-          brandColor={brandColor}
-          isDark={isDark}
-          formattedDate={event.event_date ? formatEventDateTime(event) : ""}
           registerLabel={registerLabel}
           registerDisabled={true}
           formSlot={
-            <div className="relative min-h-[320px]">
-              <AuroraBackdrop brandColor={brandColor} isDark={isDark} />
-              <div className="relative z-10 flex flex-col items-center gap-4 py-6">
-                <ParticipantWaafiPayment
-                  participationId={step.participation.id}
-                  eventName={event.name}
-                  ticketName={ticket?.name ?? step.participation.ticket_type?.name ?? null}
-                  amount={
-                    step.participation.final_amount
-                    ?? (ticket?.price ? String(ticket.price) : step.participation.ticket_type?.price ?? "0")
-                  }
-                  currency={ticket?.currency || "USD"}
-                  brandColor={brandColor}
-                  isDark={isDark}
-                  onSuccess={handlePaymentSuccess}
-                  onFailure={handlePaymentFailure}
-                  onCancel={handlePaymentCancel}
-                />
-                <PoweredBy />
-              </div>
-            </div>
+            <ParticipantWaafiPayment
+              participationId={step.participation.id}
+              eventName={event.name}
+              ticketName={ticket?.name ?? step.participation.ticket_type?.name ?? null}
+              amount={
+                step.participation.final_amount
+                ?? (ticket?.price ? String(ticket.price) : step.participation.ticket_type?.price ?? "0")
+              }
+              currency={ticket?.currency || "USD"}
+              brandColor={brandColor}
+              isDark={false}
+              onSuccess={handlePaymentSuccess}
+              onFailure={handlePaymentFailure}
+              onCancel={handlePaymentCancel}
+            />
           }
         />
       </div>
@@ -1344,25 +1201,15 @@ const Register = () => {
         <PublicEventPage
           event={event}
           modules={modules}
-          brandColor={brandColor}
-          isDark={isDark}
-          formattedDate={event.event_date ? formatEventDateTime(event) : ""}
           registerLabel={registerLabel}
           registerDisabled={true}
           formSlot={
-            <div className="relative min-h-[320px]">
-              <AuroraBackdrop brandColor={brandColor} isDark={isDark} />
-              <div className="relative z-10 flex flex-col items-center gap-4 py-6">
-                <SuccessCard
-                  brandColor={brandColor}
-                  eventName={event.name}
-                  waitlisted={step.waitlisted}
-                  participationId={step.participation.id}
-                  isDark={isDark}
-                />
-                <PoweredBy />
-              </div>
-            </div>
+            <SuccessCard
+              brandColor={brandColor}
+              eventName={event.name}
+              waitlisted={step.waitlisted}
+              participationId={step.participation.id}
+            />
           }
         />
       </div>
@@ -1375,24 +1222,14 @@ const Register = () => {
         <PublicEventPage
           event={event}
           modules={modules}
-          brandColor={brandColor}
-          isDark={isDark}
-          formattedDate={event.event_date ? formatEventDateTime(event) : ""}
           registerLabel={registerLabel}
           registerDisabled={true}
           formSlot={
-            <div className="relative min-h-[320px]">
-              <AuroraBackdrop brandColor={brandColor} isDark={isDark} />
-              <div className="relative z-10 flex flex-col items-center gap-4 py-6">
-                <PaymentFailCard
-                  brandColor={brandColor}
-                  reason={step.reason}
-                  onRetry={handleRetryPayment}
-                  isDark={isDark}
-                />
-                <PoweredBy />
-              </div>
-            </div>
+            <PaymentFailCard
+              brandColor={brandColor}
+              reason={step.reason}
+              onRetry={handleRetryPayment}
+            />
           }
         />
       </div>
@@ -1431,16 +1268,11 @@ const Register = () => {
       <PublicEventPage
         event={event}
         modules={modules}
-        brandColor={brandColor}
-        isDark={isDark}
-        formattedDate={event.event_date ? formatEventDateTime(event) : ""}
         registerLabel={registerLabel}
         registerDisabled={submitDisabled || !!lockedReason}
         formSlot={
           lockedReason ? (
             <RegistrationLockedPanel
-              brandColor={brandColor}
-              isDark={isDark}
               reason={lockedReason}
               startsAt={event.event_date}
             />

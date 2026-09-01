@@ -1,5 +1,8 @@
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useEffect } from "react";
+import { PublicSiteHeader } from "@/components/layout/PublicSiteHeader";
+import { SiteFooter } from "@/components/layout/SiteFooter";
+import { Button } from "@/components/ui/button";
 
 const NotFound = () => {
   const location = useLocation();
@@ -9,14 +12,21 @@ const NotFound = () => {
   }, [location.pathname]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted" data-testid="page-not-found">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">404</h1>
-        <p className="mb-4 text-xl text-muted-foreground">Oops! Page not found</p>
-        <a href="/" className="text-primary underline hover:text-primary/90" data-testid="not-found-home-link">
-          Return to Home
-        </a>
-      </div>
+    <div className="house-page flex min-h-[100dvh] flex-col" data-testid="page-not-found">
+      <PublicSiteHeader />
+      <main className="flex flex-1 items-center justify-center px-4 py-16">
+        <div className="text-center">
+          <p className="font-mono text-sm text-primary">404</p>
+          <h1 className="mt-2 font-display text-2xl font-semibold tracking-tight">Page not found</h1>
+          <p className="mt-3 text-muted-foreground">That URL is not in this site.</p>
+          <Button className="mt-6 rounded-full" asChild>
+            <Link to="/" data-testid="not-found-home-link">
+              Home
+            </Link>
+          </Button>
+        </div>
+      </main>
+      <SiteFooter />
     </div>
   );
 };

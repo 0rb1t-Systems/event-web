@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2 } from "lucide-react";
+import { IconPencil, IconTrash } from "@/components/organizer-console/orgIcons";
 import { getMediaUrl } from "@/lib/mediaUrl";
 import type { OrganizerSponsor } from "@/services/organizerEventContent";
 
@@ -32,8 +32,8 @@ export default function SponsorCard({ sponsor, onEdit, onDelete }: Props) {
         <p className="text-sm font-medium truncate">{sponsor.name}</p>
         <Badge className={`border-0 text-[10px] rounded-full capitalize ${TIER_CLASS[tier] || "bg-muted"}`}>{tier}</Badge>
       </div>
-      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit}><Pencil className="w-3.5 h-3.5" /></Button>
-      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onDelete}><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>
+      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit}><IconPencil className="w-3.5 h-3.5" /></Button>
+      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onDelete}><IconTrash className="w-3.5 h-3.5 text-destructive" /></Button>
     </div>
   );
 }

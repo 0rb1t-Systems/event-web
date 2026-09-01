@@ -6,10 +6,19 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { Loader2 } from "lucide-react";
 import {
-  Loader2, Upload, Trash2, RefreshCw, Check, Plus,
-  Image as ImageIcon, Library, X, Move, ZoomIn, RotateCcw,
-} from "lucide-react";
+  IconCheck,
+  IconClose,
+  IconLibrary,
+  IconMove,
+  IconPhoto,
+  IconPlus,
+  IconRefresh,
+  IconTrash,
+  IconUpload,
+  IconZoomIn,
+} from "@/components/organizer-console/orgIcons";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -184,20 +193,20 @@ export default function SmartImageField({
                 />
                 <div className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 flex-wrap p-3">
                   <Button size="sm" variant="secondary" className="h-9 rounded-full" onClick={() => onUploadFile ? fileRef.current?.click() : openStudio(true)}>
-                    <Library className="w-4 h-4 mr-1.5" /> Change
+                    <IconLibrary className="w-4 h-4 mr-1.5" /> Change
                   </Button>
                   {!onUploadFile && (
                     <Button size="sm" variant="secondary" className="h-9 rounded-full" onClick={() => openStudio(false)}>
-                      <ImageIcon className="w-4 h-4 mr-1.5" /> AI
+                      <IconPhoto className="w-4 h-4 mr-1.5" /> AI
                     </Button>
                   )}
                   {adjustable && (
                     <Button size="sm" variant="secondary" className="h-9 rounded-full" onClick={() => setAdjusting(true)}>
-                      <Move className="w-4 h-4 mr-1.5" /> Adjust
+                      <IconMove className="w-4 h-4 mr-1.5" /> Adjust
                     </Button>
                   )}
                   <Button size="sm" variant="destructive" className="h-9 rounded-full" onClick={() => { setSelectedValue(null); onChange(null); }}>
-                    <Trash2 className="w-4 h-4 mr-1.5" /> Remove
+                    <IconTrash className="w-4 h-4 mr-1.5" /> Remove
                   </Button>
                 </div>
               </>
@@ -213,9 +222,9 @@ export default function SmartImageField({
               <Loader2 className="w-7 h-7 animate-spin text-primary" />
             ) : (
               <div className="flex items-center gap-2 opacity-70">
-                <Upload className="w-5 h-5" />
-                <ImageIcon className="w-5 h-5" />
-                <ImageIcon className="w-5 h-5" />
+                <IconUpload className="w-5 h-5" />
+                <IconPhoto className="w-5 h-5" />
+                <IconPhoto className="w-5 h-5" />
               </div>
             )}
             <span className="text-sm text-center max-w-[18rem]">{emptyLabel}</span>
@@ -228,7 +237,7 @@ export default function SmartImageField({
                     onClick={(e) => { e.stopPropagation(); openStudio(false); }}
                     className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full bg-foreground text-background hover:opacity-90 cursor-pointer"
                   >
-                    <ImageIcon className="w-3 h-3" /> Generate with AI
+                    <IconPhoto className="w-3 h-3" /> Generate with AI
                   </span>
                 )}
                 <span
@@ -237,7 +246,7 @@ export default function SmartImageField({
                   onClick={(e) => { e.stopPropagation(); fileRef.current?.click(); }}
                   className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full bg-background border border-border hover:bg-muted cursor-pointer"
                 >
-                  <Upload className="w-3 h-3" /> Upload
+                  <IconUpload className="w-3 h-3" /> Upload
                 </span>
               </div>
             )}
@@ -341,7 +350,7 @@ function ImageAdjuster({
         style={{ objectPosition: `${pos.x}% ${pos.y}%`, transform: `scale(${scl})` }}
       />
       <div className="absolute inset-x-3 bottom-3 bg-background/95 backdrop-blur rounded-2xl p-3 flex items-center gap-3 shadow-lg">
-        <ZoomIn className="w-4 h-4 text-muted-foreground shrink-0" />
+        <IconZoomIn className="w-4 h-4 text-muted-foreground shrink-0" />
         <Slider
           value={[scl]}
           min={1}
@@ -356,14 +365,14 @@ function ImageAdjuster({
           className="rounded-full h-8 px-2 gap-1"
           onClick={(e) => { e.stopPropagation(); setPos({ x: 50, y: 50 }); setScl(1); }}
         >
-          <RotateCcw className="w-3.5 h-3.5" /> Reset
+          <IconRefresh className="w-3.5 h-3.5" /> Reset
         </Button>
         <Button size="sm" className="rounded-full h-8" onClick={(e) => { e.stopPropagation(); onDone(); }}>
-          <Check className="w-3.5 h-3.5 mr-1" /> Done
+          <IconCheck className="w-3.5 h-3.5 mr-1" /> Done
         </Button>
       </div>
       <div className="absolute top-3 left-3 bg-background/90 text-xs px-2.5 py-1 rounded-full flex items-center gap-1 pointer-events-none">
-        <Move className="w-3 h-3" /> Drag to reposition
+        <IconMove className="w-3 h-3" /> Drag to reposition
       </div>
     </div>
   );
@@ -589,7 +598,7 @@ function ImageStudioDialog({
       <DialogContent className="max-w-4xl rounded-3xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 font-display">
-            <ImageIcon className="w-5 h-5 text-primary" />
+            <IconPhoto className="w-5 h-5 text-primary" />
             Image studio
           </DialogTitle>
           <DialogDescription>
@@ -601,10 +610,10 @@ function ImageStudioDialog({
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <TabsList className="rounded-full">
               <TabsTrigger value="library" className="rounded-full">
-                <Library className="w-4 h-4 mr-1.5" /> Library {library.length ? `(${library.length})` : ""}
+                <IconLibrary className="w-4 h-4 mr-1.5" /> Library {library.length ? `(${library.length})` : ""}
               </TabsTrigger>
               <TabsTrigger value="generate" className="rounded-full">
-                <ImageIcon className="w-4 h-4 mr-1.5" /> Generate
+                <IconPhoto className="w-4 h-4 mr-1.5" /> Generate
               </TabsTrigger>
             </TabsList>
             <Button
@@ -613,7 +622,7 @@ function ImageStudioDialog({
               className="rounded-full"
               onClick={() => uploadRef.current?.click()}
             >
-              <Upload className="w-4 h-4 mr-1.5" /> Upload your own
+              <IconUpload className="w-4 h-4 mr-1.5" /> Upload your own
             </Button>
             <input
               ref={uploadRef}
@@ -640,7 +649,7 @@ function ImageStudioDialog({
               />
               {styleSeedUrl && (
                 <p className="text-xs text-muted-foreground flex items-center gap-2">
-                  <Check className="w-3 h-3 text-primary" />
+                  <IconCheck className="w-3 h-3 text-primary" />
                   Matching the style of your cover image
                 </p>
               )}
@@ -652,7 +661,7 @@ function ImageStudioDialog({
                 disabled={generating}
                 className="rounded-full font-semibold bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                {generating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : variants.length ? <RefreshCw className="w-4 h-4 mr-2" /> : <ImageIcon className="w-4 h-4 mr-2" />}
+                {generating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : variants.length ? <IconRefresh className="w-4 h-4 mr-2" /> : <IconPhoto className="w-4 h-4 mr-2" />}
                 {variants.length ? "Regenerate 3" : "Generate 3"}
               </Button>
               {variants.length > 0 && (
@@ -662,7 +671,7 @@ function ImageStudioDialog({
                   disabled={generating}
                   className="rounded-full"
                 >
-                  <Plus className="w-4 h-4 mr-2" /> Generate 3 more
+                  <IconPlus className="w-4 h-4 mr-2" /> Generate 3 more
                 </Button>
               )}
             </div>
@@ -686,7 +695,7 @@ function ImageStudioDialog({
                     <img src={v.url} alt="" className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/var:opacity-100 transition-opacity flex items-center justify-center">
                       <span className="text-xs font-medium bg-background text-foreground rounded-full px-3 py-1.5 inline-flex items-center gap-1">
-                        <Check className="w-3 h-3" /> Use this
+                        <IconCheck className="w-3 h-3" /> Use this
                       </span>
                     </div>
                   </motion.button>
@@ -702,7 +711,7 @@ function ImageStudioDialog({
                 ))}
                 {!generating && variants.length === 0 && (
                   <div className={cn("col-span-full rounded-2xl border border-dashed border-border flex flex-col items-center justify-center text-muted-foreground gap-2", aspect)}>
-                    <ImageIcon className="w-7 h-7" />
+                    <IconPhoto className="w-7 h-7" />
                     <p className="text-sm">Variants will appear here — click any to use it</p>
                   </div>
                 )}
@@ -728,7 +737,7 @@ function ImageStudioDialog({
                     </button>
                     <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
                       <span className="text-xs font-medium bg-background text-foreground rounded-full px-3 py-1.5 inline-flex items-center gap-1">
-                        <Check className="w-3 h-3" /> Use this
+                        <IconCheck className="w-3 h-3" /> Use this
                       </span>
                     </div>
                     <Button
@@ -740,7 +749,7 @@ function ImageStudioDialog({
                         loadLibrary();
                       }}
                     >
-                      <X className="w-3.5 h-3.5" />
+                      <IconClose className="w-3.5 h-3.5" />
                     </Button>
                     {row.source === "ai" && (
                       <span className="absolute top-1.5 left-1.5 text-[10px] uppercase tracking-wide bg-background/90 px-1.5 py-0.5 rounded-full">AI</span>

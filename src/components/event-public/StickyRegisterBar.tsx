@@ -1,5 +1,6 @@
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from "framer-motion";
 import { useState } from "react";
+import { PULSE } from "./pulseTheme";
 
 interface Props {
   brandColor: string;
@@ -9,12 +10,7 @@ interface Props {
   registerDisabled?: boolean;
 }
 
-/**
- * Sticky bottom (mobile) / top (desktop) register bar that springs in once the
- * hero scrolls out of view. Includes safe-area padding for iOS.
- */
 export function StickyRegisterBar({
-  brandColor,
   eventName,
   onRegisterClick,
   registerLabel = "Register",
@@ -35,33 +31,21 @@ export function StickyRegisterBar({
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 80, opacity: 0 }}
           transition={{ type: "spring", damping: 22, stiffness: 260 }}
-          className="fixed bottom-0 left-0 right-0 z-40 px-3 sm:px-6 pb-3 sm:pb-5"
-          style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+          className="fixed bottom-4 left-0 right-0 z-40 flex justify-center px-4"
+          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         >
-          <div
-            className="max-w-3xl mx-auto flex items-center gap-3 p-2 pl-4 sm:pl-6 rounded-full backdrop-blur-2xl border-0 shadow-2xl"
-            style={{
-              background: "hsl(var(--background) / 0.85)",
-              boxShadow: "0 20px 60px -20px rgba(0,0,0,0.35)",
-            }}
-          >
-            <span className="hidden sm:block text-sm font-medium truncate flex-1 text-foreground">
+          <div className="flex w-full max-w-lg items-center gap-3 rounded-full bg-white p-1.5 shadow-[0_16px_50px_-20px_rgba(15,23,42,0.45)] sm:px-2 sm:py-1.5">
+            <span className="hidden min-w-0 flex-1 truncate pl-3 text-sm font-medium text-slate-700 sm:block">
               {eventName}
             </span>
             <button
               type="button"
+              className="w-full rounded-full px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60 sm:ml-auto sm:w-auto sm:py-2"
+              style={{ background: PULSE.teal }}
               onClick={onRegisterClick}
               disabled={registerDisabled}
-              className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-2 h-11 sm:h-12 px-6 sm:px-7 rounded-full text-sm sm:text-base font-semibold text-white transition-transform hover:scale-[1.02] active:scale-[0.99] ${
-                registerDisabled ? "opacity-60 cursor-not-allowed hover:scale-[1] active:scale-[1]" : ""
-              }`}
-              style={{
-                background: `linear-gradient(135deg, ${brandColor}, hsl(265 90% 62%))`,
-                boxShadow: `0 12px 30px -8px ${brandColor}88`,
-              }}
             >
               {registerLabel}
-              {!registerDisabled && <span>→</span>}
             </button>
           </div>
         </motion.div>

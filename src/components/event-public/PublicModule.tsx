@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
-import { MapPin, Plus, Quote } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Plus, Quote } from "lucide-react";
 type EventModule = any;
 import SectionIcon from "@/components/event-detail/SectionIcon";
 import {
@@ -12,6 +12,7 @@ import {
   type CarouselApi,
 } from "@/components/ui/carousel";
 import { cn } from "@/lib/utils";
+import { PULSE } from "./pulseTheme";
 
 interface ModuleProps {
   module: EventModule;
@@ -20,60 +21,38 @@ interface ModuleProps {
 }
 
 const fadeUp = {
-  initial: { opacity: 0, y: 28, filter: "blur(8px)" },
-  whileInView: { opacity: 1, y: 0, filter: "blur(0px)" },
+  initial: { opacity: 0, y: 24 },
+  whileInView: { opacity: 1, y: 0 },
   viewport: { once: true, margin: "-80px" },
-  transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] as const },
+  transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] as const },
 };
-
-const stagger = {
-  initial: "hidden",
-  whileInView: "visible",
-  viewport: { once: true, margin: "-60px" },
-  variants: { visible: { transition: { staggerChildren: 0.08 } } },
-};
-
-const staggerItem = {
-  hidden: { opacity: 0, y: 22, filter: "blur(8px)" },
-  visible: { opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as const } },
-};
-
-/* ─────────────────────── Shared section frame ─────────────────────── */
 
 function SectionShell({
-  eyebrow,
+  id,
   heading,
   children,
-  brandColor,
-  variant = "contained",
+  className,
+  invert,
 }: {
-  eyebrow?: string;
+  id?: string;
   heading?: string;
   children: React.ReactNode;
-  brandColor: string;
-  variant?: "contained" | "wide";
+  className?: string;
+  invert?: boolean;
 }) {
   return (
-    <section className={`relative w-full px-5 sm:px-8 lg:px-12 py-16 sm:py-24 lg:py-36`}>
-      <div className={variant === "wide" ? "max-w-[1400px] mx-auto" : "max-w-5xl mx-auto"}>
-        {(eyebrow || heading) && (
-          <motion.div {...fadeUp} className="mb-10 sm:mb-14 lg:mb-20 max-w-3xl">
-            {eyebrow && (
-              <p
-                className="text-[10px] sm:text-xs font-bold tracking-[0.25em] uppercase mb-3 sm:mb-4"
-                style={{ color: brandColor }}
-              >
-                {eyebrow}
-              </p>
-            )}
-            {heading && (
-              <h2
-                className="font-display font-bold tracking-[-0.03em] leading-[1.02] sm:leading-[0.95] text-foreground break-words hyphens-auto"
-                style={{ fontSize: "clamp(2rem, 8vw, 4.5rem)" }}
-              >
-                {heading}
-              </h2>
-            )}
+    <section id={id} className={cn("relative w-full scroll-mt-24 px-5 py-8 sm:px-8 sm:py-12", className)}>
+      <div className="mx-auto max-w-5xl">
+        {heading && (
+          <motion.div {...fadeUp} className="mb-6 sm:mb-8">
+            <h2
+              className={cn(
+                "max-w-xl font-display text-lg font-semibold tracking-tight sm:text-xl",
+                invert ? "text-white" : "text-slate-900",
+              )}
+            >
+              {heading}
+            </h2>
           </motion.div>
         )}
         {children}
@@ -82,327 +61,418 @@ function SectionShell({
   );
 }
 
-/* ─────────────────────── why_attend — bento grid ─────────────────────── */
-
-function WhyAttend({ module: m, brandColor }: ModuleProps) {
+function WhyAttend({ module: m }: ModuleProps) {
   const c = m.content || {};
   const bullets: string[] = Array.isArray(c.bullets) ? c.bullets : [];
-  const imageUrl: string | undefined = c.image_url;
   const heading = c.heading || "Why attend";
-  const [hero, ...rest] = bullets;
+  const [featured, ...rest] = bullets;
 
   return (
-    <SectionShell eyebrow="Why attend" heading={heading} brandColor={brandColor} variant="wide">
-      <motion.div {...stagger} className="grid grid-cols-1 lg:grid-cols-6 lg:auto-rows-[minmax(180px,auto)] gap-3 sm:gap-4">
-        {/* Hero bullet — large, image-backed if available */}
-        {hero && (
+    <SectionShell id={m.id} heading={heading}>
+      <div className="space-y-3">
+        {featured ? (
           <motion.div
-            variants={staggerItem}
-            className="relative lg:col-span-4 lg:row-span-2 rounded-3xl overflow-hidden p-6 sm:p-8 lg:p-10 flex flex-col justify-end min-h-[280px] sm:min-h-[360px] lg:min-h-[420px]"
-            style={{
-              background: imageUrl ? "transparent" : `linear-gradient(135deg, ${brandColor}, hsl(265 90% 55%))`,
-            }}
+            {...fadeUp}
+            className="rounded-2xl px-5 py-5 sm:px-6 sm:py-6"
+            style={{ background: PULSE.mint }}
           >
-            {imageUrl && (
-              <>
-                <img src={imageUrl} alt="" loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover" />
-                <div className="absolute inset-0" style={{ background: `linear-gradient(0deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.25) 50%, rgba(0,0,0,0.0) 100%), radial-gradient(circle at 70% 30%, ${brandColor}40, transparent 60%)` }} />
-              </>
-            )}
-            <div className="relative">
-              <span className="inline-block text-[10px] tracking-[0.25em] uppercase text-white/70 font-bold mb-3">01</span>
-              <p className="font-display font-semibold tracking-[-0.02em] text-white leading-[1.1] break-words" style={{ fontSize: "clamp(1.5rem, 5vw, 2.5rem)" }}>
-                {hero}
-              </p>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Smaller bullets */}
-        {rest.slice(0, 3).map((b, i) => (
-          <motion.div
-            key={i}
-            variants={staggerItem}
-            className="lg:col-span-2 rounded-3xl p-5 sm:p-6 lg:p-7 bg-card flex flex-col justify-between min-h-[140px] sm:min-h-[180px]"
-          >
-            <span
-              className="text-[10px] tracking-[0.25em] uppercase font-bold"
-              style={{ color: brandColor }}
-            >
-              {String(i + 2).padStart(2, "0")}
-            </span>
-            <p className="font-display font-semibold tracking-[-0.015em] text-foreground leading-[1.2] mt-3 sm:mt-4 break-words" style={{ fontSize: "clamp(1rem, 2.4vw, 1.25rem)" }}>
-              {b}
+            <p className="max-w-[46ch] text-base font-medium leading-snug text-slate-800 sm:text-lg">
+              {featured}
             </p>
           </motion.div>
-        ))}
+        ) : null}
 
-        {/* Overflow bullets — clean list under the bento */}
-        {rest.slice(3).map((b, i) => (
-          <motion.div
-            key={`extra-${i}`}
-            variants={staggerItem}
-            className="lg:col-span-3 rounded-3xl p-5 sm:p-6 bg-card flex items-start gap-4"
-          >
-            <span
-              className="shrink-0 mt-1 text-[10px] tracking-[0.25em] uppercase font-bold"
-              style={{ color: brandColor }}
-            >
-              {String(i + 5).padStart(2, "0")}
-            </span>
-            <p className="text-base sm:text-lg text-foreground/90 leading-relaxed break-words">{b}</p>
-          </motion.div>
-        ))}
-      </motion.div>
+        {rest.length > 0 ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {rest.map((b, i) => (
+              <motion.div
+                key={i}
+                {...fadeUp}
+                className="rounded-2xl bg-white px-5 py-4"
+              >
+                <p className="text-sm leading-relaxed text-slate-600">{b}</p>
+              </motion.div>
+            ))}
+          </div>
+        ) : null}
+      </div>
     </SectionShell>
   );
 }
 
-/* ─────────────────────── schedule — vertical timeline ─────────────────────── */
+type ScheduleItem = {
+  time: string;
+  endTime?: string;
+  title: string;
+  description?: string;
+  room?: string;
+  starts_at?: string | null;
+  speaker?: { name: string; avatar?: string };
+};
 
-function Schedule({ module: m, brandColor }: ModuleProps) {
-  const c = m.content || {};
-  const items: { time: string; title: string }[] = Array.isArray(c.items) ? c.items : [];
-
-  return (
-    <SectionShell eyebrow="Schedule" heading={c.heading || "What to expect"} brandColor={brandColor}>
-      <motion.ol {...stagger} className="relative space-y-1">
-        <div
-          className="absolute left-[4.5rem] sm:left-[5.5rem] top-2 bottom-2 w-px"
-          style={{ background: `linear-gradient(180deg, ${brandColor}66, transparent)` }}
-        />
-        {items.map((it, i) => (
-          <motion.li
-            key={i}
-            variants={staggerItem}
-            className="relative grid grid-cols-[4.5rem_1rem_1fr] sm:grid-cols-[5.5rem_1rem_1fr] items-start gap-3 sm:gap-6 py-5 sm:py-7 border-b border-border/40 last:border-b-0"
-          >
-            <span
-              className="font-display font-bold tabular-nums tracking-[-0.02em] text-xl sm:text-3xl lg:text-4xl pt-1 sm:pt-0"
-              style={{ color: brandColor }}
-            >
-              {it.time}
-            </span>
-            <span className="block w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full mt-3 sm:mt-4 -ml-[3px]" style={{ background: brandColor }} />
-            <span className="font-display font-semibold tracking-[-0.015em] text-foreground leading-snug break-words" style={{ fontSize: "clamp(1.05rem, 3.6vw, 1.5rem)" }}>
-              {it.title}
-            </span>
-          </motion.li>
-        ))}
-      </motion.ol>
-    </SectionShell>
-  );
+function dayKey(iso: string | null | undefined, fallback: string) {
+  if (!iso) return fallback;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return fallback;
+  return d.toISOString().slice(0, 10);
 }
 
-/* ─────────────────────── speakers — large square portraits ─────────────────────── */
-
-function Speakers({ module: m, brandColor }: ModuleProps) {
-  const c = m.content || {};
-  const people: { name: string; role: string; avatar?: string }[] = Array.isArray(c.people) ? c.people : [];
-
-  return (
-    <SectionShell eyebrow="Featuring" heading={c.heading || "Speakers"} brandColor={brandColor} variant="wide">
-      <motion.div {...stagger} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
-        {people.map((p, i) => (
-          <motion.div key={i} variants={staggerItem} className="group">
-            <div className="relative aspect-square rounded-2xl overflow-hidden bg-muted">
-              {p.avatar ? (
-                <img
-                  src={p.avatar}
-                  alt={p.name}
-                  loading="lazy"
-                  decoding="async"
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                />
-              ) : (
-                <div
-                  className="w-full h-full flex items-center justify-center font-display font-bold text-5xl sm:text-7xl text-white"
-                  style={{ background: `linear-gradient(135deg, ${brandColor}, hsl(265 90% 55%))` }}
-                >
-                  {(p.name || "?").charAt(0)}
-                </div>
-              )}
-              <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5 bg-gradient-to-t from-black/80 via-black/30 to-transparent">
-                <p className="font-display font-semibold text-base sm:text-lg text-white leading-tight">{p.name}</p>
-                {p.role && <p className="text-xs sm:text-sm text-white/75 mt-0.5 leading-snug">{p.role}</p>}
-              </div>
-            </div>
-          </motion.div>
-        ))}
-      </motion.div>
-    </SectionShell>
-  );
+function dayLabel(iso: string | null | undefined, fallback: string) {
+  if (!iso) return fallback;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return fallback;
+  return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
 }
 
-/* ─────────────────────── location — full-bleed with floating card ─────────────────────── */
+function sessionTime(it: ScheduleItem) {
+  return it.time || "";
+}
 
-function Location({ module: m, brandColor }: ModuleProps) {
+function splitHeading(heading: string) {
+  const parts = heading.trim().split(/\s+/).filter(Boolean);
+  if (parts.length < 2) return { lead: heading, rest: "" };
+  return { lead: parts[0], rest: parts.slice(1).join(" ") };
+}
+
+function Schedule({ module: m }: ModuleProps) {
   const c = m.content || {};
-  const imageUrl: string | undefined = c.image_url;
+  const items: ScheduleItem[] = Array.isArray(c.items) ? c.items : [];
+  const days = useMemo(() => {
+    const map = new Map<string, { key: string; label: string; items: ScheduleItem[] }>();
+    items.forEach((it, i) => {
+      const key = dayKey(it.starts_at, "day");
+      const existing = map.get(key);
+      if (existing) existing.items.push(it);
+      else map.set(key, { key, label: dayLabel(it.starts_at, `Day ${i + 1}`), items: [it] });
+    });
+    return Array.from(map.values());
+  }, [items]);
+
+  const [day, setDay] = useState(days[0]?.key ?? "day");
+  const [open, setOpen] = useState<number | null>(null);
+  const selected = days.find((d) => d.key === day) ?? days[0];
+  const list = selected?.items ?? items;
+  const showTabs = days.length > 1;
+  const heading = c.heading || "Agenda overview";
+  const { lead, rest } = splitHeading(heading);
+  const allHaveSpeakers = list.length > 0 && list.every((row) => !!row.speaker?.name);
 
   return (
-    <section className="relative w-full px-5 sm:px-8 lg:px-12 py-20 sm:py-28 lg:py-36">
-      <div className="max-w-[1400px] mx-auto">
-        <motion.div {...fadeUp} className="mb-8 sm:mb-10">
-          <p className="text-[10px] sm:text-xs font-bold tracking-[0.25em] uppercase mb-3 sm:mb-4" style={{ color: brandColor }}>
-            Location
+    <section id={m.id} className="scroll-mt-24 px-4 py-8 sm:px-8 sm:py-12">
+      <div className="mx-auto max-w-5xl">
+        <motion.div {...fadeUp}>
+          <p className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-900">
+            <span className="h-1.5 w-1.5 rounded-full bg-slate-900" />
+            Our agenda
           </p>
-          <h2 className="font-display font-bold tracking-[-0.03em] leading-[1.02] sm:leading-[0.95] text-foreground break-words hyphens-auto" style={{ fontSize: "clamp(2rem, 8vw, 4.5rem)" }}>
-            {c.heading || "Where to find us"}
+          <h2 className="mt-2 font-display text-lg font-semibold tracking-tight sm:text-xl">
+            <span className="text-slate-900">{lead}</span>
+            {rest ? <span className="font-semibold text-slate-400"> {rest}</span> : null}
           </h2>
         </motion.div>
 
-        <motion.div
-          {...fadeUp}
-          className="relative rounded-3xl overflow-hidden min-h-[380px] sm:min-h-[520px] flex items-end"
-        >
-          {imageUrl ? (
-            <img src={imageUrl} alt={c.venue || "Location"} className="absolute inset-0 w-full h-full object-cover" />
-          ) : (
-            <div
-              className="absolute inset-0"
-              style={{ background: `linear-gradient(135deg, ${brandColor}55, hsl(265 90% 55% / 0.4)), linear-gradient(180deg, hsl(220 30% 25%), hsl(220 35% 15%))` }}
-            />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-
-          <div className="relative w-full p-5 sm:p-10">
-            <div className="inline-flex flex-col gap-3 max-w-md p-6 sm:p-8 rounded-2xl backdrop-blur-2xl bg-white/15 border border-white/20">
-              <div className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-white/95">
-                <MapPin className="w-5 h-5" style={{ color: brandColor }} />
-              </div>
-              {c.venue && <p className="font-display font-semibold text-2xl sm:text-3xl tracking-[-0.02em] text-white leading-tight">{c.venue}</p>}
-              {c.address && <p className="text-sm sm:text-base text-white/85 leading-relaxed">{c.address}</p>}
-              {c.mapUrl && (
-                <a
-                  href={c.mapUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 mt-2 px-5 h-11 rounded-full bg-white text-foreground text-sm font-semibold w-fit hover:scale-[1.02] transition-transform"
+        {showTabs && (
+          <div className="mt-8 flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+            {days.map((d) => {
+              const on = d.key === selected?.key;
+              return (
+                <button
+                  key={d.key}
+                  type="button"
+                  onClick={() => {
+                    setDay(d.key);
+                    setOpen(null);
+                  }}
+                  className={cn(
+                    "shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors",
+                    on ? "text-white" : "bg-white text-slate-600 hover:text-slate-900",
+                  )}
+                  style={on ? { background: PULSE.teal } : undefined}
                 >
-                  {c.linkLabel || "Open in maps"} <span>→</span>
-                </a>
-              )}
-            </div>
+                  {d.label}
+                </button>
+              );
+            })}
           </div>
-        </motion.div>
+        )}
+
+        <ol className="mt-8 space-y-3">
+          {list.map((it, i) => {
+            const isOpen = open === i;
+            const hasBody = !!it.description;
+            const accent = !it.speaker?.name || (allHaveSpeakers && i === 0);
+            return (
+              <li key={`${it.title}-${i}`}>
+                <article
+                  className={cn(
+                    "rounded-2xl px-5 py-5 sm:rounded-[1.25rem] sm:px-7 sm:py-6",
+                    accent
+                      ? "bg-[#E8EEF2]"
+                      : "bg-white shadow-[0_10px_28px_-20px_rgba(15,23,42,0.35)]",
+                  )}
+                >
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-3 sm:grid-cols-[7.5rem_minmax(0,1fr)_auto] sm:gap-x-8">
+                    <div className="col-start-1">
+                      <p className="text-sm font-bold tabular-nums text-slate-900 sm:text-base">
+                        {sessionTime(it)}
+                      </p>
+                      {it.room ? (
+                        <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                          {it.room}
+                        </p>
+                      ) : null}
+                    </div>
+                    <div className="col-span-2 min-w-0 sm:col-span-1 sm:col-start-2">
+                      <h3 className="font-display text-base font-bold tracking-tight text-slate-900 sm:text-lg">
+                        {it.title}
+                      </h3>
+                      {hasBody ? (
+                        <p className={cn(
+                          "mt-1.5 text-sm leading-relaxed text-slate-500",
+                          !isOpen && "line-clamp-2 sm:line-clamp-1",
+                        )}>
+                          {it.description}
+                        </p>
+                      ) : null}
+                    </div>
+                    <div className="col-start-2 row-start-1 flex items-start gap-3 sm:col-start-3 sm:row-start-1 sm:min-w-[9rem] sm:justify-end">
+                      {it.speaker?.name ? (
+                        <div className="hidden min-w-0 sm:block sm:text-right">
+                          <p className="text-[11px] uppercase tracking-wide text-slate-400">Speaker</p>
+                          <p className="truncate text-sm font-semibold text-slate-900">{it.speaker.name}</p>
+                        </div>
+                      ) : null}
+                      {hasBody ? (
+                        <button
+                          type="button"
+                          aria-expanded={isOpen}
+                          aria-label={isOpen ? "Hide session details" : "Show session details"}
+                          onClick={() => setOpen(isOpen ? null : i)}
+                          className="inline-flex h-8 w-8 shrink-0 items-center justify-center text-slate-900"
+                        >
+                          <Plus className="h-5 w-5 transition-transform" strokeWidth={1.75} style={{ transform: isOpen ? "rotate(45deg)" : "rotate(0deg)" }} />
+                        </button>
+                      ) : null}
+                    </div>
+                    {it.speaker?.name ? (
+                      <p className="col-span-2 text-sm font-semibold text-slate-900 sm:hidden">
+                        <span className="mr-2 text-[11px] font-medium uppercase tracking-wide text-slate-400">Speaker</span>
+                        {it.speaker.name}
+                      </p>
+                    ) : null}
+                  </div>
+                </article>
+              </li>
+            );
+          })}
+        </ol>
       </div>
     </section>
   );
 }
 
-/* ─────────────────────── faq — two-column accordion ─────────────────────── */
+type Person = { name: string; role: string; avatar?: string; bio?: string };
 
-function Faq({ module: m, brandColor }: ModuleProps) {
+function Speakers({ module: m }: ModuleProps) {
   const c = m.content || {};
-  const items: { q: string; a: string }[] = Array.isArray(c.items) ? c.items : [];
-  const [open, setOpen] = useState<number | null>(0);
+  const people: Person[] = Array.isArray(c.people) ? c.people : [];
+  if (people.length === 0) return null;
 
   return (
-    <SectionShell eyebrow="FAQ" heading={c.heading || "Questions, answered"} brandColor={brandColor}>
-      <motion.div {...stagger} className="space-y-2">
-        {items.map((f, i) => {
-          const isOpen = open === i;
-          return (
-            <motion.div
-              key={i}
-              variants={staggerItem}
-              className="rounded-3xl bg-card overflow-hidden"
+    <section id={m.id} className="scroll-mt-24 px-5 py-8 sm:px-8 sm:py-10" style={{ background: PULSE.teal }}>
+      <div className="mx-auto max-w-5xl">
+        <h2 className="font-display text-lg font-semibold tracking-tight text-white sm:text-xl">
+          {c.heading || "Meet our speakers"}
+        </h2>
+        <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {people.map((p, i) => (
+            <li
+              key={`${p.name}-${i}`}
+              className="flex items-start gap-3 rounded-2xl bg-white p-3"
             >
-              <button
-                type="button"
-                onClick={() => setOpen(isOpen ? null : i)}
-                className="w-full flex items-start justify-between gap-6 p-6 sm:p-8 text-left"
-              >
-                <span className="font-display font-semibold text-lg sm:text-2xl tracking-[-0.015em] text-foreground leading-tight">
-                  {f.q}
-                </span>
-                <span
-                  className="shrink-0 mt-1 inline-flex items-center justify-center w-9 h-9 rounded-full transition-transform duration-300"
-                  style={{
-                    background: isOpen ? brandColor : `${brandColor}18`,
-                    color: isOpen ? "#fff" : brandColor,
-                    transform: isOpen ? "rotate(45deg)" : "rotate(0deg)",
-                  }}
-                >
-                  <Plus className="w-4 h-4" />
-                </span>
-              </button>
-              <motion.div
-                initial={false}
-                animate={{ height: isOpen ? "auto" : 0, opacity: isOpen ? 1 : 0 }}
-                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                className="overflow-hidden"
-              >
-                <p className="px-6 sm:px-8 pb-6 sm:pb-8 text-base sm:text-lg text-muted-foreground leading-relaxed max-w-3xl">
-                  {f.a}
-                </p>
-              </motion.div>
-            </motion.div>
-          );
-        })}
-      </motion.div>
-    </SectionShell>
+              <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-slate-100">
+                {p.avatar ? (
+                  <img src={p.avatar} alt={p.name} className="h-full w-full object-cover" />
+                ) : (
+                  <div
+                    className="flex h-full w-full items-center justify-center font-display text-base font-bold text-white"
+                    style={{ background: PULSE.navy }}
+                  >
+                    {(p.name || "?").charAt(0)}
+                  </div>
+                )}
+              </div>
+              <div className="min-w-0 pt-0.5">
+                <p className="font-display text-sm font-semibold leading-snug text-slate-900">{p.name}</p>
+                {p.role ? <p className="mt-0.5 truncate text-xs text-slate-500">{p.role}</p> : null}
+                {p.bio ? <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-600">{p.bio}</p> : null}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
   );
 }
 
-/* ─────────────────────── sponsors — marquee ─────────────────────── */
-
-function Sponsors({ module: m, brandColor }: ModuleProps) {
+function Location({ module: m }: ModuleProps) {
   const c = m.content || {};
-  const logos: string[] = Array.isArray(c.logos) ? c.logos : [];
-  if (logos.length === 0) return null;
-
-  // Duplicate for seamless marquee
-  const loop = [...logos, ...logos, ...logos];
+  const imageUrl: string | undefined = c.image_url;
+  const showMap = c.showMap !== false && !!(c.address || c.venue);
+  const query = [c.address, c.venue].filter(Boolean).join(", ");
+  const mapHref = query ? `https://maps.google.com/?q=${encodeURIComponent(query)}` : c.mapUrl;
+  const embedSrc = query
+    ? `https://maps.google.com/maps?q=${encodeURIComponent(query)}&z=15&output=embed`
+    : null;
 
   return (
-    <SectionShell eyebrow="Brought to you by" heading={c.heading || "Our partners"} brandColor={brandColor} variant="wide">
-      <div className="relative overflow-hidden -mx-5 sm:-mx-8 lg:-mx-12">
-        <div className="flex gap-12 sm:gap-20 animate-[marquee_40s_linear_infinite] py-4">
-          {loop.map((url, i) => (
-            <img
-              key={i}
-              src={url}
-              alt="Sponsor"
-              className="h-12 sm:h-16 object-contain shrink-0 opacity-70 hover:opacity-100 transition-opacity grayscale hover:grayscale-0"
-            />
-          ))}
+    <SectionShell id={m.id} heading={c.heading || "Find us here"}>
+      <div className={cn("grid grid-cols-1 gap-4", showMap ? "lg:grid-cols-2 lg:items-start" : "")}>
+        <div className="relative min-h-[240px] overflow-hidden rounded-2xl sm:min-h-[320px] lg:min-h-[400px]">
+          {imageUrl ? (
+            <img src={imageUrl} alt={c.venue || "Venue"} className="absolute inset-0 h-full w-full object-cover" />
+          ) : (
+            <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, ${PULSE.navy}, ${PULSE.sky})` }} />
+          )}
+          {(c.venue || c.address) ? (
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-6 sm:p-8">
+              {c.venue ? <p className="font-display text-xl font-semibold text-white">{c.venue}</p> : null}
+              {c.address ? <p className="mt-1 text-sm text-white/80">{c.address}</p> : null}
+            </div>
+          ) : null}
         </div>
-        <div className="absolute inset-y-0 left-0 w-16 sm:w-24 bg-gradient-to-r from-background to-transparent pointer-events-none" />
-        <div className="absolute inset-y-0 right-0 w-16 sm:w-24 bg-gradient-to-l from-background to-transparent pointer-events-none" />
+        {showMap ? (
+          <div className="relative min-h-[240px] overflow-hidden rounded-2xl bg-slate-100 sm:min-h-[320px] lg:mt-10 lg:min-h-[360px]">
+            {embedSrc ? (
+              <iframe
+                title="Venue map"
+                src={embedSrc}
+                className="absolute inset-0 h-full w-full border-0"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            ) : (
+              <div className="flex h-full min-h-[320px] flex-col justify-end p-8">
+                {c.address ? <p className="text-slate-600">{c.address}</p> : null}
+                {mapHref ? (
+                  <a href={mapHref} target="_blank" rel="noreferrer" className="mt-4 font-semibold" style={{ color: PULSE.tealDark }}>
+                    Open in maps
+                  </a>
+                ) : null}
+              </div>
+            )}
+          </div>
+        ) : null}
       </div>
     </SectionShell>
   );
 }
 
-/* ─────────────────────── custom — editorial ─────────────────────── */
+function Faq({ module: m }: ModuleProps) {
+  const c = m.content || {};
+  const items: { q: string; a: string }[] = Array.isArray(c.items) ? c.items : [];
+  const [open, setOpen] = useState<number | null>(0);
 
-function Custom({ module: m, brandColor }: ModuleProps) {
+  return (
+    <SectionShell id={m.id} heading={c.heading || "FAQ"}>
+      <div className="space-y-3">
+        {items.map((f, i) => {
+          const isOpen = open === i;
+          return (
+            <div key={i} className="overflow-hidden rounded-2xl bg-white">
+              <button type="button" onClick={() => setOpen(isOpen ? null : i)} className="flex w-full items-start justify-between gap-6 p-5 text-left sm:p-6">
+                <span className="font-semibold text-slate-900">{f.q}</span>
+                <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-700" style={{ transform: isOpen ? "rotate(45deg)" : "rotate(0deg)" }}>
+                  <Plus className="h-4 w-4" />
+                </span>
+              </button>
+              <motion.div initial={false} animate={{ height: isOpen ? "auto" : 0, opacity: isOpen ? 1 : 0 }} className="overflow-hidden">
+                <p className="max-w-3xl px-5 pb-5 text-slate-500 sm:px-6 sm:pb-6">{f.a}</p>
+              </motion.div>
+            </div>
+          );
+        })}
+      </div>
+    </SectionShell>
+  );
+}
+
+function PartnerLogo({ name, logo }: { name?: string; logo?: string }) {
+  const [failed, setFailed] = useState(false);
+  const showImg = !!logo && !failed;
+
+  if (showImg) {
+    return (
+      <img
+        src={logo}
+        alt={name || ""}
+        onError={() => setFailed(true)}
+        className="h-10 max-h-10 w-auto max-w-[8.5rem] object-contain sm:h-11 sm:max-h-11 sm:max-w-[10rem]"
+      />
+    );
+  }
+
+  return (
+    <span className="px-1 text-center text-xs font-semibold leading-snug text-slate-800">
+      {name || "Partner"}
+    </span>
+  );
+}
+
+function Sponsors({ module: m }: ModuleProps) {
+  const c = m.content || {};
+  const logos: string[] = Array.isArray(c.logos) ? c.logos : [];
+  const named: { name?: string; logo?: string }[] = Array.isArray(c.partners)
+    ? c.partners.filter((p: { name?: string; logo?: string }) => p?.name || p?.logo)
+    : logos.map((logo) => ({ logo }));
+  if (named.length === 0) return null;
+
+  return (
+    <section
+      id={m.id}
+      className="scroll-mt-24 py-10 sm:py-14"
+      style={{ background: PULSE.navy }}
+    >
+      <div className="mx-auto max-w-5xl px-5 sm:px-8">
+        <h2 className="font-display text-lg font-semibold tracking-tight text-white sm:text-xl">
+          {c.heading || "Partners"}
+        </h2>
+        <ul className="mt-6 grid grid-cols-2 gap-3 sm:mt-8 sm:grid-cols-3 lg:grid-cols-4">
+          {named.map((partner, i) => (
+            <li
+              key={`${partner.logo || partner.name}-${i}`}
+              className="flex h-[5.25rem] items-center justify-center rounded-2xl bg-white px-4 sm:h-24"
+            >
+              <PartnerLogo name={partner.name} logo={partner.logo} />
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+function Custom({ module: m }: ModuleProps) {
   const c = m.content || {};
   const body: string = c.body || "";
   const imageUrl: string | undefined = c.image_url;
 
   return (
-    <SectionShell eyebrow="Notes" heading={c.heading} brandColor={brandColor}>
+    <SectionShell id={m.id} heading={c.heading}>
       {imageUrl && (
-        <motion.div {...fadeUp} className="mb-10 rounded-3xl overflow-hidden">
-          <img src={imageUrl} alt={c.heading || ""} className="w-full h-auto max-h-[60vh] object-cover" />
-        </motion.div>
-      )}
-      <motion.div {...fadeUp} className="relative max-w-2xl">
-        <Quote className="absolute -top-2 -left-1 w-10 h-10 opacity-15" style={{ color: brandColor }} />
-        <div className="pl-12 text-lg sm:text-xl text-foreground/90 leading-[1.7] whitespace-pre-wrap">
-          {body}
+        <div className="mb-8 overflow-hidden rounded-[1.75rem]">
+          <img src={imageUrl} alt="" className="h-auto max-h-[60vh] w-full object-cover" />
         </div>
-      </motion.div>
+      )}
+      <div className="relative max-w-2xl">
+        <Quote className="absolute -left-1 -top-2 h-8 w-8 text-slate-200" />
+        <div className="whitespace-pre-wrap pl-10 text-sm leading-relaxed text-slate-600">{body}</div>
+      </div>
     </SectionShell>
   );
 }
 
-/* ─────────────────────── gallery — slide carousel ─────────────────────── */
-
-function Gallery({ module: m, brandColor }: ModuleProps) {
+function Gallery({ module: m }: ModuleProps) {
   const c = m.content || {};
   const images: string[] = Array.isArray(c.images)
     ? c.images.filter((u: unknown): u is string => typeof u === "string" && !!u)
@@ -428,59 +498,50 @@ function Gallery({ module: m, brandColor }: ModuleProps) {
 
   useEffect(() => {
     if (!api || images.length < 2 || paused) return;
-    const id = window.setInterval(() => {
-      api.scrollNext();
-    }, 4000);
+    const id = window.setInterval(() => api.scrollNext(), 4000);
     return () => window.clearInterval(id);
   }, [api, images.length, paused]);
 
   if (images.length === 0) return null;
 
   return (
-    <SectionShell eyebrow="Gallery" heading={c.heading || "Gallery"} brandColor={brandColor}>
-      <motion.div
-        {...fadeUp}
-        className="relative"
+    <SectionShell id={m.id} heading={c.heading || "Gallery"}>
+      <div
         onPointerEnter={() => setPaused(true)}
         onPointerLeave={() => setPaused(false)}
-        onFocusCapture={() => setPaused(true)}
-        onBlurCapture={(e) => {
-          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
-            setPaused(false);
-          }
-        }}
       >
         {images.length === 1 ? (
-          <div className="rounded-3xl overflow-hidden bg-muted aspect-[16/10]">
-            <img src={images[0]} alt="" className="w-full h-full object-cover" />
+          <div className="aspect-[16/10] overflow-hidden rounded-2xl bg-slate-100">
+            <img src={images[0]} alt="" className="h-full w-full object-cover" />
+          </div>
+        ) : images.length <= 3 ? (
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+            {images.map((src, i) => (
+              <div
+                key={`${src}-${i}`}
+                className={cn(
+                  "overflow-hidden rounded-2xl bg-slate-100",
+                  i === 0 ? "col-span-2 aspect-[16/10] lg:col-span-3 lg:aspect-[4/3]" : "aspect-square lg:col-span-2",
+                )}
+              >
+                <img src={src} alt="" loading={i === 0 ? "eager" : "lazy"} className="h-full w-full object-cover" />
+              </div>
+            ))}
           </div>
         ) : (
           <>
-            <Carousel
-              setApi={setApi}
-              opts={{ loop: true, align: "start" }}
-              className="w-full"
-            >
+            <Carousel setApi={setApi} opts={{ loop: true, align: "start" }} className="w-full">
               <CarouselContent className="-ml-0">
                 {images.map((src, i) => (
-                  <CarouselItem key={`${src}-${i}`} className="pl-0 basis-full">
-                    <div className="rounded-3xl overflow-hidden bg-muted aspect-[16/10]">
-                      <img
-                        src={src}
-                        alt=""
-                        loading={i === 0 ? "eager" : "lazy"}
-                        className="w-full h-full object-cover"
-                      />
+                  <CarouselItem key={`${src}-${i}`} className="basis-full pl-0">
+                    <div className="aspect-[16/10] overflow-hidden rounded-2xl bg-slate-100">
+                      <img src={src} alt="" loading={i === 0 ? "eager" : "lazy"} className="h-full w-full object-cover" />
                     </div>
                   </CarouselItem>
                 ))}
               </CarouselContent>
-              <CarouselPrevious
-                className="left-3 sm:left-4 h-10 w-10 border-0 bg-background/85 backdrop-blur shadow-md hover:bg-background"
-              />
-              <CarouselNext
-                className="right-3 sm:right-4 h-10 w-10 border-0 bg-background/85 backdrop-blur shadow-md hover:bg-background"
-              />
+              <CarouselPrevious className="left-3 h-10 w-10 rounded-full border-0 bg-white text-slate-900 shadow" />
+              <CarouselNext className="right-3 h-10 w-10 rounded-full border-0 bg-white text-slate-900 shadow" />
             </Carousel>
             <div className="mt-4 flex items-center justify-center gap-2">
               {images.map((_, i) => (
@@ -489,25 +550,17 @@ function Gallery({ module: m, brandColor }: ModuleProps) {
                   type="button"
                   aria-label={`Go to image ${i + 1}`}
                   onClick={() => api?.scrollTo(i)}
-                  className={cn(
-                    "h-2 rounded-full transition-all",
-                    i === current ? "w-6" : "w-2 bg-muted-foreground/30 hover:bg-muted-foreground/50",
-                  )}
-                  style={i === current ? { background: brandColor } : undefined}
+                  className={cn("h-2 rounded-full", i === current ? "w-6" : "w-2 bg-slate-300")}
+                  style={i === current ? { background: PULSE.teal } : undefined}
                 />
               ))}
             </div>
-            <p className="mt-2 text-center text-xs text-muted-foreground tabular-nums">
-              {current + 1} / {images.length}
-            </p>
           </>
         )}
-      </motion.div>
+      </div>
     </SectionShell>
   );
 }
-
-/* ─────────────────────── dispatcher ─────────────────────── */
 
 export function PublicModule(props: ModuleProps) {
   switch (props.module.type) {
@@ -522,9 +575,9 @@ export function PublicModule(props: ModuleProps) {
     default: {
       const c = props.module.content || {};
       return (
-        <SectionShell heading={c.heading} brandColor={props.brandColor}>
-          <div className="flex items-center gap-3 text-muted-foreground">
-            <SectionIcon type={props.module.type} color={props.brandColor} size={24} />
+        <SectionShell id={props.module.id} heading={c.heading}>
+          <div className="flex items-center gap-3 text-slate-400">
+            <SectionIcon type={props.module.type} color={PULSE.teal} size={24} />
             <span className="text-sm">Section</span>
           </div>
         </SectionShell>

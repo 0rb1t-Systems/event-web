@@ -1,4 +1,4 @@
-const DEFAULT_PARTICIPANT_HOME = "/dashboard";
+const DEFAULT_PARTICIPANT_HOME = "/";
 const DEFAULT_ORGANIZER_HOME = "/organizer/dashboard";
 
 function decodeRedirectParam(raw: string): string {

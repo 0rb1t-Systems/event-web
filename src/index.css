@@ -4,88 +4,93 @@
 
 @layer base {
   :root {
-    --background: 0 0% 98%;
-    --foreground: 240 30% 14%;
+    --background: 240 5% 96%;
+    --foreground: 240 6% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 240 30% 14%;
+    --card-foreground: 240 6% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 30% 14%;
+    --popover-foreground: 240 6% 10%;
 
-    --primary: 340 75% 58%;
+    --primary: 160 72% 34%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 10% 94%;
-    --secondary-foreground: 240 30% 14%;
+    --secondary: 240 5% 94%;
+    --secondary-foreground: 240 6% 10%;
 
-    --muted: 240 10% 96%;
-    --muted-foreground: 240 5% 46%;
+    --muted: 240 5% 94%;
+    --muted-foreground: 240 4% 42%;
 
-    --accent: 240 10% 94%;
-    --accent-foreground: 240 30% 14%;
+    --accent: 160 40% 94%;
+    --accent-foreground: 160 72% 24%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 72% 48%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 91%;
-    --input: 0 0% 91%;
-    --ring: 340 75% 58%;
+    --border: 240 6% 88%;
+    --input: 240 6% 88%;
+    --ring: 160 72% 34%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
-    --success: 172 50% 40%;
+    --success: 160 60% 32%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 80% 55%;
+    --warning: 38 80% 48%;
     --warning-foreground: 0 0% 100%;
 
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 240 30% 14%;
-    --sidebar-primary: 340 75% 58%;
+    --sidebar-foreground: 240 6% 10%;
+    --sidebar-primary: 160 72% 34%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 96%;
-    --sidebar-accent-foreground: 240 30% 14%;
-    --sidebar-border: 0 0% 91%;
-    --sidebar-ring: 340 75% 58%;
+    --sidebar-accent: 240 5% 96%;
+    --sidebar-accent-foreground: 240 6% 10%;
+    --sidebar-border: 240 6% 88%;
+    --sidebar-ring: 160 72% 34%;
   }
 
   .dark {
-    --background: 240 25% 8%;
-    --foreground: 240 5% 95%;
+    --background: 240 6% 4%;
+    --foreground: 240 5% 96%;
 
-    --card: 240 25% 11%;
-    --card-foreground: 240 5% 95%;
+    --card: 240 6% 10%;
+    --card-foreground: 240 5% 96%;
 
-    --popover: 240 25% 11%;
-    --popover-foreground: 240 5% 95%;
+    --popover: 240 6% 10%;
+    --popover-foreground: 240 5% 96%;
 
-    --primary: 340 75% 58%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 160 64% 45%;
+    --primary-foreground: 240 6% 6%;
 
-    --secondary: 240 15% 18%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 240 5% 14%;
+    --secondary-foreground: 240 5% 96%;
 
-    --muted: 240 15% 18%;
-    --muted-foreground: 240 5% 55%;
+    --muted: 240 5% 14%;
+    --muted-foreground: 240 5% 62%;
 
-    --accent: 240 15% 18%;
-    --accent-foreground: 240 5% 95%;
+    --accent: 160 28% 16%;
+    --accent-foreground: 160 50% 72%;
 
-    --destructive: 0 62% 30%;
+    --destructive: 0 62% 42%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 15% 20%;
-    --input: 240 15% 20%;
-    --ring: 340 75% 58%;
+    --border: 240 5% 18%;
+    --input: 240 5% 18%;
+    --ring: 160 64% 45%;
 
-    --sidebar-background: 240 25% 8%;
-    --sidebar-foreground: 240 5% 85%;
-    --sidebar-primary: 340 75% 58%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 15% 14%;
-    --sidebar-accent-foreground: 240 5% 95%;
-    --sidebar-border: 240 15% 16%;
-    --sidebar-ring: 340 75% 58%;
+    --success: 160 50% 42%;
+    --success-foreground: 240 6% 6%;
+    --warning: 38 80% 52%;
+    --warning-foreground: 240 6% 6%;
+
+    --sidebar-background: 240 6% 6%;
+    --sidebar-foreground: 240 5% 90%;
+    --sidebar-primary: 160 64% 45%;
+    --sidebar-primary-foreground: 240 6% 6%;
+    --sidebar-accent: 240 5% 12%;
+    --sidebar-accent-foreground: 240 5% 96%;
+    --sidebar-border: 240 5% 16%;
+    --sidebar-ring: 160 64% 45%;
   }
 }
 
@@ -94,18 +99,31 @@
     @apply border-border;
   }
 
-  html, body {
-    overflow-x: hidden;
+  html {
+    overflow-x: clip;
+    max-width: 100%;
+  }
+
+  body,
+  #root {
+    min-width: 0;
     max-width: 100%;
   }
 
   body {
-    @apply bg-background text-foreground;
-    font-family: 'DM Sans', system-ui, sans-serif;
+    @apply bg-background text-foreground antialiased;
+    font-family: "Source Sans 3 Variable", "Source Sans 3", system-ui, sans-serif;
+  }
+
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"] {
+    min-width: 0;
+    max-width: 100%;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+    font-family: "Outfit Variable", Outfit, system-ui, sans-serif;
   }
 }
 
@@ -113,23 +131,262 @@
   .prose-readable {
     max-width: 70ch;
   }
+  .ticket-notch {
+    background-image: radial-gradient(circle at left center, hsl(var(--background)) 6px, transparent 6.5px);
+    background-size: 12px 20px;
+    background-repeat: repeat-y;
+  }
+  .island-header {
+    box-shadow: 0 10px 40px -24px hsl(240 6% 10% / 0.35);
+  }
+  .pass-hairline {
+    background-image: repeating-linear-gradient(
+      -12deg,
+      transparent,
+      transparent 10px,
+      hsl(var(--card)) 10px,
+      hsl(var(--card)) 11px
+    );
+  }
+  .lineup-page {
+    color-scheme: dark;
+    background-color: #050605;
+  }
+  .house-page {
+    color-scheme: light;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: clip;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    --background: 0 0% 100%;
+    --foreground: 221 39% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 221 39% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 221 39% 11%;
+    --primary: 160 72% 34%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 16% 96%;
+    --secondary-foreground: 221 39% 11%;
+    --muted: 210 16% 96%;
+    --muted-foreground: 215 10% 40%;
+    --accent: 160 40% 94%;
+    --accent-foreground: 160 72% 24%;
+    --border: 214 16% 90%;
+    --input: 214 16% 90%;
+    --ring: 160 72% 34%;
+  }
+  .dark .house-page {
+    color-scheme: dark;
+    --background: 221 16% 7%;
+    --foreground: 210 20% 96%;
+    --card: 221 14% 11%;
+    --card-foreground: 210 20% 96%;
+    --popover: 221 14% 11%;
+    --popover-foreground: 210 20% 96%;
+    --primary: 160 58% 42%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 12% 14%;
+    --secondary-foreground: 210 20% 96%;
+    --muted: 220 12% 14%;
+    --muted-foreground: 215 10% 68%;
+    --accent: 160 22% 14%;
+    --accent-foreground: 160 50% 72%;
+    --border: 220 12% 18%;
+    --input: 220 12% 18%;
+    --ring: 160 58% 42%;
+  }
+  /* Event detail is light-locked; house footer at the bottom stays the light house tokens. */
+  .pulse-event .house-page {
+    color-scheme: light;
+    --background: 0 0% 100%;
+    --foreground: 221 39% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 221 39% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 221 39% 11%;
+    --primary: 160 72% 34%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 16% 96%;
+    --secondary-foreground: 221 39% 11%;
+    --muted: 210 16% 96%;
+    --muted-foreground: 215 10% 40%;
+    --accent: 160 40% 94%;
+    --accent-foreground: 160 72% 24%;
+    --border: 214 16% 90%;
+    --input: 214 16% 90%;
+    --ring: 160 72% 34%;
+  }
+  .house-card {
+    box-shadow: 0 10px 28px -18px rgb(17 24 39 / 0.22);
+  }
+  .dark .house-card {
+    box-shadow: 0 12px 32px -16px rgb(0 0 0 / 0.55);
+  }
+  .house-stub-notch {
+    background-image: radial-gradient(circle at left center, hsl(var(--background)) 7px, transparent 7.5px),
+      radial-gradient(circle at right center, hsl(var(--background)) 7px, transparent 7.5px);
+    background-size: 14px 18px, 14px 18px;
+    background-position: left center, right center;
+    background-repeat: repeat-y;
+  }
+  .pulse-event {
+    color-scheme: light;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: clip;
+    --background: 36 33% 94%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 215 16% 40%;
+    --border: 214 20% 90%;
+    --input: 214 20% 90%;
+    --primary: 174 65% 48%;
+    --primary-foreground: 0 0% 100%;
+    --ring: 174 65% 48%;
+    --accent: 174 40% 94%;
+    --accent-foreground: 174 70% 24%;
+  }
+
+  /* Organizer console — design/design-system.pen. Warm paper canvas, teal brand.
+     Funnel Sans display / Inter body / IBM Plex Mono data. Follows html.dark. */
+  .org-console {
+    color-scheme: light;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: clip;
+    --oc-bg: 36 45% 98%;
+    --oc-surface: 0 0% 100%;
+    --oc-ink: 146 15% 9%;
+    --oc-muted: 148 7% 43%;
+    --oc-faint: 150 4% 63%;
+    --oc-line: 42 24% 89%;
+    --oc-brand: 165 76% 25%;
+    --oc-brand-strong: 166 78% 18%;
+    --oc-brand-soft: 158 26% 92%;
+    --oc-accent: 36 79% 57%;
+    --oc-accent-soft: 39 74% 92%;
+    --oc-bad: 10 62% 47%;
+    --oc-bad-soft: 13 70% 94%;
+    --oc-dark: 156 28% 7%;
+    --oc-dark-soft: 154 23% 14%;
+
+    --background: var(--oc-bg);
+    --foreground: var(--oc-ink);
+    --card: var(--oc-surface);
+    --card-foreground: var(--oc-ink);
+    --popover: var(--oc-surface);
+    --popover-foreground: var(--oc-ink);
+    --primary: var(--oc-brand);
+    --primary-foreground: 0 0% 100%;
+    --secondary: var(--oc-bg);
+    --secondary-foreground: var(--oc-ink);
+    --muted: var(--oc-bg);
+    --muted-foreground: var(--oc-muted);
+    --accent: var(--oc-brand-soft);
+    --accent-foreground: var(--oc-brand-strong);
+    --destructive: var(--oc-bad);
+    --destructive-foreground: 0 0% 100%;
+    --border: var(--oc-line);
+    --input: var(--oc-line);
+    --ring: var(--oc-brand);
+    --warning: var(--oc-accent);
+    --warning-foreground: 0 0% 100%;
+
+    background-color: hsl(var(--oc-bg));
+    color: hsl(var(--oc-ink));
+    font-family: "Inter Variable", "Inter", system-ui, sans-serif;
+  }
+  .dark .org-console {
+    color-scheme: dark;
+    --oc-bg: 150 16% 7%;
+    --oc-surface: 150 12% 11%;
+    --oc-ink: 40 18% 96%;
+    --oc-muted: 150 8% 64%;
+    --oc-faint: 150 6% 48%;
+    --oc-line: 150 10% 18%;
+    --oc-brand: 165 52% 46%;
+    --oc-brand-strong: 158 42% 74%;
+    --oc-brand-soft: 165 28% 14%;
+    --oc-accent: 36 79% 57%;
+    --oc-accent-soft: 36 35% 16%;
+    --oc-bad: 10 62% 58%;
+    --oc-bad-soft: 10 40% 16%;
+    --oc-dark: 156 28% 6%;
+    --oc-dark-soft: 154 20% 16%;
+    --primary-foreground: 0 0% 100%;
+  }
+  .org-console h1,
+  .org-console h2,
+  .org-console h3,
+  .org-console h4,
+  .org-console h5,
+  .org-console h6,
+  .org-console .font-display {
+    font-family: "Funnel Sans Variable", "Funnel Sans", system-ui, sans-serif;
+  }
+  .org-card {
+    background-color: hsl(var(--oc-surface));
+    border-radius: 16px;
+  }
+  /* Console radii: cards 16px, controls 12px (design-system.pen). */
+  .org-console .rounded-xl {
+    border-radius: 16px;
+  }
+  .org-console .rounded-md {
+    border-radius: 12px;
+  }
+  .org-input {
+    background-color: hsl(var(--oc-bg));
+    border-radius: 12px;
+  }
+  .org-thumb-teal {
+    background-image: linear-gradient(215deg, #12876a, #0a5140);
+  }
+  .org-thumb-amber {
+    background-image: linear-gradient(215deg, #c98a2b, #8a5a14);
+  }
+  .org-thumb-slate {
+    background-image: linear-gradient(215deg, #5a7268, #31443b);
+  }
+  .org-thumb-green-deep {
+    background-image: linear-gradient(215deg, #12876a, #0a3a2e);
+  }
+  .poster-scrim {
+    background-image: linear-gradient(
+      to top,
+      rgb(5 6 5 / 0.96) 0%,
+      rgb(5 6 5 / 0.55) 42%,
+      rgb(5 6 5 / 0.12) 72%,
+      transparent 100%
+    );
+  }
   .scrollbar-none {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+  .h-scroll {
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
   }
   .scrollbar-none::-webkit-scrollbar {
     display: none;
   }
 }
 
-/* react-phone-number-input themed to match design system */
 .phone-input-wrapper.PhoneInput {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   height: 2.75rem;
   padding: 0 1rem;
-  border-radius: 9999px;
+  border-radius: var(--radius);
   background: hsl(var(--background));
   border: 1px solid hsl(var(--input));
   transition: border-color 0.15s, box-shadow 0.15s;

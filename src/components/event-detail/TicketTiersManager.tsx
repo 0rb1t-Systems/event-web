@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Ticket, Plus, Pencil, Trash2 } from "lucide-react";
+import { IconPencil, IconPlus, IconTicket, IconTrash } from "@/components/organizer-console/orgIcons";
 import { toast } from "sonner";
 
 export type TicketTier = {
@@ -90,7 +90,7 @@ export default function TicketTiersManager({ tiers, currency = "USD", onChange }
           </p>
         </div>
         <Button size="sm" onClick={openNew} className="rounded-full gap-1.5">
-          <Plus className="w-3.5 h-3.5" /> Add ticket
+          <IconPlus className="w-3.5 h-3.5" /> Add ticket
         </Button>
       </div>
 
@@ -106,7 +106,7 @@ export default function TicketTiersManager({ tiers, currency = "USD", onChange }
               className="flex items-center gap-3 p-3 rounded-xl bg-muted/40"
             >
               <div className="shrink-0 w-9 h-9 rounded-xl inline-flex items-center justify-center bg-muted text-foreground">
-                <Ticket className="w-4 h-4" />
+                <IconTicket className="w-4 h-4" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
@@ -124,10 +124,10 @@ export default function TicketTiersManager({ tiers, currency = "USD", onChange }
               </div>
               <div className="flex gap-1 shrink-0">
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(t)}>
-                  <Pencil className="w-3.5 h-3.5" />
+                  <IconPencil className="w-3.5 h-3.5" />
                 </Button>
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onDelete(t.id)}>
-                  <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                  <IconTrash className="w-3.5 h-3.5 text-destructive" />
                 </Button>
               </div>
             </div>

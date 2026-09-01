@@ -12,8 +12,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import QRCode from "qrcode";
 import {
-  ArrowLeft, Award, CalendarDays, ExternalLink, MapPin, CheckCircle2, Clock,
-  AlertTriangle, Download, Loader2,
+  ArrowLeft, Award, ExternalLink, CheckCircle2, Clock,
+  AlertTriangle, Download, Loader2, CalendarDays, Share2,
   Ticket as TicketIcon, RefreshCw, XCircle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -33,30 +33,12 @@ import { ParticipantWaafiPayment } from "@/components/participant/ParticipantWaa
 import InvitationCanvasPreview, { InvitationScaled } from "@/components/invitation/InvitationCanvasPreview";
 import { INVITATION_BRAND } from "@/lib/invitationCanvas";
 import { asEventMode } from "@/lib/eventMode";
+import { PublicSiteHeader } from "@/components/layout/PublicSiteHeader";
+import { PurchasedTicketStub } from "@/components/participant/PurchasedTicketStub";
 
 const BRAND = INVITATION_BRAND;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmtDate(iso: string | null | undefined, tz = "Africa/Mogadishu") {
-  if (!iso) return "Date TBA";
-  try {
-    return new Intl.DateTimeFormat(undefined, {
-      weekday: "long", month: "long", day: "numeric",
-      hour: "numeric", minute: "2-digit",
-      timeZone: tz, timeZoneName: "short",
-    }).format(new Date(iso));
-  } catch {
-    return iso;
-  }
-}
-
-function fmtShortDate(iso: string | null | undefined) {
-  if (!iso) return "";
-  try {
-    return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" }).format(new Date(iso));
-  } catch { return iso; }
-}
 
 type Status = ApiInvitationDetail["status"];
 type PaymentStatus = ApiInvitationDetail["payment_status"];
@@ -82,6 +64,25 @@ function statusMeta(status: Status, paymentStatus: PaymentStatus) {
 function hasValidTicket(status: Status, paymentStatus: PaymentStatus): boolean {
   if (status === "cancelled" || status === "waitlisted") return false;
   return paymentStatus === "paid" || paymentStatus === "not_required";
+}
+
+function padSerial(id: number) {
+  return `EH-${String(id).padStart(5, "0")}`;
+}
+
+function googleCalendarUrl(title: string, startIso?: string | null, location?: string | null) {
+  if (!startIso) return null;
+  const start = new Date(startIso);
+  if (Number.isNaN(start.getTime())) return null;
+  const end = new Date(start.getTime() + 2 * 60 * 60 * 1000);
+  const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: title,
+    dates: `${fmt(start)}/${fmt(end)}`,
+  });
+  if (location) params.set("location", location);
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
 // ─── Certificate panel ─────────────────────────────────────────────────────────
@@ -359,12 +360,15 @@ export default function RegistrationDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background px-4 py-8 sm:py-14">
+      <div className="house-page min-h-screen">
+        <PublicSiteHeader />
+        <div className="px-4 py-8 sm:py-14">
         <div className="max-w-2xl mx-auto space-y-6">
           <Skeleton className="h-9 w-48 rounded-full" />
           <Skeleton className="h-6 w-64" />
           <Skeleton className="h-[480px] w-full rounded-3xl" />
           <Skeleton className="h-12 w-full rounded-full" />
+        </div>
         </div>
       </div>
     );
@@ -374,8 +378,10 @@ export default function RegistrationDetail() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 bg-background">
-        <div className="max-w-md w-full bg-card rounded-3xl p-10 text-center">
+      <div className="house-page min-h-screen flex flex-col">
+        <PublicSiteHeader />
+        <div className="flex-1 flex items-center justify-center px-4">
+        <div className="max-w-md w-full house-card bg-card rounded-3xl border border-border p-10 text-center">
           <AlertTriangle className="w-10 h-10 mx-auto mb-4 text-destructive" />
           <h1 className="text-2xl font-display font-bold mb-2">Couldn't load registration</h1>
           <p className="text-muted-foreground text-sm mb-6">{error}</p>
@@ -388,14 +394,17 @@ export default function RegistrationDetail() {
             </Button>
           </div>
         </div>
+        </div>
       </div>
     );
   }
 
   if (!detail) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 bg-background">
-        <div className="max-w-md w-full bg-card rounded-3xl p-10 text-center">
+      <div className="house-page min-h-screen flex flex-col">
+        <PublicSiteHeader />
+        <div className="flex-1 flex items-center justify-center px-4">
+        <div className="max-w-md w-full house-card bg-card rounded-3xl border border-border p-10 text-center">
           <TicketIcon className="w-10 h-10 mx-auto mb-4 text-muted-foreground" />
           <h1 className="text-2xl font-display font-bold mb-2">Registration not found</h1>
           <p className="text-muted-foreground text-sm mb-6">
@@ -404,6 +413,7 @@ export default function RegistrationDetail() {
           <Button variant="outline" className="rounded-full h-11 px-5" onClick={handleBack}>
             <ArrowLeft className="w-4 h-4 mr-2" /> Back
           </Button>
+        </div>
         </div>
       </div>
     );
@@ -429,9 +439,27 @@ export default function RegistrationDetail() {
   const eventId = detail.event?.id;
   const invitation = detail.invitation;
   const showFeedbackHint = eventEnded && detail.status !== "cancelled";
+  const eventLocation = [detail.event?.address, detail.event?.city].filter(Boolean).join(", ") || null;
+  const calendarHref = googleCalendarUrl(eventTitle, detail.event?.starts_at, eventLocation);
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: eventTitle, url });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      toast.success("Link copied.");
+    } catch {
+      /* user cancelled */
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-background px-4 py-8 sm:py-14 overflow-x-hidden">
+    <div className="house-page min-h-[100dvh] overflow-x-hidden">
+    <PublicSiteHeader />
+    <div className="px-4 py-8 sm:py-14">
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -446,79 +474,85 @@ export default function RegistrationDetail() {
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors -ml-1 px-2 h-9 rounded-full hover:bg-muted"
           >
             <ArrowLeft className="w-4 h-4" />
-            My registrations
+            My Tickets
           </button>
           {ticketValid && (
-            <Button asChild className="rounded-full" size="sm">
-              <Link to={`/registrations/${detail.id}/room`}>
-                Open event room
+            <Button asChild size="sm" className="rounded-full">
+              <Link to="/dashboard/rooms">
+                Event rooms
               </Link>
             </Button>
           )}
         </div>
 
-        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
-          Your ticket
-        </p>
-
-        {/* Header */}
-        <div className="space-y-2">
-          <h1 className="font-display font-bold text-2xl sm:text-3xl tracking-[-0.02em] leading-tight">
-            {eventTitle}
-          </h1>
-          <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-            {detail.event?.starts_at && (
-              <span className="flex items-center gap-1.5">
-                <CalendarDays className="w-4 h-4 shrink-0" />
-                {fmtDate(detail.event.starts_at)}
-              </span>
-            )}
-            {detail.event?.address && (
-              <span className="flex items-center gap-1.5">
-                <MapPin className="w-4 h-4 shrink-0" />
-                {detail.event.address}
-              </span>
-            )}
+        {ticketValid ? (
+          <div className="text-center space-y-2 pb-2">
+            <h1 className="font-display text-2xl font-semibold tracking-tight">Registration confirmed</h1>
+            <p className="text-sm text-muted-foreground">
+              Order <span className="font-mono font-semibold text-foreground">{padSerial(detail.id)}</span> is in your wallet
+              {user?.email ? (
+                <>
+                  . Details were sent to{" "}
+                  <span className="text-primary">{user.email}</span>
+                </>
+              ) : (
+                "."
+              )}
+            </p>
           </div>
-        </div>
+        ) : (
+          <h1 className="font-display text-2xl font-semibold tracking-tight">Your registration</h1>
+        )}
 
-        {/* Status + meta card */}
-        <div className="bg-card rounded-3xl p-6 space-y-4 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className={`inline-flex items-center gap-2 text-sm font-semibold px-3 py-1.5 rounded-full ${meta.cls}`}>
-              {meta.icon}
-              {meta.label}
-            </div>
-            {showCheckStatus && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="rounded-full h-8 text-xs gap-1.5"
-                onClick={load}
-              >
-                <RefreshCw className="w-3 h-3" /> Check status
+        <PurchasedTicketStub
+          ticket={{
+            id: detail.id,
+            title: eventTitle,
+            location: eventLocation,
+            startsAt: detail.event?.starts_at,
+            ticketType: detail.ticket_type?.name,
+            qrToken: detail.qr_token,
+            valid: ticketValid,
+            statusLabel: meta.label,
+          }}
+        />
+
+        {ticketValid ? (
+          <div className="flex flex-wrap justify-center gap-2">
+            <Button className="rounded-full" onClick={handleDownload}>
+              <Download className="w-4 h-4" />
+              Download Tickets (PDF)
+            </Button>
+            {calendarHref ? (
+              <Button variant="outline" className="rounded-full" asChild>
+                <a href={calendarHref} target="_blank" rel="noreferrer">
+                  <CalendarDays className="w-4 h-4" />
+                  Add to calendar
+                </a>
               </Button>
-            )}
+            ) : null}
+            <Button type="button" variant="outline" className="rounded-full" onClick={() => void handleShare()}>
+              <Share2 className="w-4 h-4" />
+              Share event
+            </Button>
           </div>
+        ) : null}
 
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-0.5">Registered</p>
-              <p className="font-medium">{detail.created_at ? fmtShortDate(detail.created_at) : "—"}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-0.5">Ticket</p>
-              <p className="font-medium">{detail.ticket_type?.name ?? "—"}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-0.5">Payment</p>
-              <p className="font-medium capitalize">{detail.payment_status?.replace(/_/g, " ")}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-0.5">Attendee</p>
-              <p className="font-medium truncate">{user?.name ?? "—"}</p>
-            </div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className={`inline-flex items-center gap-2 text-sm font-semibold px-3 py-1.5 rounded-full ${meta.cls}`}>
+            {meta.icon}
+            {meta.label}
           </div>
+          {showCheckStatus && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs gap-1.5"
+              onClick={load}
+            >
+              <RefreshCw className="w-3 h-3" /> Check status
+            </Button>
+          )}
         </div>
 
         {/* Waitlist explanation */}
@@ -628,7 +662,7 @@ export default function RegistrationDetail() {
 
         {/* QR standalone — in-person only */}
         {showDoorQr && (
-          <div className="bg-card rounded-3xl p-6 flex flex-col items-center gap-4 shadow-sm">
+          <div className="bg-card rounded-3xl border border-border p-6 flex flex-col items-center gap-4 house-card">
             <p className="text-xs uppercase tracking-[0.18em] font-semibold text-muted-foreground">Scan at the door</p>
             <div className="bg-white rounded-2xl p-4 shadow-inner">
               {qrDataUrl ? (
@@ -681,6 +715,7 @@ export default function RegistrationDetail() {
 
         <div ref={printRootRef} />
       </motion.div>
+    </div>
     </div>
   );
 }

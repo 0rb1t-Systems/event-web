@@ -1,4 +1,4 @@
-import { Pencil, Trash2 } from "lucide-react";
+import { IconPencil, IconTrash } from "@/components/organizer-console/orgIcons";
 import { Button } from "@/components/ui/button";
 import { getMediaUrl } from "@/lib/mediaUrl";
 import type { OrganizerSpeaker } from "@/services/organizerEventContent";
@@ -28,8 +28,8 @@ export default function SpeakerCard({ speaker, onEdit, onDelete }: Props) {
           {role && <p className="text-xs text-white/75 mt-0.5">{role}</p>}
         </div>
         <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button size="icon" variant="secondary" className="h-8 w-8" onClick={onEdit}><Pencil className="w-3.5 h-3.5" /></Button>
-          <Button size="icon" variant="destructive" className="h-8 w-8" onClick={onDelete}><Trash2 className="w-3.5 h-3.5" /></Button>
+          <Button size="icon" variant="secondary" className="h-8 w-8" onClick={onEdit}><IconPencil className="w-3.5 h-3.5" /></Button>
+          <Button size="icon" variant="destructive" className="h-8 w-8" onClick={onDelete}><IconTrash className="w-3.5 h-3.5" /></Button>
         </div>
       </div>
     </div>

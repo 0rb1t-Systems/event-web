@@ -7,7 +7,8 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { ArrowRight, Loader2, Package, RefreshCw } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { IconArrowRight, IconPackage, IconRefresh } from "@/components/organizer-console/orgIcons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getApiErrorMessage } from "@/lib/apiError";
@@ -69,7 +70,7 @@ export default function SubscriptionQuotaPanel() {
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
         <div>
           <h3 className="font-display font-semibold text-lg flex items-center gap-2">
-            <Package className="w-4 h-4 text-muted-foreground" />
+            <IconPackage className="w-4 h-4 text-muted-foreground" />
             Package &amp; quota
           </h3>
           <p className="text-sm text-muted-foreground">
@@ -83,7 +84,7 @@ export default function SubscriptionQuotaPanel() {
           className="rounded-full shrink-0"
           onClick={() => void load()}
         >
-          <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+          <IconRefresh className="w-3.5 h-3.5 mr-1.5" />
           Refresh
         </Button>
       </div>
@@ -135,7 +136,7 @@ export default function SubscriptionQuotaPanel() {
       <Button asChild className="rounded-full">
         <Link to="/organizer/subscription">
           View plans &amp; pricing
-          <ArrowRight className="w-4 h-4 ml-2" />
+          <IconArrowRight className="w-4 h-4 ml-2" />
         </Link>
       </Button>
     </div>

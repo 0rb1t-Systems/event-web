@@ -1,17 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 import {
-  Loader2,
-  Wallet,
-  Banknote,
-  CircleDollarSign,
-  Lock,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+  IconBanknotes,
+  IconChevronLeft,
+  IconChevronRight,
+  IconDollar,
+  IconLock,
+  IconWallet,
+} from "@/components/organizer-console/orgIcons";
+import { OrgButton } from "@/components/organizer-console/OrgButton";
+import { OrgChip } from "@/components/organizer-console/OrgChip";
+import { orgPayoutTone } from "@/components/organizer-console/orgTheme";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -31,16 +32,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { getApiErrorMessage, isOrganizerEventAccessError } from "@/lib/apiError";
-import { cn } from "@/lib/utils";
 import { env } from "@/lib/env";
 import type { OrganizerEventFinance } from "@/services/organizerFinance";
 import {
@@ -54,13 +46,6 @@ import {
   type OrganizerPayoutSnapshotAmounts,
 } from "@/services/organizerPayouts";
 
-const STATUS_STYLE: Record<string, string> = {
-  requested: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-0",
-  approved: "bg-primary/10 text-primary border-0",
-  paid: "bg-success/10 text-success border-0",
-  rejected: "bg-destructive/10 text-destructive border-0",
-};
-
 function formatMoney(amount: number, currency: string) {
   try {
     return new Intl.NumberFormat(undefined, {
@@ -72,6 +57,9 @@ function formatMoney(amount: number, currency: string) {
     return `${currency} ${amount.toFixed(2)}`;
   }
 }
+
+const th = "text-left text-[10px] font-bold uppercase tracking-[1px] text-oc-faint pb-2";
+const td = "py-3 text-[13px] text-oc-ink align-middle";
 
 type Props = {
   eventId: number;
@@ -192,7 +180,7 @@ export default function EventFinancePanel({
   if (loading && !finance) {
     return (
       <div className="flex justify-center py-16">
-        <Loader2 className="w-5 h-5 animate-spin text-primary" />
+        <Loader2 className="w-5 h-5 animate-spin text-oc-brand" />
       </div>
     );
   }
@@ -202,32 +190,32 @@ export default function EventFinancePanel({
         {
           label: "Collected",
           value: formatMoney(finance.total_collected, currency),
-          icon: CircleDollarSign,
+          icon: IconDollar,
           hint: "Completed payments (refunded payments are excluded from this total)",
         },
         {
           label: "Reserved / paid out",
           value: formatMoney(finance.total_reserved, currency),
-          icon: Lock,
+          icon: IconLock,
           hint: `Includes requested, approved, and paid. Settled paid-out: ${formatMoney(finance.total_paid_out, currency)}`,
         },
         {
           label: "Available payout",
           value: formatMoney(finance.outstanding_balance, currency),
-          icon: Wallet,
+          icon: IconWallet,
           hint: "Collected minus reserved/paid payout amounts",
         },
       ]
     : [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {!compact && (
         <div>
-          <h3 className="font-display font-semibold text-lg">
+          <h3 className="font-head font-semibold text-[17px] text-oc-ink">
             {eventTitle ? `Finance · ${eventTitle}` : "Event finance"}
           </h3>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-[13px] text-oc-muted">
             Per-event balances from Laravel. Commission is set by the platform and snapshotted when
             you request a payout.
           </p>
@@ -236,44 +224,42 @@ export default function EventFinancePanel({
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {cards.map((c) => (
-          <div key={c.label} className="bg-card rounded-xl p-5 border border-border/40">
+          <div key={c.label} className="rounded-[12px] bg-oc-bg p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-muted-foreground">{c.label}</span>
-              <div className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center">
-                <c.icon className="w-4 h-4 text-muted-foreground" />
+              <span className="text-[13px] text-oc-muted">{c.label}</span>
+              <div className="w-8 h-8 rounded-[10px] bg-oc-surface flex items-center justify-center">
+                <c.icon className="w-4 h-4 text-oc-faint" />
               </div>
             </div>
-            <p className="text-2xl font-display font-bold tabular-nums">{c.value}</p>
-            <p className="text-[11px] text-muted-foreground mt-2 leading-snug">{c.hint}</p>
+            <p className="text-[22px] lg:text-[24px] font-head font-semibold tabular-nums text-oc-ink">{c.value}</p>
+            <p className="text-[11px] text-oc-faint mt-2 leading-snug">{c.hint}</p>
           </div>
         ))}
       </div>
 
-      <p className="text-xs text-muted-foreground">
+      <p className="text-xs text-oc-faint">
         After a payout is recorded as paid, related refunds may be blocked by the platform
-        (<code className="mx-1 text-[10px]">refund_blocked_payout_recorded</code>
+        (<code className="mx-1 text-[10px] font-data">refund_blocked_payout_recorded</code>
         ). Automatic clawback is not promised.
       </p>
 
-      <div className="bg-card rounded-xl p-5 sm:p-6 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
-          <div>
-            <h4 className="font-display font-semibold flex items-center gap-2">
-              <Banknote className="w-4 h-4 text-muted-foreground" />
-              Request payout
-            </h4>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Available now:{" "}
-              <span className="font-medium text-foreground">
-                {formatMoney(available, currency)}
-              </span>
-              . Payouts are per event — there is no organizer-wide batch request.
-            </p>
-          </div>
+      <div className="rounded-[12px] bg-oc-bg p-4 sm:p-5 space-y-4">
+        <div>
+          <h4 className="font-head font-semibold text-[15px] text-oc-ink flex items-center gap-2">
+            <IconBanknotes className="w-4 h-4 text-oc-faint" />
+            Request payout
+          </h4>
+          <p className="text-xs text-oc-muted mt-0.5">
+            Available now:{" "}
+            <span className="font-medium text-oc-ink">
+              {formatMoney(available, currency)}
+            </span>
+            . Payouts are per event — there is no organizer-wide batch request.
+          </p>
         </div>
 
         {available <= 0 ? (
-          <p className="text-sm text-muted-foreground py-2">
+          <p className="text-[13px] text-oc-muted py-2">
             No available balance for this event. New requests open when collected funds exceed
             reserved and paid payouts.
           </p>
@@ -288,111 +274,93 @@ export default function EventFinancePanel({
                 max={available}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="rounded-full"
+                className="rounded-[12px]"
                 placeholder={String(available)}
               />
             </div>
-            <Button
-              className="rounded-full"
-              disabled={!canRequest}
-              onClick={() => setConfirmOpen(true)}
-            >
+            <OrgButton disabled={!canRequest} onClick={() => setConfirmOpen(true)}>
               Continue
-            </Button>
-            <Button
-              variant="outline"
-              className="rounded-full"
-              onClick={() => setAmount(String(available))}
-            >
+            </OrgButton>
+            <OrgButton variant="ghost" onClick={() => setAmount(String(available))}>
               Use full available
-            </Button>
+            </OrgButton>
           </div>
         )}
       </div>
 
       <div className="space-y-3">
-        <h4 className="font-display font-semibold text-sm">Payout requests</h4>
+        <h4 className="font-head font-semibold text-[15px] text-oc-ink">Payout requests</h4>
         {loading ? (
           <div className="flex justify-center py-10">
-            <Loader2 className="w-5 h-5 animate-spin text-primary" />
+            <Loader2 className="w-5 h-5 animate-spin text-oc-brand" />
           </div>
         ) : items.length === 0 ? (
-          <div className="bg-card rounded-xl p-8 text-center text-sm text-muted-foreground">
+          <div className="rounded-[12px] bg-oc-bg p-8 text-center text-[13px] text-oc-muted">
             No payout requests for this event yet.
           </div>
         ) : (
           <>
-            <div className="bg-card rounded-xl overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">
-                      Amount
-                    </TableHead>
-                    <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">
-                      Status
-                    </TableHead>
-                    <TableHead className="text-xs uppercase tracking-wider text-muted-foreground hidden sm:table-cell">
-                      Commission
-                    </TableHead>
-                    <TableHead className="text-xs uppercase tracking-wider text-muted-foreground hidden md:table-cell">
-                      Requested
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+            <div className="h-scroll">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-oc-line">
+                    <th className={th}>Amount</th>
+                    <th className={th}>Status</th>
+                    <th className={`${th} hidden sm:table-cell`}>Commission</th>
+                    <th className={`${th} hidden md:table-cell`}>Requested</th>
+                  </tr>
+                </thead>
+                <tbody>
                   {items.map((row) => {
                     const status = payoutStatus(row.status);
                     return (
-                      <TableRow
+                      <tr
                         key={row.id}
-                        className="cursor-pointer hover:bg-muted/50 border-0"
+                        className="border-b border-oc-line/60 last:border-0 cursor-pointer hover:bg-oc-bg"
                         onClick={() => void openDetail(row)}
                       >
-                        <TableCell className="font-medium tabular-nums">
+                        <td className={`${td} font-data font-semibold tabular-nums`}>
                           {formatMoney(asMoneyNumber(row.requested_amount), currency)}
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={cn("capitalize text-xs", STATUS_STYLE[status])}>
-                            {status.replace(/_/g, " ")}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground hidden sm:table-cell">
+                        </td>
+                        <td className={td}>
+                          <OrgChip label={status.replace(/_/g, " ")} tone={orgPayoutTone(status)} size="sm" />
+                        </td>
+                        <td className={`${td} text-oc-muted hidden sm:table-cell`}>
                           {asMoneyNumber(row.commission_rate)}% snapshot
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground hidden md:table-cell">
+                        </td>
+                        <td className={`${td} text-oc-muted hidden md:table-cell`}>
                           {format(new Date(row.created_at), "MMM d, yyyy")}
-                        </TableCell>
-                      </TableRow>
+                        </td>
+                      </tr>
                     );
                   })}
-                </TableBody>
-              </Table>
+                </tbody>
+              </table>
             </div>
             {lastPage > 1 && (
               <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-oc-faint">
                   Page {page} of {lastPage} · {total} total
                 </p>
                 <div className="flex items-center gap-1">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-7 w-7 rounded-full"
+                  <OrgButton
+                    variant="ghost"
+                    size="sm"
+                    aria-label="Previous page"
                     disabled={page <= 1}
                     onClick={() => setPage((p) => p - 1)}
                   >
-                    <ChevronLeft className="w-3.5 h-3.5" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-7 w-7 rounded-full"
+                    <IconChevronLeft />
+                  </OrgButton>
+                  <OrgButton
+                    variant="ghost"
+                    size="sm"
+                    aria-label="Next page"
                     disabled={page >= lastPage}
                     onClick={() => setPage((p) => p + 1)}
                   >
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </Button>
+                    <IconChevronRight />
+                  </OrgButton>
                 </div>
               </div>
             )}
@@ -405,10 +373,10 @@ export default function EventFinancePanel({
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm payout request?</AlertDialogTitle>
             <AlertDialogDescription asChild>
-              <div className="space-y-2 text-sm text-muted-foreground">
+              <div className="space-y-2 text-sm text-oc-muted">
                 <p>
                   Request{" "}
-                  <span className="font-medium text-foreground">
+                  <span className="font-medium text-oc-ink">
                     {formatMoney(requestedNum || 0, currency)}
                   </span>{" "}
                   from this event. Available: {formatMoney(available, currency)}.
@@ -422,11 +390,11 @@ export default function EventFinancePanel({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-full" disabled={submitting}>
+            <AlertDialogCancel className="rounded-[12px]" disabled={submitting}>
               Back
             </AlertDialogCancel>
             <AlertDialogAction
-              className="rounded-full"
+              className="rounded-[12px]"
               disabled={submitting}
               onClick={(e) => {
                 e.preventDefault();
@@ -447,11 +415,11 @@ export default function EventFinancePanel({
       >
         <DialogContent className="sm:max-w-md rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="font-display">Payout request</DialogTitle>
+            <DialogTitle className="font-head">Payout request</DialogTitle>
           </DialogHeader>
           {detailLoading && !detail ? (
             <div className="flex justify-center py-8">
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <Loader2 className="w-5 h-5 animate-spin text-oc-brand" />
             </div>
           ) : detail ? (
             <PayoutDetailBody
@@ -461,9 +429,9 @@ export default function EventFinancePanel({
             />
           ) : null}
           <DialogFooter>
-            <Button variant="outline" className="rounded-full" onClick={() => setDetail(null)}>
+            <OrgButton variant="ghost" onClick={() => setDetail(null)}>
               Close
-            </Button>
+            </OrgButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -492,27 +460,23 @@ function PayoutDetailBody({
   return (
     <div className="space-y-4 text-sm">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-muted-foreground">Status</span>
-        <Badge className={cn("capitalize text-xs", STATUS_STYLE[status])}>
-          {status.replace(/_/g, " ")}
-        </Badge>
+        <span className="text-oc-muted">Status</span>
+        <OrgChip label={status.replace(/_/g, " ")} tone={orgPayoutTone(status)} size="sm" />
       </div>
       <div className="flex justify-between gap-2">
-        <span className="text-muted-foreground">Requested</span>
+        <span className="text-oc-muted">Requested</span>
         <span className="font-medium tabular-nums">
           {formatMoney(asMoneyNumber(payout.requested_amount), currency)}
         </span>
       </div>
-      <div className="rounded-xl bg-muted/40 p-3 space-y-1.5">
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Commission (snapshot)
-        </p>
+      <div className="rounded-[12px] bg-oc-bg p-3 space-y-1.5">
+        <p className="text-[10px] font-bold tracking-[1px] text-oc-faint">Commission (snapshot)</p>
         <div className="flex justify-between">
-          <span className="text-muted-foreground">Rate</span>
+          <span className="text-oc-muted">Rate</span>
           <span>{asMoneyNumber(payout.commission_rate)}%</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-muted-foreground">Commission</span>
+          <span className="text-oc-muted">Commission</span>
           <span className="tabular-nums">{formatMoney(commission, currency)}</span>
         </div>
         <div className="flex justify-between font-medium">
@@ -520,7 +484,7 @@ function PayoutDetailBody({
           <span className="tabular-nums">{formatMoney(net, currency)}</span>
         </div>
         {!storedCommission && (
-          <p className="text-[11px] text-muted-foreground pt-1">
+          <p className="text-[11px] text-oc-faint pt-1">
             Amounts computed from the snapshotted rate. Stored commission/net appear after admin
             approval.
           </p>
@@ -528,23 +492,21 @@ function PayoutDetailBody({
       </div>
       {payout.admin_notes ? (
         <div className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Admin notes
-          </p>
-          <p className="text-sm whitespace-pre-wrap rounded-xl bg-muted/40 p-3">{payout.admin_notes}</p>
+          <p className="text-[10px] font-bold tracking-[1px] text-oc-faint">Admin notes</p>
+          <p className="text-sm whitespace-pre-wrap rounded-[12px] bg-oc-bg p-3">{payout.admin_notes}</p>
         </div>
       ) : null}
-      <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+      <div className="grid grid-cols-2 gap-2 text-xs text-oc-faint">
         <div>
           <p>Requested</p>
-          <p className="text-foreground">
+          <p className="text-oc-ink">
             {format(new Date(payout.created_at), "MMM d, yyyy h:mm a")}
           </p>
         </div>
         {payout.paid_at && (
           <div>
             <p>Paid</p>
-            <p className="text-foreground">
+            <p className="text-oc-ink">
               {format(new Date(payout.paid_at), "MMM d, yyyy h:mm a")}
             </p>
           </div>

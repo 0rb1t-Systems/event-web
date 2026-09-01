@@ -7,6 +7,7 @@ export type LaravelPaginator<T> = {
   data: T[];
   per_page: number;
   total: number;
+  last_page?: number;
 };
 
 // GET /events (raw paginator)
@@ -71,34 +72,41 @@ export type WrappedSuccess<T> = {
   data: T;
 };
 
+export type PublicSpeaker = {
+  id: number;
+  name: string;
+  photo_path?: string | null;
+  photo_url?: string | null;
+  title?: string | null;
+  organization?: string | null;
+  bio?: string | null;
+  social_links?: unknown;
+  sort_order?: number;
+};
+
+export type PublicSession = {
+  id: number;
+  title: string;
+  starts_at?: string | null;
+  ends_at?: string | null;
+  room?: string | null;
+  description?: string | null;
+  sort_order?: number;
+  speaker_id?: number | null;
+  speaker?: PublicSpeaker | null;
+};
+
 export type PublicEventDetail = PublicEventCatalogItem & {
-  speakers?: Array<{
-    id: number;
-    name: string;
-    photo_path?: string | null;
-    photo_url?: string | null;
-    title?: string | null;
-    organization?: string | null;
-    bio?: string | null;
-    social_links?: unknown;
-    sort_order?: number;
-  }>;
+  speakers?: PublicSpeaker[];
   sponsors?: Array<{
     id: number;
     name: string;
     logo_path?: string | null;
+    logo_url?: string | null;
     tier?: unknown;
     sort_order?: number;
   }>;
-  sessions?: Array<{
-    id: number;
-    title: string;
-    starts_at?: string | null;
-    ends_at?: string | null;
-    room?: string | null;
-    description?: string | null;
-    sort_order?: number;
-  }>;
+  sessions?: PublicSession[];
 };
 
 export type PublicEventDetailResponse = WrappedSuccess<PublicEventDetail>;
@@ -244,7 +252,7 @@ export function adaptPublicEventDetailToUi(api: PublicEventDetail): PublicEventU
     event_end_date: api.ends_at ?? null,
     timezone: "Africa/Mogadishu",
     status: api.status,
-    primary_color: "#7C3AED",
+    primary_color: "#178A5C",
     color_mode: "light",
     location_type: locationType,
     location: locationType === "virtual" ? null : venueLine,

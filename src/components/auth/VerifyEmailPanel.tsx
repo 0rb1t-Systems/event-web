@@ -30,7 +30,7 @@ export function VerifyEmailPanel({
       }}
     >
       <div className="space-y-1.5 text-center">
-        <h2 className="text-lg font-display font-semibold">Check your email</h2>
+        <h2 className="text-base font-display font-semibold">Check your email</h2>
         <p className="text-sm text-muted-foreground">
           Enter the 4-digit code we sent to <span className="text-foreground font-medium">{email}</span>
         </p>
@@ -44,16 +44,16 @@ export function VerifyEmailPanel({
           data-testid="verify-code"
         >
           <InputOTPGroup>
-            <InputOTPSlot index={0} className="h-11 w-11 rounded-xl first:rounded-l-xl" />
-            <InputOTPSlot index={1} className="h-11 w-11" />
-            <InputOTPSlot index={2} className="h-11 w-11" />
-            <InputOTPSlot index={3} className="h-11 w-11 last:rounded-r-xl" />
+            <InputOTPSlot index={0} className="h-10 w-10 rounded-xl first:rounded-l-xl" />
+            <InputOTPSlot index={1} className="h-10 w-10" />
+            <InputOTPSlot index={2} className="h-10 w-10" />
+            <InputOTPSlot index={3} className="h-10 w-10 last:rounded-r-xl" />
           </InputOTPGroup>
         </InputOTP>
       </div>
       <Button
         type="submit"
-        className="w-full rounded-full h-11 bg-foreground text-background hover:bg-foreground/90 hover:scale-[1.02] transition-transform font-medium"
+        className="w-full rounded-full"
         disabled={loading || code.length !== 4}
         data-testid="verify-submit"
       >

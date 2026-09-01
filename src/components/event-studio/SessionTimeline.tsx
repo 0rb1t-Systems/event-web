@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, MapPin } from "lucide-react";
+import { IconMapPin, IconPencil, IconTrash } from "@/components/organizer-console/orgIcons";
 import type { OrganizerSession } from "@/services/organizerEventContent";
 
 type Props = {
@@ -11,7 +11,7 @@ type Props = {
 
 export default function SessionTimeline({ sessions, onEdit, onDelete }: Props) {
   if (sessions.length === 0) {
-    return <p className="text-sm text-muted-foreground py-8 text-center">No sessions yet. Add agenda items for the public event page.</p>;
+    return <p className="text-sm text-muted-foreground py-6 px-1 text-center text-pretty break-words">No sessions yet. Add agenda items for the public event page.</p>;
   }
 
   return (
@@ -30,14 +30,14 @@ export default function SessionTimeline({ sessions, onEdit, onDelete }: Props) {
                 {session.speaker?.name && <p className="text-sm text-muted-foreground">{session.speaker.name}</p>}
                 {session.room && (
                   <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                    <MapPin className="w-3 h-3" />{session.room}
+                    <IconMapPin className="w-3 h-3" />{session.room}
                   </p>
                 )}
                 {session.description && <p className="text-sm text-muted-foreground mt-2">{session.description}</p>}
               </div>
               <div className="flex shrink-0">
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(session)}><Pencil className="w-3.5 h-3.5" /></Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onDelete(session)}><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(session)}><IconPencil className="w-3.5 h-3.5" /></Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onDelete(session)}><IconTrash className="w-3.5 h-3.5 text-destructive" /></Button>
               </div>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2, Image as ImageIcon, Trash2, Upload } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { IconPhoto, IconTrash, IconUpload } from "@/components/organizer-console/orgIcons";
 import { toast } from "sonner";
 import { getMediaUrl } from "@/lib/mediaUrl";
 import { getApiErrorMessage, isOrganizerEventAccessError } from "@/lib/apiError";
@@ -99,7 +100,7 @@ export default function EventGalleryPanel({ eventId, images, onImagesChange, onD
           disabled={uploading}
           onClick={() => fileRef.current?.click()}
         >
-          {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+          {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <IconUpload className="w-4 h-4 mr-2" />}
           Upload
         </Button>
       </div>
@@ -120,7 +121,7 @@ export default function EventGalleryPanel({ eventId, images, onImagesChange, onD
           <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" />
         ) : (
           <>
-            <ImageIcon className="w-8 h-8 mx-auto text-muted-foreground/40 mb-2" />
+            <IconPhoto className="w-8 h-8 mx-auto text-muted-foreground/40 mb-2" />
             <p className="text-sm text-muted-foreground">Drop images here or use Upload</p>
           </>
         )}
@@ -136,7 +137,7 @@ export default function EventGalleryPanel({ eventId, images, onImagesChange, onD
                   <img src={src} alt="" className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <ImageIcon className="w-6 h-6 text-muted-foreground/30" />
+                    <IconPhoto className="w-6 h-6 text-muted-foreground/30" />
                   </div>
                 )}
                 <Button
@@ -146,7 +147,7 @@ export default function EventGalleryPanel({ eventId, images, onImagesChange, onD
                   className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                   onClick={() => void handleDelete(image)}
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <IconTrash className="w-3.5 h-3.5" />
                 </Button>
               </div>
             );
