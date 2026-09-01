@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Plus, Loader2, Pencil, Trash2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { IconPencil, IconPlus, IconTrash } from "@/components/organizer-console/orgIcons";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -77,14 +78,16 @@ export default function DiscountCodesPanel({ eventId, onDenied }: Props) {
   };
 
   return (
-    <div className="bg-card rounded-xl p-5 sm:p-6 space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <div>
+    <div className="bg-card rounded-xl p-4 sm:p-6 space-y-4 min-w-0">
+      <div className="flex items-start justify-between gap-2 min-w-0">
+        <div className="min-w-0">
           <h3 className="font-display font-semibold">Discount codes</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">Event-scoped codes plus any organizer-wide codes.</p>
+          <p className="text-xs text-muted-foreground mt-0.5 text-pretty">Event-scoped codes plus any organizer-wide codes.</p>
         </div>
-        <Button size="sm" className="rounded-full gap-1.5" onClick={() => { setEditingId(null); setForm(emptyDiscountForm()); }}>
-          <Plus className="w-3.5 h-3.5" /> Add code
+        <Button size="sm" className="rounded-full gap-1.5 shrink-0" onClick={() => { setEditingId(null); setForm(emptyDiscountForm()); }}>
+          <IconPlus className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Add code</span>
+          <span className="sm:hidden">Add</span>
         </Button>
       </div>
 
@@ -127,7 +130,7 @@ export default function DiscountCodesPanel({ eventId, onDenied }: Props) {
                   }}
                 />
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingId(code.id); setForm(discountFromRecord(code)); }}>
-                  <Pencil className="w-3.5 h-3.5" />
+                  <IconPencil className="w-3.5 h-3.5" />
                 </Button>
                 <Button
                   variant="ghost"
@@ -145,7 +148,7 @@ export default function DiscountCodesPanel({ eventId, onDenied }: Props) {
                     }
                   }}
                 >
-                  <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                  <IconTrash className="w-3.5 h-3.5 text-destructive" />
                 </Button>
               </div>
             );

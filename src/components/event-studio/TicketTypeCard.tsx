@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Crown, Pencil, Ticket, Trash2 } from "lucide-react";
+import { IconPencil, IconSparkles, IconTicket, IconTrash } from "@/components/organizer-console/orgIcons";
 import { env } from "@/lib/env";
 import {
   ticketIsPaid,
@@ -42,7 +42,7 @@ export default function TicketTypeCard({ ticket, onEdit, onDelete, onSalesToggle
           isVip ? "bg-primary/15 text-primary" : "bg-muted text-foreground"
         }`}
       >
-        {isVip ? <Crown className="w-4 h-4" /> : <Ticket className="w-4 h-4" />}
+        {isVip ? <IconSparkles className="w-4 h-4" /> : <IconTicket className="w-4 h-4" />}
       </div>
       <div className="flex-1 min-w-0 space-y-1">
         <div className="flex items-center gap-2 flex-wrap">
@@ -82,10 +82,10 @@ export default function TicketTypeCard({ ticket, onEdit, onDelete, onSalesToggle
           aria-label={salesOn ? "Pause sales" : "Enable sales"}
         />
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit}>
-          <Pencil className="w-3.5 h-3.5" />
+          <IconPencil className="w-3.5 h-3.5" />
         </Button>
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onDelete}>
-          <Trash2 className="w-3.5 h-3.5 text-destructive" />
+          <IconTrash className="w-3.5 h-3.5 text-destructive" />
         </Button>
       </div>
     </div>

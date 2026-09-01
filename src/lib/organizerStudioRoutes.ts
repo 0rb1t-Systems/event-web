@@ -1,4 +1,6 @@
-import type { EventSection } from "@/components/event-detail/EventSideNav";
+export type EventSection =
+  | "overview" | "tickets" | "form" | "content" | "branding"
+  | "attendees" | "lucky-wheel" | "scanner" | "finance" | "analytics" | "settings";
 
 /** Nested studio routes under `/organizer/events/:id` (layout + Outlet). */
 export const STUDIO_PATH_BY_SECTION: Record<EventSection, string> = {
@@ -11,6 +13,7 @@ export const STUDIO_PATH_BY_SECTION: Record<EventSection, string> = {
   "lucky-wheel": "lucky-wheel",
   scanner: "scanner",
   finance: "finance",
+  analytics: "analytics",
   settings: "settings",
 };
 

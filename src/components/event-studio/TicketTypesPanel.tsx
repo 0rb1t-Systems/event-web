@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Plus, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { IconPlus } from "@/components/organizer-console/orgIcons";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -133,16 +134,18 @@ export default function TicketTypesPanel({ eventId, onDenied }: Props) {
   };
 
   return (
-    <div className="bg-card rounded-xl p-5 sm:p-6 space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <div>
+    <div className="bg-card rounded-xl p-4 sm:p-6 space-y-4 min-w-0">
+      <div className="flex items-start justify-between gap-2 min-w-0">
+        <div className="min-w-0">
           <h3 className="font-display font-semibold">Tickets</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5 text-pretty">
             Event monetization: {monetized ? "paid" : "free"} (derived from paid ticket types).
           </p>
         </div>
-        <Button size="sm" onClick={openNew} className="rounded-full gap-1.5">
-          <Plus className="w-3.5 h-3.5" /> Add ticket
+        <Button size="sm" onClick={openNew} className="rounded-full gap-1.5 shrink-0">
+          <IconPlus className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Add ticket</span>
+          <span className="sm:hidden">Add</span>
         </Button>
       </div>
 

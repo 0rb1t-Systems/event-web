@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Image as ImageIcon, Trash2, Upload } from "lucide-react";
+import { IconPhoto, IconTrash, IconUpload } from "@/components/organizer-console/orgIcons";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -134,7 +134,7 @@ export default function SpeakerForm({ value, onChange }: Props) {
               <img src={preview} alt="" className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 p-2">
                 <Button type="button" size="sm" variant="secondary" className="h-8 rounded-full" onClick={() => fileRef.current?.click()}>
-                  <Upload className="w-3.5 h-3.5 mr-1" /> Change
+                  <IconUpload className="w-3.5 h-3.5 mr-1" /> Change
                 </Button>
                 <Button
                   type="button"
@@ -143,7 +143,7 @@ export default function SpeakerForm({ value, onChange }: Props) {
                   className="h-8 w-8"
                   onClick={() => onChange({ ...value, photo_file: null, photo_path: "", photo_url: null, clear_photo: true })}
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <IconTrash className="w-3.5 h-3.5" />
                 </Button>
               </div>
             </>
@@ -153,7 +153,7 @@ export default function SpeakerForm({ value, onChange }: Props) {
               onClick={() => fileRef.current?.click()}
               className="w-full h-full flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-foreground transition-colors px-3"
             >
-              <ImageIcon className="w-7 h-7 opacity-40" />
+              <IconPhoto className="w-7 h-7 opacity-40" />
               <span className="text-xs text-center">Drop or click to upload</span>
             </button>
           )}

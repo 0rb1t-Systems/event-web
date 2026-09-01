@@ -1,925 +1,230 @@
-import { useState, useEffect } from "react";
-import { LANDING_DEFAULTS, applyBrandName } from "@/lib/landing-defaults";
-import { publicApi } from "@/lib/api";
-import { catalogPlaceLabel } from "@/lib/eventMode";
-import {
-  pickHeroBackgroundImage,
-  type PublicEventCatalogItem,
-  type PublicEventCatalogResponse,
-  type PublicEventCategory,
-  type PublicEventCategoriesResponse,
-} from "@/lib/publicEventsAdapters";
-import { Logo } from "@/components/Logo";
+import { FormEvent, useState } from "react";
+import { Link } from "react-router-dom";
+import { ArrowUpRight, MapPin, Search } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
 import { PublicSiteHeader } from "@/components/layout/PublicSiteHeader";
-import { useBranding } from "@/contexts/BrandingContext";
+import { SiteFooter } from "@/components/layout/SiteFooter";
+import { EventCatalogCard } from "@/components/catalog/EventCatalogCard";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Link } from "react-router-dom";
-import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
-import { Reveal, StaggerGroup, StaggerItem } from "@/components/motion/Reveal";
-import { Magnetic } from "@/components/motion/Magnetic";
-import {
-  Puzzle,
-  ArrowRight,
-  Zap,
-  Sparkles,
-  PieChart,
-  BarChart2,
-  UserCheck,
-} from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useOrganizer } from "@/contexts/OrganizerContext";
+import { useMyParticipations } from "@/hooks/queries/useParticipations";
+import { usePublicCategories, usePublicEventList } from "@/hooks/queries/usePublicEvents";
+import { pickNextParticipation } from "@/lib/nextEvent";
+import { cn } from "@/lib/utils";
+import heroBg from "@/assets/hero-bg.jpg";
 
-import eventChill from "@/assets/event-chill-code-workshop.jpg";
-import eventHackathon from "@/assets/event-hackathon-ai.jpg";
-import eventJam from "@/assets/event-late-night-jam.jpg";
-import eventStartup from "@/assets/event-startup-weekend.jpg";
-import eventSummit from "@/assets/event-vibe-coding-summit.jpg";
+export default function Landing() {
+  const reduce = useReducedMotion();
+  const { user } = useAuth();
+  const { isAuthenticated: organizerAuthed } = useOrganizer();
+  const categories = usePublicCategories();
+  const parts = useMyParticipations(!!user);
+  const next = user ? pickNextParticipation(parts.data?.items ?? []) : null;
 
-
-// Feature illustration colors live here; titles/descriptions come from useLandingContent.
-const featureBg = [
-  "bg-[hsl(340,75%,95%)]",
-  "bg-[hsl(170,60%,92%)]",
-  "bg-[hsl(45,90%,92%)]",
-  "bg-[hsl(250,60%,94%)]",
-];
-
-// Real avatar URLs
-const AVATAR_URLS = [
-  "https://i.pravatar.cc/150?img=1",
-  "https://i.pravatar.cc/150?img=5",
-  "https://i.pravatar.cc/150?img=8",
-  "https://i.pravatar.cc/150?img=9",
-  "https://i.pravatar.cc/150?img=12",
-  "https://i.pravatar.cc/150?img=16",
-];
-
-// Logo URLs from CDN
-const LOGO_URLS = [
-  { src: "https://cdn.jsdelivr.net/gh/gilbarbara/logos@main/logos/slack-icon.svg", name: "Slack" },
-  { src: "https://cdn.jsdelivr.net/gh/gilbarbara/logos@main/logos/zoom-icon.svg", name: "Zoom" },
-  { src: "https://cdn.jsdelivr.net/gh/gilbarbara/logos@main/logos/hubspot.svg", name: "HubSpot" },
-  { src: "https://cdn.jsdelivr.net/gh/gilbarbara/logos@main/logos/mailchimp-freddie.svg", name: "Mailchimp" },
-  { src: "https://cdn.jsdelivr.net/gh/gilbarbara/logos@main/logos/google-calendar.svg", name: "Calendar" },
-  { src: "https://cdn.jsdelivr.net/gh/gilbarbara/logos@main/logos/stripe.svg", name: "Stripe" },
-];
-
-type BentoAccents = { integrationCircle: string; attendeeBorder: string; analyticsBars: string; analyticsAccent: string; pageButton: string };
-
-function IllustrationPages({ accents }: { accents: BentoAccents }) {
-  return (
-    <div className="relative w-full h-full flex items-center justify-center p-6">
-      <div className="w-[85%] bg-white/80 rounded-xl shadow-lg overflow-hidden">
-        <img src={eventSummit} alt="Event page preview" className="w-full h-28 object-cover" />
-        <div className="p-3 space-y-2.5">
-          <h4 className="text-[11px] font-bold text-foreground truncate">Vibe coding summit 2026</h4>
-          <div className="flex items-center gap-2 text-[9px] text-muted-foreground">
-            <span>📅 Apr 19, 2026</span>
-            <span>📍 San Francisco</span>
-          </div>
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-2">
-              <span className="text-[9px] text-muted-foreground w-12">Name</span>
-              <div className="h-5 bg-muted rounded-md flex-1" />
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[9px] text-muted-foreground w-12">Email</span>
-              <div className="h-5 bg-muted rounded-md flex-1" />
-            </div>
-          </div>
-          <div className="flex gap-2 pt-1">
-            <div className="h-7 rounded-full flex-1 flex items-center justify-center" style={{ backgroundColor: accents.pageButton }}>
-              <span className="text-[9px] text-white font-semibold">Register now</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function IllustrationAnalytics({ accents }: { accents: BentoAccents }) {
-  return (
-    <div className="relative w-full h-full flex items-center justify-center p-6">
-      <div className="w-[85%] bg-white/80 rounded-xl shadow-lg p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <BarChart2 className="w-4 h-4" style={{ color: accents.analyticsAccent }} />
-          <span className="text-[10px] font-bold" style={{ color: accents.analyticsAccent }}>Live</span>
-          <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: accents.analyticsBars }} />
-        </div>
-        <div className="flex items-end gap-1.5 h-20">
-          {[40, 65, 30, 55, 80, 45, 70].map((h, i) => (
-            <div key={i} className="flex-1 rounded-t-md" style={{ height: `${h}%`, backgroundColor: accents.analyticsBars }} />
-          ))}
-        </div>
-        <div className="flex justify-between mt-2">
-          {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => (
-            <span key={d} className="text-[7px] text-muted-foreground flex-1 text-center">{d}</span>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function IllustrationIntegrations({ accents }: { accents: BentoAccents }) {
-  return (
-    <div className="relative w-full h-full flex items-center justify-center p-6">
-      <div className="w-16 h-16 rounded-full flex items-center justify-center z-10" style={{ backgroundColor: accents.integrationCircle }}>
-        <Puzzle className="w-8 h-8 text-white" />
-      </div>
-      {LOGO_URLS.map((logo, i) => {
-        const angle = (i * 60 - 90) * Math.PI / 180;
-        const r = 85;
-        return (
-          <div key={i} className="absolute w-14 h-14 rounded-xl bg-white/80 shadow-md flex items-center justify-center" style={{ left: `calc(50% + ${Math.cos(angle) * r}px - 28px)`, top: `calc(50% + ${Math.sin(angle) * r}px - 28px)` }}>
-            <img src={logo.src} alt={logo.name} className="w-8 h-8" />
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function IllustrationAttendees({ accents }: { accents: BentoAccents }) {
-  return (
-    <div className="relative w-full h-full flex items-center justify-center p-6">
-      <div className="grid grid-cols-3 gap-4">
-        {AVATAR_URLS.map((url, i) => (
-          <div key={i} className="w-16 h-16 rounded-full overflow-hidden shadow-md border-[3px]" style={{ borderColor: accents.attendeeBorder }}>
-            <img src={url} alt={`Attendee ${i + 1}`} className="w-full h-full object-cover" />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-const ILLUSTRATIONS = [IllustrationPages, IllustrationAnalytics, IllustrationIntegrations, IllustrationAttendees];
-
-const POPULAR_IMAGES = [eventHackathon, eventChill, eventStartup, eventSummit];
-
-const CONFETTI_COLORS = ["#FF6B6B", "#FFD93D", "#6BCB77", "#4D96FF", "#FF6BCB", "#FF9F43"];
-const CONFETTI_SHAPES = ["circle", "square", "triangle", "line"] as const;
-
-// Seeded positions for each corner cluster
-const cornerSeeds = [
-  // top-left
-  [
-    { x: -40, y: -20, shape: 0, color: 0, rot: 12, baseSize: 12 },
-    { x: 220, y: -30, shape: 1, color: 1, rot: 45, baseSize: 8 },
-    { x: -25, y: 200, shape: 2, color: 2, rot: -20, baseSize: 14 },
-    { x: 240, y: 50, shape: 0, color: 3, rot: 0, baseSize: 5 },
-    { x: -30, y: 100, shape: 3, color: 4, rot: 30, baseSize: 10 },
-    { x: 200, y: 200, shape: 1, color: 1, rot: 15, baseSize: 6 },
-    { x: 100, y: -35, shape: 0, color: 5, rot: 0, baseSize: 7 },
-    { x: -45, y: 150, shape: 2, color: 0, rot: 55, baseSize: 9 },
-  ],
-  // bottom-left
-  [
-    { x: 230, y: -20, shape: 1, color: 1, rot: 22, baseSize: 7 },
-    { x: -35, y: 40, shape: 2, color: 3, rot: 15, baseSize: 12 },
-    { x: 40, y: -30, shape: 0, color: 0, rot: 0, baseSize: 10 },
-    { x: 220, y: 190, shape: 3, color: 2, rot: -40, baseSize: 10 },
-    { x: -20, y: 200, shape: 1, color: 4, rot: 60, baseSize: 6 },
-    { x: 150, y: -40, shape: 0, color: 5, rot: 0, baseSize: 8 },
-    { x: -50, y: 120, shape: 2, color: 1, rot: 35, baseSize: 11 },
-    { x: 250, y: 80, shape: 3, color: 0, rot: -15, baseSize: 9 },
-  ],
-  // top-right
-  [
-    { x: 230, y: -25, shape: 0, color: 4, rot: 0, baseSize: 10 },
-    { x: -35, y: 70, shape: 1, color: 1, rot: 35, baseSize: 7 },
-    { x: 40, y: -30, shape: 2, color: 2, rot: 40, baseSize: 13 },
-    { x: 240, y: 180, shape: 0, color: 3, rot: 0, baseSize: 5 },
-    { x: -25, y: 190, shape: 3, color: 0, rot: -25, baseSize: 10 },
-    { x: 100, y: -40, shape: 1, color: 5, rot: 20, baseSize: 8 },
-    { x: -50, y: 140, shape: 0, color: 4, rot: 0, baseSize: 6 },
-    { x: 250, y: 60, shape: 2, color: 2, rot: -50, baseSize: 11 },
-  ],
-  // bottom-right
-  [
-    { x: -40, y: 30, shape: 1, color: 3, rot: 18, baseSize: 8 },
-    { x: 230, y: -25, shape: 2, color: 1, rot: -30, baseSize: 14 },
-    { x: 50, y: 200, shape: 0, color: 4, rot: 0, baseSize: 8 },
-    { x: 240, y: 100, shape: 3, color: 2, rot: 50, baseSize: 10 },
-    { x: 20, y: -30, shape: 0, color: 0, rot: 0, baseSize: 6 },
-    { x: -30, y: 160, shape: 1, color: 5, rot: -40, baseSize: 7 },
-    { x: 180, y: -45, shape: 2, color: 3, rot: 25, baseSize: 10 },
-    { x: -45, y: 90, shape: 0, color: 1, rot: 0, baseSize: 9 },
-  ],
-];
-
-function ConfettiLayer({ size, opacity, count, spread }: { size: number; opacity: number; count: number; spread: number }) {
-  const corners = [
-    { side: "left" as const, vSide: "top" as const, originX: 105, originY: 95 },
-    { side: "left" as const, vSide: "bottom" as const, originX: 95, originY: -95 },
-    { side: "right" as const, vSide: "top" as const, originX: -105, originY: 95 },
-    { side: "right" as const, vSide: "bottom" as const, originX: -105, originY: -95 },
-  ];
-
-  return (
-    <div className="hidden md:block absolute inset-0 pointer-events-none overflow-visible" aria-hidden="true">
-      {corners.map((corner, ci) =>
-        cornerSeeds[ci].slice(0, count).map((seed, si) => {
-          const s = seed.baseSize * size;
-          const finalX = seed.x * spread;
-          const finalY = seed.y * spread;
-          const color = CONFETTI_COLORS[seed.color % CONFETTI_COLORS.length];
-          const shape = CONFETTI_SHAPES[seed.shape % CONFETTI_SHAPES.length];
-
-          const sharedMotion = {
-            initial: {
-              [corner.side]: corner.originX,
-              [corner.vSide]: Math.abs(corner.originY),
-              opacity: 0,
-              scale: 0,
-              rotate: 0,
-            },
-            animate: {
-              [corner.side]: finalX,
-              [corner.vSide]: finalY < 0 ? Math.abs(finalY) : finalY,
-              opacity,
-              scale: 1,
-              rotate: seed.rot,
-            },
-            transition: {
-              delay: 0.8 + si * 0.06 + ci * 0.04,
-              duration: 0.5,
-              type: "spring" as const,
-              stiffness: 200,
-              damping: 15,
-            },
-          };
-
-          const posStyle: React.CSSProperties = { position: "absolute" };
-
-          if (shape === "circle") {
-            return <motion.div key={`${ci}-${si}`} {...sharedMotion} style={{ ...posStyle, width: s, height: s, borderRadius: "50%", backgroundColor: color }} />;
-          }
-          if (shape === "square") {
-            return <motion.div key={`${ci}-${si}`} {...sharedMotion} style={{ ...posStyle, width: s, height: s, borderRadius: 2, backgroundColor: color }} />;
-          }
-          if (shape === "line") {
-            return <motion.div key={`${ci}-${si}`} {...sharedMotion} style={{ ...posStyle, width: s, height: s * 0.25, borderRadius: 99, backgroundColor: color }} />;
-          }
-          // triangle
-          const half = s / 2;
-          return (
-            <motion.div
-              key={`${ci}-${si}`}
-              {...sharedMotion}
-              style={{
-                ...posStyle,
-                width: 0,
-                height: 0,
-                borderLeft: `${half}px solid transparent`,
-                borderRight: `${half}px solid transparent`,
-                borderBottom: `${s * 0.85}px solid ${color}`,
-                backgroundColor: "transparent",
-              }}
-            />
-          );
-        })
-      )}
-    </div>
-  );
-}
-
-const Landing = () => {
-  const { name: brandName } = useBranding();
-  const landing = LANDING_DEFAULTS;
-  const hero = landing.hero;
-  const popular = {
-    ...landing.popular_events,
-    title_line_1: applyBrandName(landing.popular_events.title_line_1, brandName),
-    title_line_2: applyBrandName(landing.popular_events.title_line_2, brandName),
-    subhead: applyBrandName(landing.popular_events.subhead, brandName),
-  };
-  const featuresContent = {
-    ...landing.features,
-    title_line_1: applyBrandName(landing.features.title_line_1, brandName),
-    title_line_2: applyBrandName(landing.features.title_line_2, brandName),
-    subhead: applyBrandName(landing.features.subhead, brandName),
-  };
-  const ctaContent = {
-    ...landing.cta,
-    title_line_1: applyBrandName(landing.cta.title_line_1, brandName),
-    title_line_2: applyBrandName(landing.cta.title_line_2, brandName),
-    subhead: applyBrandName(landing.cta.subhead, brandName),
-  };
-  const rotatingWords = hero.rotating_words;
-
-  const [wordIndex, setWordIndex] = useState(0);
-  const [navVisible, setNavVisible] = useState(false);
-  const titleWeight = 700;
-  const confettiSize = 2.5;
-  const confettiOpacity = 0.8;
-  const confettiCount = 8;
-  const confettiSpread = 1.0;
-  const bentoStyle = 0;
-
-  // Bento color presets
-  const bentoPresets = [
-    {
-      label: "Playful",
-      cardBg: "bg-muted/50",
-      colors: ["bg-[hsl(340,75%,95%)]", "bg-[hsl(170,60%,92%)]", "bg-[hsl(45,90%,92%)]", "bg-[hsl(250,60%,94%)]"],
-      accents: { integrationCircle: "hsl(45,80%,45%)", attendeeBorder: "hsl(250,60%,80%)", analyticsBars: "hsl(170,60%,50%)", analyticsAccent: "hsl(170,60%,40%)", pageButton: "hsl(340,75%,58%)" },
-    },
-    {
-      label: "Neutral",
-      cardBg: "bg-background",
-      colors: ["bg-background", "bg-background", "bg-background", "bg-background"],
-      accents: { integrationCircle: "hsl(45,90%,50%)", attendeeBorder: "hsl(250,65%,65%)", analyticsBars: "hsl(170,65%,45%)", analyticsAccent: "hsl(170,65%,35%)", pageButton: "hsl(340,80%,55%)" },
-    },
-    {
-      label: "Vivid",
-      cardBg: "bg-muted/50",
-      colors: ["bg-[hsl(340,75%,90%)]", "bg-[hsl(170,60%,86%)]", "bg-[hsl(45,90%,86%)]", "bg-[hsl(250,60%,90%)]"],
-      accents: { integrationCircle: "hsl(45,90%,50%)", attendeeBorder: "hsl(250,65%,65%)", analyticsBars: "hsl(170,65%,45%)", analyticsAccent: "hsl(170,65%,35%)", pageButton: "hsl(340,80%,55%)" },
-    },
-  ];
-  const currentPreset = bentoPresets[bentoStyle] ?? bentoPresets[0];
-
-  useEffect(() => {
-    if (!rotatingWords.length) return;
-    setWordIndex(0);
-    const interval = setInterval(() => {
-      setWordIndex((prev) => (prev + 1) % rotatingWords.length);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [rotatingWords]);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setNavVisible(window.scrollY > 80);
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  // Apply title weight globally
-  useEffect(() => {
-    document.querySelectorAll<HTMLElement>("h1,h2,h3,h4,h5,h6,.font-display").forEach((el) => {
-      el.style.fontWeight = String(titleWeight);
-    });
-  }, [titleWeight]);
-
-  const [catalogLoading, setCatalogLoading] = useState(true);
-  const [catalogError, setCatalogError] = useState<string | null>(null);
-  const [catalogEvents, setCatalogEvents] = useState<PublicEventCatalogItem[]>([]);
-  const [categories, setCategories] = useState<PublicEventCategory[]>([]);
-
-  // Prompt 2: keep public catalog filtering UX (search + category).
-  const [searchTerm, setSearchTerm] = useState("");
+  const [what, setWhat] = useState("");
+  const [where, setWhere] = useState("");
+  const [submitted, setSubmitted] = useState("");
   const [categoryId, setCategoryId] = useState<number | "">("");
-  const [retryNonce, setRetryNonce] = useState(0);
 
-  useEffect(() => {
-    let cancelled = false;
-    const run = async () => {
-      setCatalogLoading(true);
-      setCatalogError(null);
-      try {
-        const [eventsResp, categoriesResp] = await Promise.all([
-          publicApi.get<PublicEventCatalogResponse>("/events", {
-            params: {
-              per_page: 4,
-              page: 1,
-              ...(searchTerm.trim() ? { q: searchTerm.trim() } : {}),
-              ...(categoryId !== "" ? { "filter[event_category_id]": categoryId } : {}),
-            },
-          }),
-          publicApi.get<PublicEventCategoriesResponse>("/event-categories", {
-            params: { per_page: 200, page: 1 },
-          }),
-        ]);
-
-        if (cancelled) return;
-        setCatalogEvents(eventsResp.data.data ?? []);
-        setCategories(categoriesResp.data.data ?? []);
-      } catch {
-        if (cancelled) return;
-        setCatalogError("Failed to load events. Please try again.");
-        setCatalogEvents([]);
-        setCategories([]);
-      } finally {
-        if (!cancelled) setCatalogLoading(false);
-      }
-    };
-
-    run();
-    return () => {
-      cancelled = true;
-    };
-  }, [searchTerm, categoryId, retryNonce]);
-
-  const popularEvents = catalogEvents.map((event) => {
-    const img = pickHeroBackgroundImage(event);
-    const tickets = event.ticket_types ?? [];
-    const prices = tickets
-      .map((t) => (typeof t.price === "string" ? Number(t.price) : Number((t as any).price)))
-      .filter((n) => Number.isFinite(n));
-    const minPrice = prices.length ? Math.min(...prices) : 0;
-
-    const tag = minPrice > 0 ? `$${Math.round(minPrice)}` : "Free";
-    const date = event.starts_at
-      ? new Date(event.starts_at).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })
-      : "";
-
-    return {
-      id: event.id,
-      img,
-      title: event.title,
-      tag,
-      date,
-      city: catalogPlaceLabel(event),
-    };
+  const catalog = usePublicEventList({
+    page: 1,
+    per_page: 12,
+    q: submitted,
+    categoryId,
   });
 
+  const events = catalog.data?.data ?? [];
+  const total = catalog.data?.total;
+  const cats = categories.data?.data ?? [];
+  const firstName = user?.name?.split(" ")[0] ?? "You";
+
+  const browseHref = (() => {
+    const params = new URLSearchParams();
+    if (submitted.trim()) params.set("q", submitted.trim());
+    if (categoryId !== "") params.set("category", String(categoryId));
+    const qs = params.toString();
+    return qs ? `/events?${qs}` : "/events";
+  })();
+
+  const onSearch = (e: FormEvent) => {
+    e.preventDefault();
+    setSubmitted([what, where].map((s) => s.trim()).filter(Boolean).join(" "));
+    document.getElementById("events")?.scrollIntoView({ behavior: reduce ? "auto" : "smooth" });
+  };
+
   return (
-    <div className="min-h-screen bg-background overflow-x-hidden">
-      {/* Navbar — hidden until scroll */}
-      <motion.div
-        className="fixed top-0 w-full z-50"
-        initial={{ y: -100 }}
-        animate={{ y: navVisible ? 0 : -100 }}
-        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-      >
-        <PublicSiteHeader />
-      </motion.div>
+    <div className="house-page flex min-h-[100dvh] min-w-0 flex-col">
+      <PublicSiteHeader />
 
-      {/* Hero */}
-      <section className="relative overflow-hidden">
-        {/* Radial brand glow */}
-        <div className="absolute inset-x-0 top-0 -z-0 pointer-events-none" aria-hidden="true">
-          <div className="mx-auto h-[720px] w-[120%] -translate-x-[10%] bg-[radial-gradient(ellipse_at_50%_0%,hsl(340_75%_92%/_0.85)_0%,hsl(340_75%_96%/_0.4)_35%,transparent_70%)]" />
+      {user && next?.event ? (
+        <div className="border-b border-border bg-[#F4F6F8]">
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-5 py-3 sm:px-8">
+            <p className="text-sm text-muted-foreground">
+              Next up: <span className="font-medium text-foreground">{next.event.title}</span>
+            </p>
+            <Button size="sm" className="rounded-full" asChild>
+              <Link to="/dashboard/rooms">Next event</Link>
+            </Button>
+          </div>
         </div>
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-20 lg:py-28 relative">
-          <div className="relative min-h-[620px] flex items-center justify-center">
+      ) : null}
 
-            {/* Confetti shapes behind cards — dynamic */}
-            <ConfettiLayer size={confettiSize} opacity={confettiOpacity} count={confettiCount} spread={confettiSpread} />
-            {/* Top-left card */}
+      <section className="bg-background px-5 pt-5 sm:px-8 sm:pt-6">
+        <div className="relative mx-auto w-full max-w-7xl">
+          <div className="relative isolate min-h-[13.5rem] overflow-hidden rounded-xl sm:min-h-[15rem] lg:min-h-[16.5rem]">
+            <img src={heroBg} alt="" className="absolute inset-0 h-full w-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/90 via-zinc-950/62 to-zinc-950/28" />
             <motion.div
-              className="hidden md:block absolute left-[-100px] lg:left-[-40px] top-[20px] w-[200px] lg:w-[260px]"
-              initial={{ opacity: 0, scale: 0.3, x: -80, y: -60 }}
-              animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
-              transition={{ type: "spring", stiffness: 260, damping: 20, delay: 0.2 }}
-            >
-              <div className="rounded-2xl overflow-hidden shadow-lg rotate-[6deg]">
-                <img src={eventChill} alt="Chill code workshop" className="w-full h-[150px] object-cover" />
-                <div className="bg-card px-3 py-2">
-                  <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">Workshop</span>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Bottom-left card */}
-            <motion.div
-              className="hidden md:block absolute left-[-120px] lg:left-[-60px] bottom-[20px] w-[200px] lg:w-[260px]"
-              initial={{ opacity: 0, scale: 0.3, x: -80, y: 60 }}
-              animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
-              transition={{ type: "spring", stiffness: 260, damping: 20, delay: 0.35 }}
-            >
-              <div className="rounded-2xl overflow-hidden shadow-lg rotate-[-5deg]">
-                <img src={eventJam} alt="Late night jam" className="w-full h-[150px] object-cover" />
-                <div className="bg-card px-3 py-2">
-                  <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">Social</span>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Top-right card */}
-            <motion.div
-              className="hidden md:block absolute right-[-100px] lg:right-[-40px] top-[20px] w-[200px] lg:w-[260px]"
-              initial={{ opacity: 0, scale: 0.3, x: 80, y: -60 }}
-              animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
-              transition={{ type: "spring", stiffness: 260, damping: 20, delay: 0.25 }}
-            >
-              <div className="rounded-2xl overflow-hidden shadow-lg rotate-[-6deg]">
-                <img src={eventStartup} alt="Startup weekend" className="w-full h-[150px] object-cover" />
-                <div className="bg-card px-3 py-2">
-                  <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">Hackathon</span>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Bottom-right card */}
-            <motion.div
-              className="hidden md:block absolute right-[-120px] lg:right-[-60px] bottom-[20px] w-[200px] lg:w-[260px]"
-              initial={{ opacity: 0, scale: 0.3, x: 80, y: 60 }}
-              animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
-              transition={{ type: "spring", stiffness: 260, damping: 20, delay: 0.4 }}
-            >
-              <div className="rounded-2xl overflow-hidden shadow-lg rotate-[5deg]">
-                <img src={eventSummit} alt="Vibe coding summit" className="w-full h-[150px] object-cover" />
-                <div className="bg-card px-3 py-2">
-                  <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">Conference</span>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Center — headline */}
-            <motion.div
-              className="text-center max-w-3xl mx-auto relative z-10"
-              initial={{ opacity: 0, y: 24 }}
+              initial={reduce ? false : { opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7 }}
+              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+              className="relative flex min-h-[13.5rem] max-w-xl flex-col justify-end px-5 pb-12 pt-6 sm:min-h-[15rem] sm:px-7 sm:pb-14 lg:min-h-[16.5rem] lg:px-8"
             >
-              <div className="flex items-center justify-center mb-6">
-                <Logo size="lg" />
-              </div>
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15, duration: 0.5 }}
-                className="inline-flex items-center gap-2 mb-7 bg-primary/10 text-primary px-3.5 py-1.5 rounded-full text-[11px] font-bold tracking-[0.18em] uppercase"
-              >
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inline-flex h-full w-full rounded-full bg-primary opacity-75 animate-ping" />
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary" />
-                </span>
-                {hero.badge}
-              </motion.div>
-              <h1 className="text-5xl sm:text-6xl lg:text-[68px] 2xl:text-[80px] font-display tracking-[-0.035em] leading-[0.95] text-foreground mb-7" style={{ fontWeight: titleWeight }}>
-                {hero.headline_prefix}{" "}
-                <span className="inline-block relative">
-                  <AnimatePresence mode="wait">
-                    <motion.span
-                      key={rotatingWords[wordIndex]}
-                      initial={{ opacity: 0, y: 16 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -16 }}
-                      transition={{ duration: 0.35 }}
-                      className="text-primary inline-block italic"
-                    >
-                      {rotatingWords[wordIndex]}
-                    </motion.span>
-                  </AnimatePresence>
-                  {/* Invisible longest word to reserve space */}
-                  <span className="invisible inline-block h-0 overflow-hidden" aria-hidden="true">
-                    {rotatingWords.reduce((a, b) => (a.length >= b.length ? a : b), "")}
-                  </span>
-                </span>
+              {user ? (
+                <p className="text-xs text-white/70">Welcome back, {firstName}</p>
+              ) : null}
+              <h1 className="font-display text-[1.5rem] font-semibold leading-[1.2] tracking-tight text-white sm:text-[1.75rem] lg:text-[2rem]">
+                Find events worth showing up for.
               </h1>
-              <p className="text-lg lg:text-xl text-muted-foreground max-w-xl mx-auto mb-10 leading-relaxed">
-                {hero.subhead}
+              <p className="mt-2 max-w-[40ch] text-sm leading-relaxed text-white/80">
+                Search the catalog, register on the event page, and keep the pass in My Tickets.
               </p>
-              <Button size="lg" className="text-base font-semibold px-9 h-14 shadow-xl shadow-foreground/10" asChild>
-                <Link to="/auth">{hero.cta} <ArrowRight className="ml-2 w-4 h-4" /></Link>
-              </Button>
             </motion.div>
           </div>
+
+          <form
+            onSubmit={onSearch}
+            className="house-card relative z-10 mx-auto -mt-7 flex max-w-7xl flex-col gap-2 rounded-2xl border border-border bg-card p-2 sm:-mt-8 sm:flex-row sm:items-center"
+          >
+            <label className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2">
+              <Search className="h-4 w-4 shrink-0 text-primary" />
+              <span className="sr-only">Event name</span>
+              <input
+                value={what}
+                onChange={(e) => setWhat(e.target.value)}
+                placeholder="Event name"
+                className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              />
+            </label>
+            <div className="hidden h-7 w-px bg-border sm:block" />
+            <label className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2">
+              <MapPin className="h-4 w-4 shrink-0 text-primary" />
+              <span className="sr-only">Location</span>
+              <input
+                value={where}
+                onChange={(e) => setWhere(e.target.value)}
+                placeholder="Location"
+                className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              />
+            </label>
+            <Button type="submit" className="h-10 rounded-full sm:min-w-[7.5rem]">
+              <Search className="h-4 w-4" />
+              Search
+            </Button>
+          </form>
         </div>
       </section>
 
-      {/* Upcoming events showcase */}
-      <section className="py-20 lg:py-28 bg-muted/40">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-12 gap-4">
-            <div className="max-w-xl">
-              <h2 className="text-3xl sm:text-5xl font-display text-foreground tracking-[-0.03em] leading-[1.05] mb-3" style={{ fontWeight: titleWeight }}>
-                {popular.title_line_1}
-                <br />
-                {popular.title_line_2}
-              </h2>
-              <p className="text-muted-foreground text-base lg:text-lg">
-                {popular.subhead}
-              </p>
-            </div>
-            <Link to="/auth" className="group inline-flex items-center gap-2 text-primary font-semibold text-sm self-start md:self-end">
-              {popular.cta_label}
-              <span className="w-9 h-9 rounded-full bg-primary text-primary-foreground inline-flex items-center justify-center group-hover:translate-x-1 transition-transform">
-                <ArrowRight className="w-4 h-4" />
-              </span>
+      <section id="events" className="scroll-mt-20 bg-background">
+        <div className="mx-auto w-full max-w-7xl px-5 pb-10 pt-8 sm:px-8 sm:pb-12 sm:pt-9">
+          <div className="flex flex-wrap items-baseline justify-between gap-3">
+            <h2 className="font-display text-lg font-semibold tracking-tight sm:text-xl">What&apos;s on</h2>
+            <Link
+              to={browseHref}
+              className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+            >
+              Browse events
+              <ArrowUpRight className="h-3.5 w-3.5" />
             </Link>
           </div>
-          {/* Public catalog filters */}
-          <div className="mt-2 mb-10 flex flex-col md:flex-row md:items-end gap-4">
-            <div className="flex-1">
-              <label className="text-xs font-semibold tracking-[0.12em] uppercase text-muted-foreground">
-                Search events
-              </label>
-              <input
-                className="mt-2 w-full h-11 rounded-2xl bg-muted/40 border-0 px-4 text-sm placeholder:text-muted-foreground/60 focus-visible:ring-2 focus-visible:ring-offset-0"
-                placeholder="Search by title, city, or address…"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <div className="w-full md:w-56">
-              <label className="text-xs font-semibold tracking-[0.12em] uppercase text-muted-foreground">
-                Category
-              </label>
-              <select
-                className="mt-2 w-full h-11 rounded-2xl bg-muted/40 border-0 px-4 text-sm focus-visible:ring-2 focus-visible:ring-offset-0"
-                value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : "")}
-              >
-                <option value="">All categories</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {catalogLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {Array.from({ length: 4 }).map((_, idx) => (
-                <div key={idx} className="rounded-3xl overflow-hidden">
-                  <Skeleton className="mb-4 w-full aspect-[4/5]" />
-                  <Skeleton className="h-4 w-3/4 mb-3" />
-                  <Skeleton className="h-4 w-1/2" />
-                </div>
-              ))}
-            </div>
-          ) : catalogError ? (
-            <div className="py-14 text-center">
-              <p className="text-muted-foreground mb-4">{catalogError}</p>
-              <Button className="rounded-full" onClick={() => setRetryNonce((n) => n + 1)}>
-                Retry
-              </Button>
-            </div>
-          ) : popularEvents.length === 0 ? (
-            <div className="py-14 text-center">
-              <p className="text-muted-foreground">No events match your filters.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {popularEvents.map((event, i) => (
-                <motion.div
-                  key={event.id}
-                  initial={{ opacity: 0, y: 24 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, amount: 0.2 }}
-                  transition={{ duration: 0.55, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
-                  whileHover={{ y: -6 }}
-                >
-                  <Link to={`/events/${event.id}`} className="group cursor-pointer block">
-                    <div className="relative rounded-3xl overflow-hidden mb-4 aspect-[4/5]">
-                      {event.img ? (
-                        <img
-                          src={event.img}
-                          alt={event.title}
-                          loading="lazy"
-                          decoding="async"
-                          className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                        />
-                      ) : (
-                        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-muted to-muted/80" />
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-foreground/40 via-transparent to-transparent" />
-                      <span className="absolute top-4 left-4 bg-background/95 backdrop-blur text-foreground text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-[0.15em] shadow-sm">
-                        {event.tag}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-primary font-bold uppercase tracking-[0.18em] mb-1.5">{event.date}</p>
-                    <h3 className="font-display font-semibold text-lg text-foreground group-hover:text-primary transition-colors tracking-[-0.01em]">
-                      {event.title}
-                    </h3>
-                    <p className="text-sm text-muted-foreground mt-0.5">{event.city}</p>
-                  </Link>
-                </motion.div>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Features */}
-      <section id="features" className="py-24 lg:py-32 relative overflow-hidden">
-        <div className="absolute inset-0 -z-0 pointer-events-none" aria-hidden="true">
-          <div className="absolute top-1/2 left-0 -translate-y-1/2 w-[480px] h-[480px] rounded-full bg-primary/5 blur-[120px]" />
-          <div className="absolute top-1/4 right-0 w-[420px] h-[420px] rounded-full bg-primary/5 blur-[120px]" />
-        </div>
-        <div className="max-w-6xl mx-auto px-6 lg:px-8 relative">
-          <motion.div
-            className="text-center mb-16 max-w-2xl mx-auto"
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
-            <span className="inline-block text-[11px] font-bold tracking-[0.2em] uppercase text-primary mb-4">{featuresContent.eyebrow}</span>
-            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-display mb-5 text-foreground tracking-[-0.035em] leading-[1.02]" style={{ fontWeight: titleWeight }}>
-              {featuresContent.title_line_1}
-              <br />
-              {featuresContent.title_line_2}
-            </h2>
-            <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-              {featuresContent.subhead}
+          {typeof total === "number" ? (
+            <p className="mt-1 text-sm text-muted-foreground">
+              {total} listing{total === 1 ? "" : "s"}
+              {submitted || categoryId !== "" ? " matching these filters" : ""}
             </p>
-          </motion.div>
+          ) : null}
 
-          {/* Bento grid — asymmetric editorial layout */}
-          {(() => {
-            const bodyTones = [
-              "bg-foreground text-background",            // dark slab
-              "bg-primary/10 text-foreground",             // rose tint
-              "bg-muted text-foreground",                  // soft neutral
-              "bg-primary text-primary-foreground",        // brand block
-            ] as const;
-            const tagTones = [
-              "bg-background/10 text-background/80",
-              "bg-primary/15 text-primary",
-              "bg-background text-foreground/70",
-              "bg-primary-foreground/15 text-primary-foreground",
-            ] as const;
-            const subTones = [
-              "text-background/65",
-              "text-foreground/65",
-              "text-muted-foreground",
-              "text-primary-foreground/80",
-            ] as const;
-            const tags = featuresContent.items.map((it) => it.tag);
-            const features = featuresContent.items;
-            return (
-              <div className="space-y-6">
-                {/* Top row — 2 equal cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  {features.slice(0, 2).map((feature, i) => {
-                    const Illust = ILLUSTRATIONS[i];
-                    return (
-                      <motion.div
-                        key={feature.title}
-                        initial={{ opacity: 0, y: 24 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true, amount: 0.2 }}
-                        transition={{ duration: 0.55, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
-                        whileHover={{ y: -6 }}
-                      >
-                        <div className={`h-full rounded-[2rem] overflow-hidden flex flex-col shadow-sm ${bodyTones[i]}`}>
-                          <div className={`${currentPreset.colors[i]} aspect-[5/3] flex items-center justify-center`}>
-                            <Illust accents={currentPreset.accents} />
-                          </div>
-                          <div className="p-7 lg:p-8">
-                            <span className={`inline-block text-[10px] font-bold tracking-[0.18em] uppercase px-2.5 py-1 rounded-full mb-4 ${tagTones[i]}`}>{tags[i]}</span>
-                            <h3 className="font-display font-bold text-2xl mb-2 tracking-[-0.02em]">{feature.title}</h3>
-                            <p className={`text-sm leading-relaxed ${subTones[i]}`}>{feature.description}</p>
-                          </div>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-                {/* Bottom row — narrower left, wider right (mirrored from above) */}
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-                  {features.slice(2).map((feature, rawI) => {
-                    const i = rawI + 2;
-                    const Illust = ILLUSTRATIONS[i];
-                    const isWide = rawI === 1;
-                    return (
-                      <motion.div
-                        key={feature.title}
-                        className={isWide ? "md:col-span-3" : "md:col-span-2"}
-                        initial={{ opacity: 0, y: 24 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true, amount: 0.2 }}
-                        transition={{ duration: 0.55, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
-                        whileHover={{ y: -6 }}
-                      >
-                        <div className={`h-full rounded-[2rem] overflow-hidden flex ${isWide ? "flex-col sm:flex-row" : "flex-col"} shadow-sm ${bodyTones[i]}`}>
-                          <div className={`${currentPreset.colors[i]} ${isWide ? "sm:w-1/2 aspect-[5/3] sm:aspect-auto" : "aspect-[5/3]"} flex items-center justify-center relative flex-shrink-0`}>
-                            <Illust accents={currentPreset.accents} />
-                          </div>
-                          <div className="p-7 lg:p-8 flex flex-col justify-center">
-                            <span className={`inline-block self-start text-[10px] font-bold tracking-[0.18em] uppercase px-2.5 py-1 rounded-full mb-4 ${tagTones[i]}`}>{tags[i]}</span>
-                            <h3 className="font-display font-bold text-2xl mb-2 tracking-[-0.02em]">{feature.title}</h3>
-                            <p className={`text-sm leading-relaxed ${subTones[i]}`}>{feature.description}</p>
-                          </div>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })()}
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="pt-10 lg:pt-16 pb-12 lg:pb-16 relative">
-        <div className="max-w-4xl mx-auto px-6 lg:px-8">
-          <div className="relative pt-20 lg:pt-24">
-            <div className="absolute inset-x-0 top-0 z-20 flex justify-center pointer-events-none" aria-hidden="true">
-              <motion.div
-                initial={{ opacity: 0, y: 16, scale: 0.85 }}
-                whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, type: "spring", stiffness: 220, damping: 18 }}
-                className="drop-shadow-[0_18px_40px_hsl(240_30%_14%_/_0.18)]"
+          {cats.length > 0 ? (
+            <div className="mt-5 flex flex-wrap gap-2" role="group" aria-label="Category">
+              <button
+                type="button"
+                onClick={() => setCategoryId("")}
+                className={cn(
+                  "h-8 cursor-pointer rounded-full border px-3 text-sm transition-colors",
+                  categoryId === ""
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                )}
               >
-                <svg width="130" height="158" viewBox="0 0 130 158" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  {/* Calendar body */}
-                  <rect x="10" y="28" width="110" height="120" rx="16" fill="hsl(var(--card))" />
-                  {/* Header bar */}
-                  <rect x="10" y="28" width="110" height="32" rx="16" fill="hsl(var(--primary))" />
-                  <rect x="10" y="44" width="110" height="16" fill="hsl(var(--primary))" />
-                  {/* Binding rings */}
-                  <rect x="38" y="14" width="10" height="28" rx="5" fill="hsl(var(--foreground))" />
-                  <rect x="82" y="14" width="10" height="28" rx="5" fill="hsl(var(--foreground))" />
-                  {/* Day grid - 5 cols x 4 rows, centered */}
-                  {[0, 1, 2, 3, 4].map((col) =>
-                    [0, 1, 2, 3].map((row) => (
-                      <rect
-                        key={`${col}-${row}`}
-                        x={21 + col * 19}
-                        y={72 + row * 18}
-                        width="12"
-                        height="10"
-                        rx="2.5"
-                        fill={col === 3 && row === 2 ? "hsl(var(--primary))" : "hsl(var(--border))"}
-                      />
-                    )),
+                All
+              </button>
+              {cats.map((c) => (
+                <button
+                  type="button"
+                  key={c.id}
+                  onClick={() => setCategoryId(c.id)}
+                  className={cn(
+                    "h-8 cursor-pointer rounded-full border px-3 text-sm transition-colors",
+                    categoryId === c.id
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground",
                   )}
-                  {/* Checkmark on highlighted day */}
-                  <path d="M75 100L78 103L84 96" stroke="hsl(var(--primary-foreground))" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </motion.div>
+                >
+                  {c.name}
+                </button>
+              ))}
             </div>
+          ) : null}
 
-            <div className="bg-foreground rounded-[2.5rem] relative overflow-hidden px-6 pt-24 pb-20 lg:px-10 lg:pt-32 lg:pb-28 max-w-5xl mx-auto">
-              {/* Brand gradient orbs */}
-              <div className="absolute -top-40 -right-32 w-[500px] h-[500px] rounded-full bg-primary/30 blur-[120px] pointer-events-none" aria-hidden="true" />
-              <div className="absolute -bottom-40 -left-32 w-[420px] h-[420px] rounded-full bg-primary/20 blur-[100px] pointer-events-none" aria-hidden="true" />
-              <div className="absolute inset-x-0 top-5 flex justify-center pointer-events-none" aria-hidden="true">
-                {[
-                  { x: -110, y: 20, size: 14, color: "hsl(2 100% 70%)", shape: "circle", rot: 0 },
-                  { x: -72, y: 42, size: 10, color: "hsl(48 100% 62%)", shape: "square", rot: 35 },
-                  { x: -38, y: 12, size: 16, color: "hsl(122 48% 61%)", shape: "circle", rot: 0 },
-                  { x: -18, y: 48, size: 8, color: "hsl(217 90% 63%)", shape: "square", rot: -20 },
-                  { x: 0, y: 10, size: 12, color: "hsl(319 84% 69%)", shape: "triangle", rot: 15 },
-                  { x: 22, y: 46, size: 10, color: "hsl(31 100% 63%)", shape: "circle", rot: 0 },
-                  { x: 56, y: 14, size: 14, color: "hsl(48 100% 62%)", shape: "square", rot: 50 },
-                  { x: 78, y: 38, size: 8, color: "hsl(2 100% 70%)", shape: "circle", rot: 0 },
-                  { x: 104, y: 20, size: 12, color: "hsl(122 48% 61%)", shape: "triangle", rot: -30 },
-                  { x: -132, y: 54, size: 6, color: "hsl(217 90% 63%)", shape: "circle", rot: 0 },
-                  { x: 126, y: 48, size: 10, color: "hsl(319 84% 69%)", shape: "square", rot: 22 },
-                  { x: -146, y: 28, size: 8, color: "hsl(31 100% 63%)", shape: "triangle", rot: 40 },
-                  { x: 146, y: 24, size: 12, color: "hsl(48 100% 62%)", shape: "circle", rot: 0 },
-                  { x: -54, y: 58, size: 6, color: "hsl(122 48% 61%)", shape: "square", rot: -45 },
-                ].map((p, i) => (
+          <div className="mt-5">
+            {catalog.isLoading ? (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                  <Skeleton key={i} className="aspect-[16/9] rounded-xl" />
+                ))}
+              </div>
+            ) : catalog.isError ? (
+              <p className="text-sm text-muted-foreground">Could not load events. Try Browse events.</p>
+            ) : events.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No events match those filters.</p>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {events.map((event, i) => (
                   <motion.div
-                    key={i}
-                    className="absolute"
-                    style={{ left: `calc(50% + ${p.x}px)`, top: p.y }}
-                    initial={{ opacity: 0, scale: 0, y: 30 }}
-                    whileInView={{ opacity: 1, scale: 1, y: 0, rotate: p.rot }}
-                    viewport={{ once: true }}
-                    transition={{ delay: 0.1 + i * 0.04, duration: 0.5, type: "spring", stiffness: 250, damping: 15 }}
+                    key={event.id}
+                    initial={reduce ? false : { opacity: 0, y: 16 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, amount: 0.2 }}
+                    transition={{ duration: 0.4, delay: reduce ? 0 : i * 0.05, ease: [0.16, 1, 0.3, 1] }}
                   >
-                    {p.shape === "circle" && (
-                      <div style={{ width: p.size, height: p.size, borderRadius: "50%", backgroundColor: p.color }} />
-                    )}
-                    {p.shape === "square" && (
-                      <div style={{ width: p.size, height: p.size, borderRadius: 2, backgroundColor: p.color }} />
-                    )}
-                    {p.shape === "triangle" && (
-                      <div style={{ width: 0, height: 0, borderLeft: `${p.size / 2}px solid transparent`, borderRight: `${p.size / 2}px solid transparent`, borderBottom: `${p.size}px solid ${p.color}` }} />
-                    )}
+                    <EventCatalogCard event={event} variant="grid" eager={i === 0} />
                   </motion.div>
                 ))}
               </div>
-
-              <div className="text-center relative z-10">
-                <motion.div
-                  initial={{ opacity: 0, y: 24 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.6 }}
-                >
-                  <h2 className="text-4xl sm:text-6xl lg:text-7xl font-display mb-6 text-background tracking-[-0.035em] leading-[0.95]" style={{ fontWeight: titleWeight }}>
-                    {ctaContent.title_line_1}
-                    <br />
-                    {ctaContent.title_line_2}
-                  </h2>
-                  <p className="text-background/70 text-lg lg:text-xl mb-10 max-w-lg mx-auto text-balance">
-                    {ctaContent.subhead}
-                  </p>
-                  <Button size="lg" className="text-base font-semibold px-8 h-12 bg-primary text-primary-foreground hover:bg-primary/90" asChild>
-                    <Link to="/auth">{ctaContent.cta_label} <ArrowRight className="ml-2 w-4 h-4" /></Link>
-                  </Button>
-                </motion.div>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-12 px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-          <Logo size="md" />
-          <p className="text-sm text-muted-foreground">© 2026 {brandName}. All rights reserved.</p>
+      <section className="bg-background px-5 pb-10 sm:px-8 sm:pb-12">
+        <div className="relative mx-auto w-full max-w-7xl overflow-hidden rounded-3xl">
+          <img src={heroBg} alt="" className="absolute inset-0 h-full w-full object-cover grayscale" />
+          <div className="absolute inset-0 bg-zinc-950/72" />
+          <div className="relative flex min-h-[12rem] flex-col items-center justify-center px-6 py-10 text-center sm:min-h-[14rem] sm:py-12">
+            <h2 className="font-display text-lg font-semibold tracking-tight text-white sm:text-xl">Create event</h2>
+            <p className="mt-2 max-w-[42ch] text-sm leading-relaxed text-white/80">
+              Publish a listing, take registrations, and scan passes at the door.
+            </p>
+            <Button className="mt-5 h-10 rounded-full" asChild>
+              <Link to={organizerAuthed ? "/organizer/events" : "/organizer/register"}>Create event</Link>
+            </Button>
+          </div>
         </div>
-      </footer>
+      </section>
+
+      <SiteFooter />
     </div>
   );
-};
-
-export default Landing;
+}

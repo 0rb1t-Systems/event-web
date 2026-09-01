@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { ScanLine, Loader2, KeyRound, X } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import CheckInScanner from "@/components/event-detail/CheckInScanner";
+import { OrgButton } from "@/components/organizer-console/OrgButton";
+import { IconArrowRight, IconClose, IconKey } from "@/components/organizer-console/orgIcons";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { unlockOrganizerScanner } from "@/services/organizerQr";
 
@@ -15,6 +15,7 @@ type Unlocked = {
 
 /**
  * Main-nav scanner: enter the event scan_token to unlock check-in for that event only.
+ * Unlock prompt is centered in the content column.
  */
 export default function OrganizerScannerPage() {
   const [token, setToken] = useState("");
@@ -42,25 +43,22 @@ export default function OrganizerScannerPage() {
 
   if (unlocked) {
     return (
-      <div className="container max-w-3xl mx-auto px-4 py-6 space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs uppercase tracking-wider text-muted-foreground">Check-in scanner</p>
-            <h1 className="font-display text-xl font-semibold">{unlocked.title}</h1>
+      <div className="flex flex-col gap-4">
+        <div className="flex items-end justify-between gap-3 px-2 pt-1 lg:pt-0">
+          <div className="min-w-0">
+            <h1 className="font-head font-semibold text-[22px] lg:text-2xl leading-tight text-oc-ink">Check-in</h1>
+            <p className="text-[13px] text-oc-muted mt-1 truncate">{unlocked.title}</p>
           </div>
-          <Button
-            type="button"
-            variant="outline"
+          <OrgButton
+            variant="ghost"
             size="sm"
-            className="rounded-full"
             onClick={() => {
               setUnlocked(null);
               setToken("");
             }}
           >
-            <X className="w-4 h-4 mr-1.5" />
-            Change event
-          </Button>
+            <IconClose /> Change event
+          </OrgButton>
         </div>
         <CheckInScanner eventId={unlocked.event_id} eventTitle={unlocked.title} />
       </div>
@@ -68,44 +66,44 @@ export default function OrganizerScannerPage() {
   }
 
   return (
-    <div className="container max-w-md mx-auto px-4 py-12">
-      <div className="rounded-2xl border border-border bg-card p-6 sm:p-8 space-y-6">
-        <div className="text-center space-y-2">
-          <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-            <ScanLine className="w-6 h-6 text-muted-foreground" />
-          </div>
-          <h1 className="font-display text-2xl font-semibold">Check-in scanner</h1>
-          <p className="text-sm text-muted-foreground">
-            Enter the event scan token to unlock ticket scanning for that event only.
-          </p>
-        </div>
+    <div className="flex min-h-[calc(100dvh-11rem)] lg:min-h-[calc(100dvh-8rem)] items-center justify-center px-2">
+      <div className="w-full max-w-md flex flex-col items-center text-center">
+        <h1 className="font-head font-semibold text-[22px] lg:text-2xl leading-tight text-oc-ink">Check-in</h1>
+        <p className="text-[13px] text-oc-muted mt-1.5 mb-5 max-w-[42ch]">
+          Paste the scan token from Event Studio → Settings. The token links this device to one event.
+        </p>
 
-        <form onSubmit={(e) => void handleUnlock(e)} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="scan-token">Event scan token</Label>
-            <div className="relative">
-              <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                id="scan-token"
-                value={token}
-                onChange={(e) => setToken(e.target.value)}
-                placeholder="Paste token from event studio"
-                className="pl-9 font-mono text-sm"
-                autoComplete="off"
-                autoFocus
-              />
-            </div>
+        <form onSubmit={(e) => void handleUnlock(e)} className="org-card p-5 w-full flex flex-col gap-3 text-left">
+          <div className="flex items-center gap-2.5 rounded-[12px] bg-oc-bg px-3.5 py-2.5 focus-within:ring-2 focus-within:ring-oc-brand/40">
+            <IconKey className="w-4 h-4 text-oc-faint shrink-0" />
+            <input
+              id="scan-token"
+              value={token}
+              onChange={(e) => setToken(e.target.value)}
+              placeholder="MTS26-8KD3-XQ9P"
+              aria-label="Event scan token"
+              className="w-full bg-transparent font-data font-semibold text-[13px] tracking-[1.2px] text-oc-ink placeholder:text-oc-faint placeholder:font-normal placeholder:tracking-normal outline-none"
+              autoComplete="off"
+              autoFocus
+            />
           </div>
-          <Button type="submit" className="w-full rounded-full" disabled={unlocking}>
+          <OrgButton type="submit" disabled={unlocking} data-testid="scanner-unlock">
             {unlocking ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Unlocking…
+                <Loader2 className="animate-spin" /> Unlocking…
               </>
             ) : (
-              "Unlock scanner"
+              <>
+                Unlock scanner <IconArrowRight />
+              </>
             )}
-          </Button>
+          </OrgButton>
+          <p className="text-xs text-oc-faint text-center">
+            Don't have a token?{" "}
+            <Link to="/organizer/events" className="font-semibold text-oc-brand hover:text-oc-brand-strong">
+              Open Event Studio
+            </Link>
+          </p>
         </form>
       </div>
     </div>

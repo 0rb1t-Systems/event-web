@@ -1,8 +1,9 @@
 # EventHub Web App — Agent Context
 
-Last updated: 2026-08-29 — Organizer Event Studio lucky wheel tab
-Repository: C:\Users\Hp\Documents\personal\event-web
-Default branch: master
+Last updated: 2026-09-01 — Event detail partner logos, compact speakers, no Powered by
+Repository: D:\Orbit Systems\EventHub\event-web
+Git remote: https://github.com/Abdiaziiz-1717/event-web.git
+Default branch: main (GitHub HEAD; CI also listens to `master`)
 
 ## Purpose
 
@@ -25,7 +26,7 @@ Every meaningful code change must update this file.
 
 A new agent should be able to read only `.agent` and correctly continue the project.
 
-`AGENTS.md` and some leftover `.cursor/rules/*.mdc` files still describe the old Event Spark / Supabase Lovable stack. They are not authoritative for EventHub. This `.agent` file is.
+`AGENTS.md` is leftover Lovable copy and is not product truth. `WORKSPACE_STATE.md` is the cross-agent stage/decision briefing. This `.agent` file remains the engineering source of truth. Leftover `.cursor/rules/*.mdc` files may still mention mock data.
 
 ## Project Identity
 
@@ -39,7 +40,7 @@ Its original backend, Supabase integration, product rules, entities, routes, and
 
 The Laravel EventHub backend is a separate project and is authoritative for API contracts and domain behavior.
 
-Local Laravel project (not modified by this Web App foundation): `C:\Users\Hp\Documents\personal\event management`
+Local Laravel + Admin project (not modified by this Web App unless a prompt says so): `D:\Orbit Systems\EventHub\events-admin`
 
 ## Current Runtime / Workspace State
 
@@ -47,12 +48,14 @@ Local Laravel project (not modified by this Web App foundation): `C:\Users\Hp\Do
 - React version: 18.3.1
 - Vite version: 5.4.20 (installed lockfile resolved 5.4.21 during production build)
 - Router: react-router-dom 6.30.1
-- Styling/UI libraries: Tailwind CSS 3.4.17, shadcn/Radix UI, framer-motion 12.35.0, next-themes 0.3.0, lucide-react 0.462.0, sonner, recharts
-- Data library already present (do not add another): @tanstack/react-query 5.83.0
+- Styling/UI libraries: Tailwind CSS 3.4.17, shadcn/Radix UI, framer-motion 12.35.0, next-themes 0.3.0, lucide-react 0.462.0 (spinners + house/shadcn primitives), react-icons 5.6.0 (organizer Heroicons 2 via `orgIcons.ts`), sonner, recharts
+- Data library: @tanstack/react-query 5.83.0. Keys in `src/lib/queryKeys.ts`. Do not add another data library. New screens should use the query hooks instead of page-local `useEffect` fetches.
 - HTTP client: axios ^1.19.0 (installed during foundation; pages must not call it directly)
-- Package manager: npm (package-lock.json present)
-- Dev command: `npm run dev` (vite)
+- Package manager: pnpm 10.12.4 (`pnpm-lock.yaml`; `node_modules/.pnpm`). `package-lock.json` is leftover — do not mix `npm install` with pnpm in one session.
+- Dev command: `pnpm dev` (vite)
 - Web App URL: http://localhost:8080 (`vite.config.ts` `server.port` is 8080, not 5173)
+- Laravel/Admin sibling: `D:\Orbit Systems\EventHub\events-admin` (`github.com/Abdiaziiz-1717/events-admin`)
+- Cross-agent briefing: `WORKSPACE_STATE.md` (stage, decisions, GTM). Engineering contracts stay in this file.
 - Laravel API base: configured through VITE_API_BASE_URL
 - Local Laravel API default: http://localhost:8002/api/v1
 - API client authentication: X-API-Key only
@@ -81,25 +84,34 @@ Do not restore removed Lovable features unless the product explicitly requires t
 
 ## Design / UI Source of Truth
 
-The surviving Lovable UI is the Web App's visual design source.
+The 2026-08-30 **house** restyle is the visual source of truth for Home (`/`), Browse (`/events`), Auth, and participant product pages. Public event detail (`/events/:id`) is a **cover-photo conference**: rounded island filled by the event banner, countdown and Register over a dark gradient, Pulse black facts bar, row-style agenda, navy partner logo tiles. Section links appear in `EventSectionNav` after scroll, not as a white pill on the cover. It does **not** inherit house chrome except the shared `SiteFooter` at the bottom. Organizer remains an ops console. Written tokens live in `design/MASTER.md`; page overrides in `design-system/pages/landing.md`, `browse-events.md`, `participant.md`, and `event-detail.md`. Event-detail palette: `src/components/event-public/pulseTheme.ts`.
 
-Rules:
+Locked system:
 
-- preserve its cinematic event experience
-- preserve dashboard visual language
-- preserve typography
-- preserve spacing
-- preserve cards/surfaces
-- preserve colors/gradients
-- preserve animations/transitions
-- preserve responsive behavior
-- reuse existing components before creating new visual implementations
+- House accent: emerald only (`160 72% 34%`). Cool zinc neutrals on white. Not inspiration blue, not Pulse teal on Home/Browse, not rose, not cream, not orange, not acid `#00FF00`.
+- Public discovery + participant concept: **the house**. Slim masthead (`PublicSiteHeader` default), `.house-page` follows `html.dark`, rounded photography cards, admission-stub motif. Night lineup (ink bed, `tone="lineup"`, Barlow Condensed, 3:4 posters, title marquee) is retired on these surfaces.
+- Event detail is a **cover-photo conference**: banner fills a rounded island, slim in-hero chrome (logo + account + Register), countdown, overlapping black facts bar, row agenda, navy partner logo tiles, teal speaker field. No white pill section nav on the cover. Catalog cards are house cards; the detail hero is the event cover, not a catalog card.
+- Purchased stubs are **light perforated EventHub passes** (serial `EH-xxxxx`, QR when valid). Not dark laminate.
+- Organizer concept: **org console** (warm paper canvas `#FCFAF7`, teal brand `#0F6E56`, amber accent `#E8A33D`, ink `#141B17`, danger `#C2452D`). Chrome is a **single persistent topbar**, not a sidebar (sidebar removed 2026-09-01 in the anti-slop redesign; see review canvas `canvases/organizer-portal-review.canvas.tsx`). Desktop chrome = `OrgTopbar`: sticky top-0 bar, logo + wordmark, underline nav (Dashboard/Events/Check-in/Finance), `AccountMenu` (workspace + email, Settings, Log out). Search, Bell, New event, and Public site are **not** in the topbar — Create stays on the Events page. Mobile = `OrgAppBar` + `OrgBottomNav` (4 items, `text-[11px]` labels; no Home / Bell). Dashboard `<main>` is `max-w-[1200px]`; studio is `max-w-[1280px]`. `/organizer/scanner` **keeps the topbar** (not immersive); unlock is a centered `max-w-md` card. Event Studio is the **only** left rail: `OrgStudioNav` (232px, 12px items, EVENT/PEOPLE/MANAGE, All events + identity) plus slim `OrgStudioHeader` actions; desktop studio is document flow with a sticky rail (`top-16`) and native page scroll. `SmoothScroll` / Lenis is skipped on `/organizer`. Dashboard Recent events is a hairline table, not thumb-rows. Overview is **edit-only** (`EventQuickInfo` + gallery). Type: H1 `text-[22px] lg:text-2xl`, `OrgStatCard` `text-[22px] lg:text-[26px]`, event titles `text-base`, `OrgButton` md `py-2.5 text-[13px]`. Thumbs teal/amber/slate only. Analytics stays routed, not in nav. Dark console remaps `--oc-*` under `.dark .org-console`; theme toggle lives on the topbar.
+- Console tokens live in `src/index.css` under `.org-console` (`--oc-*` HSL vars; shadcn `--primary`/`--card`/`--muted`… remapped onto them so existing panels adopt the palette). Console radii normalized: `.rounded-xl`→16px, `.rounded-md`→12px inside `.org-console`. Shared primitives in `src/components/organizer-console/`: `OrgButton` (primary/ghost/dark/danger), `OrgChip` (brand/plain/faint/amber/bad dot chips), `OrgStatCard`, `orgTheme.ts` (status tones, money format, thumb gradients, initials).
+- Console type: Funnel Sans Variable (`font-head`, headings), Inter Variable (body), IBM Plex Mono (`font-data`, tokens/amounts/serials). House pages keep Outfit Variable + Source Sans 3 Variable + JetBrains Mono. Self-hosted via `@fontsource*`.
+- Icons: organizer console uses Heroicons 2 outline (`react-icons/hi2`) through `src/components/organizer-console/orgIcons.ts`. Lucide stays for spinners (`Loader2`) and for house/shadcn primitives. Do not mix lucide glyphs into organizer chrome or studio panels.
+- Motion: framer-motion, honor `prefers-reduced-motion`. Console screens are motion-light (dial 2). `SmoothScroll` mounts Lenis on public/participant routes only — never on `/organizer`.
+- Dual theme via `next-themes` (`storageKey` `app-theme`, default `system`). House pages (`.house-page`) and the org console (`.org-console`) follow `html.dark`. Public event detail (`.pulse-event`) stays light-locked as the cover-photo conference. QR pads stay white so codes scan. `Logo` uses `logo_dark_url` when the resolved theme is dark.
+- Public discovery dials: Home/Browse variance 6, motion 5, density 4. Event detail cover-photo conference: variance 7, motion 6, density 4. Participant product: variance 4, motion 3, density 6. Organizer product: variance 3, motion 2, density 7.
 
-Existing Lovable pages are NOT automatically EventHub product requirements.
+CTA lock (one label per intent): Home · Browse events · Register · Next event · My Tickets · Create event · Organizer.
 
-When implementing EventHub functionality, reuse the good UI but replace the old domain/data behavior.
+Public event detail (`/events/:id`) is a cover-photo conference on warm paper. It does not use `.house-page`, `.lineup-page`, or `font-lineup`. Hero is the event banner in a rounded island with type at the bottom-left. Chrome accent is Pulse teal `#2ECFC2`. Override spec: `design-system/pages/event-detail.md`. Registration stays on this page (no separate checkout route).
 
-Public event pages use `color_mode` for the content below the cinematic hero. Default is light (white registration section). Do not hardcode `color_mode: "dark"` on mocks unless a specific event is dark-themed.
+IA v3:
+
+- Organizer chrome: Dashboard, Events, Check-in, Finance in `OrgTopbar`; Settings in the account menu. Event Studio section rail is not app nav.
+- Public funnel: `/` Home → `/events` Browse events → `/events/:id` Detail + Register.
+- Participant nav (`PublicSiteHeader`): Home, Browse events, Next event (contextual list at `/dashboard/rooms`), My Tickets (purchased stubs). Settings in the avatar menu. House pages use the slim white header; event detail uses slim `EventPulseHeader` on the cover (logo + account + Register). On-page section links are `EventSectionNav` after scroll.
+- Finance is `/organizer/finance` (Payouts | Plans tabs).
+- Event Studio nav groups (pen): EVENT (Overview, Tickets, Registration form, Program, Invitation), PEOPLE (Attendees, Check-in, Lucky wheel), MANAGE (Finance, Settings). Analytics stays routed at `/organizer/events/:id/analytics` but is not in the pen nav.
+- Participant login default home is `/` (not `/dashboard`).
 
 ## Environment
 
@@ -281,8 +293,9 @@ Recorded from `src/App.tsx` (Prompt 14). Many route components are `React.lazy`-
 
 PUBLIC:
 
-- `/` → Index (Landing). Always public. Header: Dashboard vs Log in/Sign up; Organizer → `/organizer/login`.
-- `/auth` → Auth (participant login / sign up / verify / forgot-reset). Safe internal `redirect` or `/dashboard`. `?expired=1` after session 401.
+- `/` → Index (Landing / Home). Contained photo island + overlapping What/Where search. `#events` live catalog is a uniform `EventCatalogCard` grid (16:9, `text-sm` titles, 4-col at `xl`); no featured lead. Category chips. After the grid: grayscale hall-photo organizer CTA (**Create event** → `/organizer/register` or `/organizer/events`). Slim `PublicSiteHeader` (56px). Wrapper `.house-page`. Display scale: hero ~24–32px, page titles `text-2xl`/`text-3xl` max on public/participant surfaces.
+- `/events` → Browse events (search, category filter rail, numbered pagination, light `grid` cards). Reads `q`, `category`, `page` from the URL.
+- `/auth` → Auth (participant login / sign up / verify / forgot-reset). House header + compact `max-w-sm` white card (no second logo). Safe internal `redirect` or `/`. `?expired=1` after session 401.
 - `/events/:id` → Register (cinematic public event; numeric PK)
 - `/register/:id` → redirect → `/events/:id`
 - `/registrations/:registrationId/room` → EventRoom (lazy; dedicated participant room: join link, announcements, ask-a-speaker, feedback after ends; not the ticket)
@@ -296,12 +309,13 @@ Removed (do not restore): Lovable slug public URLs (`/register/:slug…`); produ
 PARTICIPANT (`ProtectedRoute` + `participant_token` + `/auth/me`; `DashboardLayout`):
 
 - `/dashboard` → `RoleHomeRedirect` → `/dashboard/home` only (never organizer)
-- `/dashboard/home` → AttendeeHome (My Registrations → **ticket** `/registrations/:id`; separate **Event room** button → `/registrations/:id/room`; browse)
+- `/dashboard/home` → AttendeeHome (**My Tickets** light perforated passes → ticket `/registrations/:id`; Event room when eligible). Catalog browse lives at `/events`.
+- `/dashboard/rooms` → EventRooms (Next event list)
 - `/dashboard/settings` → SettingsPage (profile / password / appearance)
 
 ORGANIZER (`OrganizerProtectedRoute` + `organizer_token` + `/organizer-auth/me`; `OrganizerLayout`):
 
-Top nav: Dashboard, Events, Plans, Payouts, Settings.
+Organizer chrome: desktop persistent `OrgTopbar` (underline nav + account menu; no search / Bell / New event); mobile `OrgAppBar` + fixed `OrgBottomNav` (4 items); studio routes keep the topbar and add a **section** sidebar (`OrgStudioNav`) plus slim `OrgStudioHeader`. Studio desktop is document flow: sticky rail (`top-16`), native page scroll (wheel/touchpad). Lenis is off on `/organizer`. `/organizer/scanner` uses the same chrome; the unlock prompt is centered in the content column.
 
 - `/organizer` → `/organizer/dashboard`
 - `/organizer/dashboard` → OrganizerDashboard
@@ -315,18 +329,21 @@ Top nav: Dashboard, Events, Plans, Payouts, Settings.
   - `/content` → speakers, sponsors, sessions (`/page` → here)
   - `/branding` → invitation designer (`/invitation` → here)
   - `/attendees` → registrations + announcements
+  - `/lucky-wheel` → lucky wheel (`LuckyWheelPanel`; confirmed-seat participants only)
   - `/scanner` → QR check-in (`CheckInScanner` + `html5-qrcode`; lazy)
   - `/checkin` → redirect → `/scanner`
   - `/finance` → EventFinancePanel
+  - `/analytics` → EventStudioAnalytics (Laravel scalars for this event)
   - `/settings` → capacity/deadline/trash
   - `/promotion` → redirect to overview (removed)
 - `/organizer/events/:id/edit` → `/organizer/events/:id`
-- `/organizer/attendees` → Attendees (secondary; event picker — not top nav)
-- `/organizer/analytics` → Analytics (secondary; event picker — not top nav)
-- `/organizer/subscription` → Plans & billing (self-subscribe / upgrade + history)
-- `/organizer/billing` → redirect → `/organizer/subscription`
-- `/organizer/payouts` → finance + all payout requests + compact package tab
-- `/organizer/settings` → OrganizerSettings
+- `/organizer/attendees` → redirect → `/organizer/events`
+- `/organizer/analytics` → last studio event analytics, else `/organizer/events`
+- `/organizer/finance` → unified Finance (Payouts | Plans tabs)
+- `/organizer/subscription` → redirect → `/organizer/finance?tab=plans`
+- `/organizer/billing` → redirect → `/organizer/finance?tab=plans`
+- `/organizer/payouts` → redirect → `/organizer/finance`
+- `/organizer/settings` → OrganizerSettings (Account)
 
 Legacy redirects: `/dashboard/events*`, `/dashboard/attendees`, `/dashboard/analytics` → organizer equivalents.
 
@@ -344,32 +361,34 @@ Guards:
 
 | Module | Current UI | Data source | Backend wired? | Notes |
 |---|---|---|---|---|
-| Homepage/catalog | existing Lovable UI (`Landing` via Index) | `GET /events` + `GET /event-categories` + `GET /platform/branding` (publicApi) | Yes | `/` is public; popular cards from Laravel catalog; site name/logos/favicon from Admin Organization via BrandingProvider |
+| Homepage/catalog | house Home (`Landing`) + filter-rail Browse events (`/events`) | `GET /events` + `GET /event-categories` via React Query (`usePublicEventList`) | Yes | Home: photo island + overlapping What/Where `q`, uniform 16:9 grid (4-col `xl`); no featured lead; organizer CTA after the grid; `/events` uses the same compact `EventCatalogCard`; branding still from BrandingProvider |
 | Platform branding | `Logo` + document title/favicon | `GET /platform/branding` (publicApi) | Yes | Admin Settings → Organization is the write UI; Web App read-only; fallback `VITE_APP_NAME` + glyph when empty |
-| Auth | existing email/password Lovable UI + verify/forgot + Continue with Google | Laravel `/auth/*` incl. `POST /auth/google/login` | Yes | participant register/login/verify/logout/me/google; admin users can use `/auth/login` as web-participant; Google needs `VITE_GOOGLE_CLIENT_ID` + Laravel `GOOGLE_CLIENT_ID` |
-| Public event page + registration | cinematic Lovable UI | `GET /events/{id}`, `GET /events/{id}/form-fields` (publicApi); `POST /participant/events/{id}/discount-codes/validate`, `POST /participant/participations` (+ optional `discount_code`), `POST /participant/payments/charge`, `GET /participant/participations/{id}` (participantApi) | Yes | Hero from `event_mode` / `why_attend` / `online_url`; tickets with `sales_enabled=false` omitted; paid flow can validate + apply discount quote before join |
-| Participant dashboard (home) | existing Lovable UI | `GET /participant/participations` list + `GET /events` browse (publicApi) | Yes | My registrations → ticket; browse shows **all** public events with event status + registration flags; registered browse cards link to room/ticket (not form) |
-| Registration detail (ticket) | RegistrationDetail | `GET .../invitation`, `GET .../certificate` (participantApi) | Yes | `/registrations/:id`; My registrations primary open target; invitation + in-person QR + PDF; **Open event room** CTA when ticket valid |
-| Event room | EventRoom | invitation + announcements/discussions via EventRoomExtras + feedback | Yes | `/registrations/:id/room`; cinematic hero + glass nav; join/announcements/ask-speaker panels; separate from ticket |
+| Auth | house header + compact `max-w-sm` white card + verify/forgot + Continue with Google | Laravel `/auth/*` incl. `POST /auth/google/login` | Yes | participant register/login/verify/logout/me/google; admin users can use `/auth/login` as web-participant; no duplicate logo on `/auth` (header already has it); Google needs `VITE_GOOGLE_CLIENT_ID` + Laravel `GOOGLE_CLIENT_ID` |
+| Public event page + registration | PublicEventPage + cover-photo Hero (banner island + countdown + Register, no in-hero section pill) + overlapping black facts + row agenda + navy partner tiles + house `SiteFooter` | `GET /events/{id}`, `GET /events/{id}/form-fields` (publicApi); `POST /participant/events/{id}/discount-codes/validate`, `POST /participant/participations` (+ optional `discount_code`), `POST /participant/payments/charge`, `GET /participant/participations/{id}` (participantApi) | Yes | Cover fills a rounded island; type sits bottom-left over a light gradient so the photo shows. Industry type scale (hero ~24–34px). Pulse countdown + black facts bar kept. About is a stacked lead + body with a teal rule. Why attend is a mint lead band plus compact rows. Agenda is time/title/speaker rows with no section CTAs. Partners are real-color logos on white tiles over navy (no invert). Speakers are compact teal-field row-cards (not a full-page stage). `EventSectionNav` after scroll. Footer is shared `SiteFooter` (light-locked). No “Powered by” line. Sessions pass description/room/ends_at; speakers pass bio. Page chrome accent is Pulse teal `#2ECFC2`. Tickets with `sales_enabled=false` omitted; paid flow can validate + apply discount quote before join. |
+| Participant dashboard (home) | AttendeeHome as My Tickets (light perforated EventHub pass + QR) | `GET /participant/participations` via `useMyParticipations` | Yes | Lists purchased tickets, not event-room cards. QR from `qr_token` when the ticket is valid. |
+| Event rooms list | EventRooms at `/dashboard/rooms` | same participations list, filtered by `roomSwitcherList` | Yes | Next event lands here. User picks which room to open. |
+| Registration detail (ticket) | RegistrationDetail | `GET .../invitation`, `GET .../certificate` (participantApi) | Yes | `/registrations/:id`; My Tickets primary open target; invitation + in-person QR + PDF; **Open event room** CTA when ticket valid |
+| Event room | EventRoom + PublicSiteHeader | invitation + announcements/discussions via EventRoomExtras + feedback | Yes | `/registrations/:id/room`; room switcher when several eligible regs; separate from ticket |
 | Organizer event studio — invitation | Event Studio branding tab | invitation-system-templates + invitation-template CRUD + background | Yes | drag overlays / resize QR; mobile preview-only; no delete route |
-| Organizer events | Events under `/organizer/events` | `GET /organizer/events` | Yes | owned events; banner, status, dates, registrations_count, monetized |
-| Organizer event create | multi-section form | `POST /organizer/events` | Yes | required `event_mode`; `online_url` when online/hybrid; `why_attend` |
-| Organizer event detail | EventDetail + Outlet | `GET/PATCH/DELETE`, banner, transition, gallery | Yes | 403/404: "You don't have access to this event." |
+| Organizer events | grid: banner/gradient cards, status chips, search + All/Published/Draft/Ended pills (`?status=` URL) | `GET /organizer/events` via `useOrganizerEventList` | Yes | Published = catalog set (`isPublicCatalogStatus`); Ended = completed+cancelled; grouped pills fetch `per_page: 100` and filter in memory (Laravel `status` is exact). Draft still sends `status=draft`. |
+| Organizer event create | pen modal over dark scrim (title, category, mode segmented, dates, online URL) | `POST /organizer/events` | Yes | required title, category, `event_mode`, dates; `online_url` when online/hybrid; rest finished in studio |
+| Organizer event detail | EventDetail + Outlet + EventStudioProvider with sticky `OrgStudioNav` (12px items, 232px) + `OrgStudioHeader` | `GET/PATCH/DELETE` via `useOrganizerEvent` | Yes | Desktop: native page scroll; rail sticky. MANAGE (Finance, Settings) is in the rail — do not clip it with viewport lock. 403/404: "You don't have access to this event." Mutations invalidate event, list, dashboard. |
 | Organizer event studio — tickets | TicketTypeCard/Form + DiscountCodeForm | ticket-types + discount-codes | Yes | VIP = `is_vip`; sales_enabled pause ≠ sold out |
 | Organizer event studio — form | FormFieldCard/Editor + reorder | form-fields CRUD + reorder | Yes | key immutable after create |
 | Organizer event studio — content | speakers/sponsors/sessions | CRUD | Yes | speaker photo file upload (not URL); sponsor tiers; sessions timeline |
-| Attendees / registrations | Event Studio + `/organizer/attendees` | participations promote/cancel | Yes | page-only search/CSV; no auto-refund claim |
+| Attendees / registrations | Event Studio Audience tab | participations promote/cancel | Yes | `/organizer/attendees` redirects to `/organizer/events`; page-only search/CSV; no auto-refund claim |
 | Lucky wheel | Event Studio `/lucky-wheel` (`LuckyWheelPanel`) | `GET/POST …/lucky-wheel` | Yes | confirmed seats only (`joined`/`paid`/`checked_in`); waitlisted + cancelled excluded; spin stores attempts + unique winners |
 | Announcements | Event Studio attendees tab | announcements GET/POST | Yes | toast includes recipient count |
-| Analytics | `/organizer/analytics` + Recharts | `GET …/analytics` | Yes | scalars only — no fabricated series |
+| Analytics | Event Studio `/analytics` + Recharts | `GET …/analytics` via `useOrganizerEventAnalytics` | Yes | scalars only; `/organizer/analytics` redirects to last studio event or Events |
 | QR check-in scanner | Event Studio `/scanner` (`CheckInScanner`) | `POST /organizer/qr-scan-logs/validate`; `GET …/qr-scan-logs`; `GET …/check-in-stats` | Yes | body `{ token, gate? }` only; results valid/already_used/invalid; network ≠ invalid; Wake Lock; manual token; lazy-loaded |
-| Organizer finance / payouts | EventFinancePanel on `/organizer/payouts` + `/finance` | finance + payout-requests | Yes | per-event only; no admin approve/pay |
-| Organizer plans / billing | `/organizer/subscription` + compact Payouts tab | packages + POST subscriptions + orders/history | Yes | free activate / paid Waafi dialog; backend tier rules; no client amount |
-| Settings | participant SettingsPage | profile + password; theme local | Yes | |
-| Organizer login/register | Auth card primitives + Continue with Google | `/organizer-auth/*` incl. `POST /organizer-auth/google/login` (publicApi) | Yes | no email verify on register; Google uses same client ID as participant |
-| Organizer dashboard | metric cards | `GET /organizer/dashboard` | Yes | link to Plans when quota missing/exhausted |
-| Organizer settings | tabs | profile + change-password | Yes | |
-| Organizer payouts | tabs | finance + requests + compact package | Yes | Full checkout on Plans page |
+| Organizer finance / payouts | `/organizer/finance` Payouts \| Plans only: OrgStatCard counters + event picker + `EventFinancePanel` + requests table | finance + payout-requests | Yes | `/organizer/payouts` aliases Finance; per-event only; no nested Event finance / Package tabs; no admin approve/pay |
+| Organizer plans / billing | pen Plans tab: current plan tile + pricing tiers + history | packages + POST subscriptions + orders/history | Yes | `/organizer/subscription` and `/billing` alias Plans; free activate / paid Waafi dialog; no client amount |
+| Settings | participant SettingsPage | profile + password; theme local (`app-theme`) | Yes | Light / Dark / System; house + console follow; event detail stays Pulse light |
+| Organizer login/register | Compact `max-w-sm` auth card + `Logo` sm + Continue with Google | `/organizer-auth/*` incl. `POST /organizer-auth/google/login` (publicApi) | Yes | no email verify on register; Google uses same client ID as participant; scale matches `/auth`; theme toggle top-right |
+| Organizer dashboard | greeting + OrgStatCard metrics + payouts/plan pair + Recent events table (desktop) / list (mobile) | `GET /organizer/dashboard` | Yes | Recent events is a hairline table (Event / When / Registered / Status), not gradient thumbs or nested cards. Link to Plans when quota missing/exhausted |
+| Organizer settings | Account: profile fields, appearance, payout phone, password | profile + change-password | Yes | Appearance Light / Dark / System applies to house + console; event detail stays Pulse |
+| Organizer payouts | redirect → `/organizer/finance` | finance + requests | Yes | Full checkout on Plans tab |
+| QR check-in (organizer) | `/organizer/scanner` centered unlock card + constrained `CheckInScanner` (max-w-xl, camera ~360px, sentence-case results) | `POST /organizer/qr-scan-logs/validate`; scan logs; check-in stats | Yes | same OrgTopbar as Dashboard; unlock form is `items-center justify-center` in the content column; studio Check-in is event-scoped (not merged); Wake Lock; manual token |
 
 Update this table whenever module status/data source changes.
 
@@ -453,7 +472,7 @@ Laravel Prompt 15 + Web App checkout UI:
 - **Loading:** page skeletons / button busy / modal inline; avoid full-page spinner when shell can stay
 - **Code splitting:** `React.lazy` for heavy/dashboard routes; scanner & analytics in separate chunks
 - **Images:** catalog/list `loading="lazy"` + `decoding="async"`; standard `<img>`; no Next.js Image
-- **a11y:** labels, focus, Escape on dialogs (Radix), scanner button names, `prefers-reduced-motion` CSS, Lenis reduced-motion
+- **a11y:** labels, focus, Escape on dialogs (Radix), scanner button names, `prefers-reduced-motion` CSS, Lenis reduced-motion (Lenis is not mounted on `/organizer`)
 - **Security:** no HMAC, no Supabase, no secrets in repo, safe internal redirects only, event descriptions as text nodes (no unsanitized HTML renderer)
 
 ## Backend Contract Rule
@@ -490,12 +509,21 @@ Do not allow Web App architecture to accidentally use admin-panel tokens.
 - preserve Lovable visual quality while replacing mocks
 - old Next.js prompts may contain stale API endpoint assumptions
 - `AGENTS.md` is a stub pointing at `.agent`; do not restore the old Event Spark / Supabase map
+- `WORKSPACE_STATE.md` is the cross-agent product/stage briefing; do not treat it as a substitute for this file's API contracts
 - do not recreate `supabase/` or reinstall `@supabase/supabase-js`
 - `README.md` still advertises HMAC-SHA256 as old PRD copy; not implemented and must not be rebuilt
-- default git branch is `master`; GitHub Actions also listens to `main`
-- Vite HMR can fail with `ENOTEMPTY` on `node_modules/.vite/deps` after lockfile/.env changes on Windows; restart `npm run dev`
-- `/` is public; do not auto-redirect logged-in participants away from the marketing page
-- participant login destination is `/dashboard` → `/dashboard/home`, never `/organizer/events`
+- default git branch is `main`; GitHub Actions also listens to `master`
+- Vite HMR can fail with `ENOTEMPTY` on `node_modules/.vite/deps` after lockfile/.env changes on Windows; restart `pnpm dev`
+- `/` is public; do not auto-redirect logged-in participants away from Home
+- Home, Browse, event detail, My Tickets, and shared house chrome use a tighter display scale (page titles `text-2xl`, catalog titles `text-sm`, event-detail hero ~24–34px, buttons default `h-10`). Do not restore `text-5xl`/`text-7xl` heroes, an in-hero white section pill, or a featured Home listing.
+- Theme is `next-themes` class strategy (`app-theme`). House and organizer follow `html.dark`. Do not light-lock `.house-page` or `.org-console`. Public `/events/:id` (`.pulse-event`) stays light. QR pads stay `bg-white`. Dark console keeps teal brand; do not switch to generic slate/purple.
+- Organizer console icons come from `orgIcons.ts` (Heroicons 2 / `react-icons/hi2`). Do not drop lucide glyphs back into organizer chrome, studio panels, or check-in. `Loader2` is the spinner exception. Only re-export names that exist in this `react-icons` build — a missing named export (`HiOutlineKeyboard`) blanks every route because `OrganizerLayout` is eagerly imported by `App.tsx`.
+- Event Studio desktop uses a sticky section rail and native document scroll. Do not viewport-lock studio (`h-[100dvh] overflow-hidden`) — that nested `overflow-y-auto` plus Lenis made the wheel/touchpad dead (only dragging the scrollbar worked) and clipped Finance/Settings. Lenis stays off on `/organizer`.
+- Do not set `overflow-x: hidden` on both `html` and `body`. That creates a second scrollport and clips wide children (tabs, tables, datetime inputs) so a phone viewport only shows the left half of the page. Shells use `overflow-x: clip`; horizontal regions use `.h-scroll` (bounded `overflow-x: auto`). Studio mobile tabs (`OrgStudioMobileNav`) must scroll inside a width-bounded scroller — never let `min-w-max` widen the page.
+- Check-in unlock on `/organizer/scanner` is a centered `max-w-md` card, not a left-aligned form.
+- Auth cards are `max-w-sm` with `h-10` controls. Do not restore a second `Logo size="lg"` on `/auth`.
+- `SiteFooter` is a mist multi-column house footer (brand, Platform, Account, New listings). Used on Home, Browse, Auth, participant layout, and public event detail. On `/events/:id` it is light-locked via `.pulse-event .house-page` even when `html.dark`. No circular Search / Ticket / Organizer icons. Newsletter email is `localStorage` only (`eventhub.newsletter-email`); Laravel has no digest/subscribe route. No fake social networks or Privacy/Terms routes.
+- participant login destination is `/` (Home). `/dashboard` still opens My Tickets. Never `/organizer/events`
 - organizer login destination is `/organizer/dashboard`
 - logging out organizer clears `organizer_token` only; participant session stays
 - logging out participant clears `participant_token` only; organizer session stays
@@ -626,11 +654,11 @@ Documented paths (all under OrganizerLayout):
 - `/organizer/events/:id/settings` (capacity / deadline / delete)
 - `/organizer/events/:id/promotion` → redirects to overview (permanently removed)
 
-Side nav: Overview, Tickets, Registration form, Speakers & agenda, Invitation, Attendees, Lucky wheel, Check-in scanner, Finance, Settings. Branding nav label is **Invitation**. No Promotion item.
+Studio **section** sidebar groups (`OrgStudioNav`): EVENT (Overview, Tickets, Registration, Program, Invitation), PEOPLE (Attendees, Check-in, Lucky wheel), MANAGE (Finance, Settings). Branding nav label is **Invitation**. Analytics stays routed, not in the rail. No Promotion item. This rail is not app nav. Desktop rail is `sticky top-16` with 12px items; the page scrolls natively.
 
 Reusable UI lives in `src/components/event-studio/` (`TicketTypeCard`, `TicketTypeForm`, `DiscountCodeForm`, `FormFieldCard`, `FormFieldEditor`, `SpeakerCard`, `SpeakerForm`, `SponsorCard`, `SponsorForm`, `SessionTimeline`, `SessionForm`, `InvitationDesigner`, `EventRegistrationsPanel`, `AnnouncementsPanel`, `LuckyWheelPanel`, `EventFinancePanel`, `SubscriptionQuotaPanel`). Scanner UI: `src/components/event-detail/CheckInScanner.tsx` via `EventStudioScanner`. Lucky wheel UI: `LuckyWheelPanel.tsx` via `EventStudioLuckyWheel`. Shared ticket canvas: `src/components/invitation/InvitationCanvasPreview.tsx`. Overlay drag layer: `InvitationOverlayEditor.tsx`. Coordinate helpers: `src/lib/invitationCanvas.ts`.
 
-Organizer top nav (`OrganizerLayout`): Dashboard, Events, Plans (`/organizer/subscription`), Payouts, Settings. Attendees and Analytics remain secondary URLs.
+Organizer chrome (`OrganizerLayout`): top bar with Dashboard, Events, Check-in, Finance. Settings in the avatar menu only. Org Attendees/Analytics URLs redirect into Events / studio analytics.
 
 ## Organizer Event Studio API Contracts Confirmed
 
@@ -756,6 +784,194 @@ Routes: **main nav** `/organizer/scanner` (token unlock) and studio `/organizer/
 - Public `online_url` is hidden; registered participants see it on invitation/event room
 
 ## Change Log
+
+### 2026-09-01 — Event detail: partner logos visible, compact speakers, drop Powered by
+
+Partner marks on `/events/:id` were inverted to white on navy, which hid light/color logos. Tiles are now white and show the real mark; missing or broken images fall back to the partner name. Speakers dropped the full-page focus stage / overlapping posters for a compact 2/3-col row-card grid on the teal field. Removed the “Powered by {brand}” line above `SiteFooter`. `buildModules` keeps sponsors even without `logo_path` and also reads `logo_url`. No Laravel endpoints.
+
+Files: `PublicModule.tsx`, `PublicEventPage.tsx`, `Register.tsx`, `publicEventsAdapters.ts`, `design/pages/event-detail.md`, `.agent`.
+
+### 2026-09-01 — Event detail: cover nav off, smaller type, restyled About / Why / Partners, house footer
+
+Public `/events/:id` no longer puts the white pill section links on the cover photo. Slim `EventPulseHeader` keeps logo, account / Log in, and Register; `EventSectionNav` still appears after scroll. Hero title dropped from `lg:text-5xl` to industry scale (~24–34px); countdown, facts bar, section padding, and module type were tightened so the page does not read zoomed-in. About is a stacked lead sentence + body with a teal rule. Why attend is a mint lead band plus compact 2-col rows (not an oversized bento). Partners is navy with compact inverted logo tiles (no giant star). Footer is the shared `SiteFooter` (light-locked on this page). Sponsor names pass through as `alt`. No Laravel endpoints.
+
+Files: `Hero.tsx`, `EventPulseHeader.tsx`, `PublicEventPage.tsx`, `PublicModule.tsx`, `EventFactsBar.tsx`, `EventCountdown.tsx`, `EventSectionNav.tsx`, `StickyRegisterBar.tsx`, `SiteFooter.tsx`, `Register.tsx` (`buildModules` partners), `index.css`, `design/pages/event-detail.md`, `design/MASTER.md`, `.agent`.
+
+### 2026-09-01 — Phone layouts: page scroll, swipeable studio tabs, contained tables
+
+Wide children (`min-w-max` studio chips, `min-w-[520px]` tables, native `datetime-local`) were expanding the document; `html, body { overflow-x: hidden }` then clipped the right half and trapped vertical touch/wheel. Shells (`.house-page`, `.org-console`, `.pulse-event`) now `overflow-x: clip` with `min-w-0`. Studio mobile tabs swipe in a bounded `.h-scroll`. Attendees / Plans history stack as cards on small screens; tables stay from `sm`/`md` up. Dialogs use `w-[calc(100%-2rem)]`. No Laravel endpoints.
+
+Files: `index.css`, `index.html`, `OrganizerLayout.tsx`, `DashboardLayout.tsx`, `EventDetail.tsx`, `OrgStudioNav.tsx`, `OrgStudioTopbar.tsx`, `StudioTabFrame.tsx`, `EventStudioContent.tsx`, `SessionTimeline.tsx`, `EventQuickInfo.tsx`, `table.tsx`, `dialog.tsx`, `alert-dialog.tsx`, `EventRegistrationsPanel.tsx`, `EventFinancePanel.tsx`, `OrganizerDashboard.tsx`, `OrganizerPayouts.tsx`, `OrganizerSubscription.tsx`, `TicketTypesPanel.tsx`, `DiscountCodesPanel.tsx`, `FormFieldsPanel.tsx`, `AnnouncementsPanel.tsx`, `PublicSiteHeader.tsx`, `Landing.tsx`, `BrowseEvents.tsx`, `.agent`, `design/MASTER.md`.
+
+### 2026-09-01 — Event Studio native scroll + full section rail
+
+Studio desktop no longer viewport-locks (`h-[100dvh] overflow-hidden` + nested `overflow-y-auto`). That combo plus window Lenis swallowed wheel/touchpad (only dragging the scrollbar worked) and clipped MANAGE (Finance, Settings). Layout is document flow: sticky `OrgStudioNav` (`top-16`, 12px items), native page scroll. `SmoothScroll` skips Lenis when `pathname` starts with `/organizer`. Rail groups unchanged: EVENT, PEOPLE, MANAGE. Analytics stays routed, not in the rail. No Laravel endpoints.
+
+Files: `SmoothScroll.tsx`, `OrganizerLayout.tsx`, `EventDetail.tsx`, `OrgStudioNav.tsx`, `EventQuickInfo.tsx`, `.agent`, `design/MASTER.md`.
+
+### 2026-09-01 — Dark mode (house + organizer console)
+
+`next-themes` now defaults to `system` with `enableSystem`. `.house-page` and `.org-console` follow `html.dark` (cool zinc + emerald house; warm ink + teal console). Public event detail stays `.pulse-event` light. `ThemeToggle` is in the house header, organizer topbar/app bar, and organizer login/register. Settings Light / Dark / System copy matches. Hardcoded house `bg-white` / mist hex swapped to `bg-background` / `bg-card` / `bg-muted`; QR pads stay white. `OrgButton` dark variant is ink-on-canvas so it stays visible on the dark console. No Laravel endpoints.
+
+Files: `index.css`, `App.tsx`, `ThemeToggle.tsx`, `Logo.tsx`, `PublicSiteHeader.tsx`, `OrgTopbar.tsx`, `OrgMobileNav.tsx`, `OrgButton.tsx`, `Landing.tsx`, `BrowseEvents.tsx`, `EventCatalogCard.tsx`, `PurchasedTicketStub.tsx`, `EventRoom.tsx`, `SiteFooter.tsx`, `OrganizerLogin.tsx`, `OrganizerRegister.tsx`, `SettingsPage.tsx`, `OrganizerSettings.tsx`, `PublicEventPage.tsx`, `.agent`, `design/MASTER.md`.
+
+### 2026-09-01 — Blank public site: invalid `react-icons/hi2` export
+
+`OrganizerLayout` is eagerly imported by `App.tsx`, so a missing named export in `orgIcons.ts` blanked every route including `/`. `HiOutlineKeyboard` is not in this `react-icons` build; `IconKeyboard` (Check-in manual code) now aliases `HiOutlineCommandLine`. No Laravel changes.
+
+Files: `orgIcons.ts`, `.agent`.
+
+### 2026-09-01 — Organizer Recent events, Heroicons, studio scroll, centered check-in
+
+Dashboard Recent events is a hairline table (desktop) / stacked list (mobile) with no gradient thumbs or nested `org-card` widgets. Organizer chrome, studio panels, check-in, gallery, and analytics icons use Heroicons 2 outline via `src/components/organizer-console/orgIcons.ts` (`react-icons/hi2`); lucide remains for `Loader2` and house/shadcn primitives. Event Studio desktop locks the viewport so the section rail stays put (232px, `text-[12px]`, spacious groups); only the main column scrolls. `/organizer/scanner` unlock prompt is centered. No new Laravel endpoints.
+
+Files: `orgIcons.ts`, `OrganizerDashboard.tsx`, `OrganizerLayout.tsx`, `OrgStudioNav.tsx`, `EventDetail.tsx`, `StudioTabFrame.tsx`, `OrganizerScannerPage.tsx`, organizer/studio/event-detail icon consumers, `.agent`, `design/MASTER.md`.
+
+### 2026-09-01 — Home organizer CTA + newsletter footer
+
+Removed How it works and the pass specimen from `/`. After the catalog, a grayscale hall-photo island asks organizers to **Create event** (emerald pill, not blue “Get Started For Free”) and routes to `/organizer/register` or `/organizer/events`. `SiteFooter` dropped the circular Search / Ticket / Organizer icons. New mist four-column footer: brand, Platform, Account, New listings email field. Subscribe saves `eventhub.newsletter-email` in `localStorage` only; there is no Laravel newsletter endpoint. No Privacy/Terms or social brand icons.
+
+Files: `Landing.tsx`, `SiteFooter.tsx`, `design/pages/landing.md`, `design/MASTER.md`, `.agent`.
+
+### 2026-09-01 — Home catalog grid, lower sections, auth scale, four-corner footer
+
+Dropped the Home featured listing; `#events` is one `EventCatalogCard` grid. Replaced the equal three-cell how-it-works row and split wallet block with an asymmetric step list and a stacked pass specimen plus Door / Waitlist / Wallet facts (house emerald; ignored skill-default pink/Inter/conference speakers). Auth `/auth` and organizer login/register cards are `max-w-sm` with `h-10` OTP/buttons and no duplicate large logo on `/auth`. `SiteFooter` matches a four-corner layout (logo + circular lucide shortcuts top; copyright + Home / Browse events / Create event plus Log in or My Tickets / Organizer bottom). No new Laravel endpoints; no Privacy/Terms pages.
+
+Files: `Landing.tsx`, `SiteFooter.tsx`, `Auth.tsx`, `VerifyEmailPanel.tsx`, `ForgotPasswordPanel.tsx`, `ContinueWithGoogleButton.tsx`, `OrganizerLogin.tsx`, `OrganizerRegister.tsx`, `design/pages/landing.md`, `design/MASTER.md`, `.agent`.
+
+### 2026-09-01 — Organizer portal design fix
+
+Kept global `OrgTopbar` (Dashboard / Events / Check-in / Finance). Removed search, Bell, New event, Public site, and mobile Home. Tightened console type (H1 22/24px, stats 22/26px, event titles `text-base`, `OrgButton` md 13px). Dropped `org-thumb-purple`. Events status pills persist `?status=` and group Published/Ended in memory because Laravel `where('status')` is exact. Event Studio uses a left **section** rail (`OrgStudioNav`) under the topbar; Overview is edit-only (`EventQuickInfo` + gallery, hybrid mode in the select). Check-in is no longer immersive; unlock matches other console pages; `CheckInScanner` is `max-w-xl` with ~360px camera and sentence-case results. Finance is Payouts | Plans only (no inner Event finance / Package tabs); `EventFinancePanel` uses `OrgButton` / `OrgChip`. No Laravel contract changes.
+
+Files: `OrgTopbar.tsx`, `OrgMobileNav.tsx`, `OrganizerLayout.tsx`, `OrgStudioNav.tsx`, `OrgStudioTopbar.tsx`, `OrgStatCard.tsx`, `OrgButton.tsx`, `orgTheme.ts`, `Events.tsx`, `EventDetail.tsx`, `EventStudioOverview.tsx`, `EventQuickInfo.tsx`, `StudioTabFrame.tsx`, `OrganizerScannerPage.tsx`, `CheckInScanner.tsx`, `EventStudioScanner.tsx`, `EventStudioFinance.tsx`, `OrganizerPayouts.tsx`, `OrganizerSubscription.tsx`, `EventFinancePanel.tsx`, `index.css`, `design/MASTER.md`, `.agent`.
+
+### 2026-09-01 — Public type density (catalog + shared chrome)
+
+Featured Home listing is a compact row (~88px image), not a full-width split. `EventCatalogCard` grid thumbs are 16:9 with `text-sm` titles and `h-8` Register; Home uses 4 columns at `xl`. Applied the same smaller display scale across Browse (`text-2xl`/`text-3xl` page title), public event detail (hero no longer `text-7xl` or near-full viewport), My Tickets / rooms / settings / ticket stub, shared `PublicSiteHeader` (56px), `Button` (`h-10` default), and `Input` (`h-10`). Organizer console primitives (`OrgButton`, `.org-console`) were not redesigned. No new Laravel endpoints.
+
+Files: `Landing.tsx`, `BrowseEvents.tsx`, `EventCatalogCard.tsx`, `Hero.tsx`, `PublicEventPage.tsx`, `PublicModule.tsx`, `EventFactsBar.tsx`, `EventCountdown.tsx`, `AttendeeHome.tsx`, `EventRooms.tsx`, `SettingsPage.tsx`, `PurchasedTicketStub.tsx`, `RegistrationDetail.tsx`, `EventRoom.tsx`, `Register.tsx`, `NotFound.tsx`, `PublicSiteHeader.tsx`, `DashboardLayout.tsx`, `Logo.tsx`, `button.tsx`, `input.tsx`, `design/pages/landing.md`, `design/MASTER.md`, `.agent`.
+
+### 2026-09-01 — Public Home catalog desk (Landing only)
+
+Redesigned `/` only. Browse `/events`, event detail `/events/:id`, and My Tickets `/dashboard/home` were not touched. Home is a catalog desk: contained hall photo island, overlapping What/Where search (still concatenates into `GET /events` `q`), category chips, featured split from the first `featured` listing (else first result), then `EventCatalogCard` grid. Dropped the SaaS how-it-works cards, modes tiles, and host-desk grid; replaced with a hairline three-step row and a pass specimen plus Create event text link. Type on Home is industry scale (hero ~28–36px, section titles `text-xl`/`text-2xl`, body `text-sm`). Did not follow pen AI-slop (locale season kicker, fake city/attendee counts, “world’s best”, oversized display). No new Laravel endpoints. `EventCatalogCard`, `PublicSiteHeader`, and `SiteFooter` unchanged.
+
+Files: `src/pages/Landing.tsx`, `design/pages/landing.md`, `design/MASTER.md`, `.agent`.
+
+### 2026-09-01 — Organizer console anti-slop redesign (steps 1–2: chrome)
+
+Design review of the **live** organizer console flagged it as templated/AI-slop (no consistent chrome, no hierarchy). Full review saved as a Cursor canvas: `canvases/organizer-portal-review.canvas.tsx`. Began the structural fix (not a reskin).
+
+Removed the left sidebar. **Desktop chrome is now a single persistent `OrgTopbar`** (`src/components/organizer-console/OrgTopbar.tsx`): sticky top bar, `max-w-[1200px]` centered, logo + wordmark, underline nav tabs (Dashboard/Events/Check-in/Finance), right cluster = event search form + Bell + `+ New event` + `AccountMenu` (workspace/email, Settings, Public site, Log out). `ORG_NAV_ITEMS` (trimmed to 4; Settings moved to account menu) and `OrgLogoMark` moved here from the deleted `OrgSidebar.tsx`. `OrganizerLayout` rewritten: topbar on every non-immersive route + centered `<main>` (`max-w-[1200px]`), which also fixes the right-edge card clipping. `OrgMobileNav` bottom nav now 4 items.
+
+Studio chrome rebuilt: deleted the left `OrgStudioNav` card + the `OrgStudioTopbar` breadcrumb bar + the mobile `OrgStudioAppBar`/`OrgStudioSectionPills` split. Now `OrgStudioHeader` (`OrgStudioTopbar.tsx`: back-to-events, event thumb + name + status chip, Change status / Preview / Copy link / delete; condensed to one menu on mobile) + `OrgStudioTabs` (`OrgStudioNav.tsx`: one horizontal section-tab row grouped by hairline divider, sticky under the topbar, scrolls on mobile). Removed the redundant `ConsoleTopbar` from `OrganizerDashboard`.
+
+Files: `OrgTopbar.tsx` (new), `OrgSidebar.tsx` (deleted), `OrganizerLayout.tsx`, `OrgMobileNav.tsx`, `OrgStudioNav.tsx` (rewritten → `OrgStudioTabs`), `OrgStudioTopbar.tsx` (rewritten → `OrgStudioHeader`), `EventDetail.tsx`, `OrganizerDashboard.tsx`. No API changes. `pnpm exec tsc --noEmit` clean. Remaining redesign steps (see canvas): de-card studio Overview, strip uppercase eyebrows, dot-opt-in `OrgChip`, semantic `OrgStatCard` tone, dashboard hierarchy rework, drop purple thumb + font/palette lock.
+
+### 2026-09-01 — Organizer portal implements `design/design-system.pen`
+
+Reskinned the entire organizer portal to the pen design system (public site untouched). New tokens in `.org-console` (`index.css`): warm paper `#FCFAF7`, teal `#0F6E56`, amber `#E8A33D`, ink `#141B17`, danger `#C2452D`; shadcn vars remapped onto them; console radii normalized (`rounded-xl`→16, `rounded-md`→12). Fonts: Funnel Sans (headings) / Inter (body) / IBM Plex Mono (data) via `@fontsource*`; house pages keep Outfit/Source Sans 3.
+
+Chrome: desktop `OrgSidebar`, mobile `OrgAppBar` + fixed `OrgBottomNav` (Dashboard labeled Home, plus Events/Check-in/Finance/Account). Studio routes swap sidebar for `OrgStudioNav` (back link, event identity + status chip, EVENT/PEOPLE/MANAGE groups) + `OrgStudioTopbar` (crumb, Change status dropdown, Preview public page, Copy registration link); mobile studio gets `OrgStudioAppBar` + `OrgStudioSectionPills`. `/organizer/scanner` is immersive. Screens reskinned: dashboard, events grid, create-event modal (`#0D1713B3` scrim, 560px rounded-20 white card, segmented event mode), all studio tabs (overview = banner hero + meta strip + schedule/gallery/waitlist columns; settings = capacity/deadline/scan-token/danger cards), Finance (Payouts counters + table, Plans tiers + history), Account, scanner token-unlock, and dark immersive `CheckInScanner`. New primitives: `organizer-console/OrgButton`, `OrgChip`, `OrgStatCard`, `OrgSidebar`, `OrgAppBar`, `OrgBottomNav`, `OrgStudioNav`, `OrgStudioTopbar`, `orgTheme.ts`. `EventOverview.tsx` removed (merged into `EventStudioOverview.tsx`). Deleted: `organizerNav.ts`, `EventDetailHeader.tsx`, `EventSideNav.tsx` (`EventSection` type moved to `src/lib/organizerStudioRoutes.ts`). No new Laravel endpoints; all data wiring unchanged. Verified `npx tsc -p tsconfig.app.json --noEmit` (only pre-existing axios-typing errors in `lib/api.ts`, `lib/apiError.ts`, `SmartImageField.tsx`, `PackageSubscribeDialog.tsx` remain) and `npm run build`.
+
+Files: `src/components/organizer-console/*` (new), `OrganizerLayout.tsx`, `OrganizerDashboard.tsx`, `dashboard/Events.tsx`, `OrganizerEventCreate.tsx`, `dashboard/EventDetail.tsx`, all `dashboard/event-studio/*` wrappers + `EventStudioOverview.tsx`/`EventStudioSettings.tsx`, `StudioTabFrame.tsx`, `OrganizerFinance.tsx`, `OrganizerPayouts.tsx`, `OrganizerSubscription.tsx`, `OrganizerSettings.tsx`, `OrganizerScannerPage.tsx`, `CheckInScanner.tsx`, `src/index.css`, `tailwind.config.ts`, `src/main.tsx` (font imports), `.agent`.
+
+### 2026-09-01 — Restored organizer ops console
+
+Reverted the ledger and workbench redesigns. Organizer chrome is again the top bar (Dashboard, Events, Check-in, Finance, avatar menu, mobile sheet). Dashboard is again greeting + four metric cards + payouts/plan pair + recent events. Same Laravel `GET /organizer/dashboard` wiring. Removed `.org-console`, `organizerNav.ts`, and `design-system/pages/organizer-dashboard.md`.
+
+Files: `OrganizerLayout.tsx`, `OrganizerDashboard.tsx`, `src/index.css`, `src/types/organizer.ts`, `design/MASTER.md`, `.agent`.
+
+### 2026-09-01 — Organizer dashboard workbench
+
+Replaced the hairline ledger. Organizer chrome is an ink left rail (desktop) and bottom tabs (mobile). `/organizer/dashboard` is a Soft UI bento on the same `.org-console` tokens: ink “Up next” hero, registrations as the lead metric, recent-event list, payouts and plan as separate tiles. No new Laravel endpoints.
+
+Files: `OrganizerLayout.tsx`, `OrganizerDashboard.tsx`, `src/lib/organizerNav.ts`, `src/index.css`, `design-system/pages/organizer-dashboard.md`, `design/MASTER.md`, `.agent`.
+
+### 2026-09-01 — Organizer dashboard ledger
+
+Organizer portal chrome is underline tabs on a warm-gray canvas (`.org-console`), not filled pills or a left rail. `/organizer/dashboard` is one 8px hairline panel: equal-weight metrics (events, registrations, check-ins, revenue), payouts row with a 3px teal accent, plan row with a thin progress bar, recent-event list rows. Teal `#0F6E56` is reserved for the active tab, payout accent + Manage payouts, and plan fill + Manage plan. No new Laravel endpoints. Check-ins reads optional `total_check_ins` and shows 0 until the dashboard payload includes it.
+
+Files: `OrganizerLayout.tsx`, `OrganizerDashboard.tsx`, `src/index.css` (`.org-console`), `src/types/organizer.ts`, `design/MASTER.md`, `.agent`.
+
+### 2026-08-31 — Home photo hero + on-page catalog
+
+Landing hero is a full-bleed hall photograph with copy and CTAs — no event collage. Events live in `#events` with What/Where search and category chips against `GET /events`. Added how-it-works, pass specimen, in-person/online/hybrid, and host-desk sections. No new Laravel endpoints. No fake testimonials.
+
+Files: `Landing.tsx`, `design-system/pages/landing.md`, `.agent`.
+
+### 2026-08-30 — Public + participant house restyle
+
+Home, Browse, Auth, and participant product leave the night lineup. New language: **the house** — white canvas, slim header, emerald pills, rounded photography cards, light perforated admission stubs. Event detail (`/events/:id`) and organizer stay frozen (cover-photo conference + ops console). No new Laravel endpoints. Browse still uses `q` + `filter[event_category_id]` + pagination; Home What/Where concatenates into `q`. Registration stays on event detail (no checkout route). Ticket QR rules unchanged (`paid` / `not_required`; hidden when waitlisted/cancelled/unpaid).
+
+Files: `Landing.tsx`, `BrowseEvents.tsx`, `EventCatalogCard.tsx`, `PublicSiteHeader.tsx`, `SiteFooter.tsx`, `DashboardLayout.tsx`, `Auth.tsx`, `AttendeeHome.tsx`, `PurchasedTicketStub.tsx`, `RegistrationDetail.tsx`, `EventRooms.tsx`, `EventRoom.tsx`, `SettingsPage.tsx`, `src/index.css` (`.house-page`), `design-system/MASTER.md`, `design-system/pages/landing.md`, `browse-events.md`, `participant.md`, `.agent`.
+
+### 2026-08-30 — Event detail cover-photo hero, row agenda, navy partners
+
+`/events/:id` hero is no longer a navy island or a split portrait stack. The event banner fills a rounded island; type, compact countdown, and Register sit bottom-left over a light bottom gradient so the cover stays visible. Header uses a white pill with in-pill Register on desktop; Register stays in the header on phones. Agenda is editorial rows (time + room / title + description / speaker) with no section CTAs. Partners use a full-bleed navy Vision grid (white inverted logos, thin gutters, corner asterisk). Facts bar still overlaps the hero. Phone layout is first: 2×2 facts, stacked agenda, 2-col partners, extra hero padding so Register is not covered. Home / Browse unchanged. No new Laravel endpoints.
+
+Files: `Hero.tsx`, `EventPulseHeader.tsx`, `PublicModule.tsx`, `EventFactsBar.tsx`, `design-system/MASTER.md`, `design-system/pages/event-detail.md`, `.agent`.
+
+### 2026-08-30 — Event detail split conference (Pulse + Vision)
+
+`/events/:id` is no longer a centered Pulse clone. Composition from the original makeover plan, without night-lineup chrome: Vision split hero (type + countdown + Register left, overlapping speaker portraits or flyer right) inside Pulse’s navy rounded island; black facts bar overlaps the hero; About and Register are editorial splits; why-attend is an asymmetric mint/white bento; featured session is a mint split card with speaker photo; speakers stay on teal; venue photo + staggered map. Warm paper `#F5F1EA`. CTA stays **Register**. Home / Browse unchanged. No new Laravel endpoints.
+
+Files: `Hero.tsx`, `PublicEventPage.tsx`, `PublicModule.tsx`, `EventFactsBar.tsx`, `pulseTheme.ts`, `src/index.css`, `design-system/MASTER.md`, `design-system/pages/event-detail.md`, `.agent`.
+
+### 2026-08-30 — Event detail Pulse-light conference
+
+`/events/:id` no longer inherits night-lineup editorial chrome. The page is a Pulse-close light conference: paper bed (`.pulse-event`), navy-to-sky rounded hero with in-hero glass pill nav, countdown as `20Days : 19H : 23M : 38S`, white Register pill, white Why island, black rounded facts bar, mint featured agenda + pill session rows, solid teal speakers field, venue photo + maps embed, floating pill sticky Register. Form inputs/tickets are light rounded, not ink. Home `/` and Browse `/events` stay lineup. Register / discount / Waafi / gates unchanged. No new Laravel endpoints.
+
+Files: `Hero.tsx`, `EventPulseHeader.tsx`, `EventCountdown.tsx`, `EventFactsBar.tsx`, `EventSectionNav.tsx`, `StickyRegisterBar.tsx`, `PublicEventPage.tsx`, `PublicModule.tsx`, `pulseTheme.ts`, `Register.tsx`, `src/index.css` (`.pulse-event` + restored `.lineup-page`), `design-system/MASTER.md`, `design-system/pages/event-detail.md`, `.agent`.
+
+### 2026-08-30 — Event detail night-conference bill
+
+`/events/:id` is no longer a full-bleed poster bill. New composition: split hero (lineup title + countdown + catalog 3:4 poster with optional speaker portraits), flush facts strip (Date / Time / Venue / Access + quiet share), sticky in-page section rail, featured-then-rows schedule (day tabs when multi-day), speaker focus stage at 3+ people, venue photo + Open in maps. Ink + emerald + 0px radius kept. Register / discount / Waafi / gates unchanged. No new Laravel endpoints. Sessions now pass `ends_at`, `description`, `room`, and `speaker_id`/`speaker` when present; speakers pass `bio`.
+
+Files: `Hero.tsx`, `PublicEventPage.tsx`, `PublicModule.tsx`, `StickyRegisterBar.tsx`, `EventCountdown.tsx`, `EventFactsBar.tsx`, `EventSectionNav.tsx`, `Register.tsx` (`buildModules` + locked-panel clock), `publicEventsAdapters.ts`, `design-system/MASTER.md`, `design-system/pages/event-detail.md`, `.agent`.
+
+### 2026-08-30 — Event detail night-bill restyle
+
+`/events/:id` now matches Home/Browse. Ticket-house Hero (serial, circular poster chip, pass-hairline, island header, light bed) is gone. New: lineup masthead, full-bleed poster bill, ink page + dark tokens for the register form, flush emerald sticky bar, lineup module chrome. Register / share / discount / Waafi contracts unchanged. No new Laravel endpoints.
+
+Files: `Hero.tsx`, `PublicEventPage.tsx`, `StickyRegisterBar.tsx`, `PublicModule.tsx`, `Register.tsx` (ticket picker + submit + load/error chrome), `design-system/MASTER.md`, `design-system/pages/event-detail.md`, `.agent`.
+
+### 2026-08-30 — Public lineup restyle (Home + Browse events)
+
+Complete style redesign of `/` and `/events` while keeping ink + emerald. Ticket-house preview passes (spine, serial, circular poster chip, single-column rack, island header on those pages) are gone. New language: night lineup — flush emerald-rule masthead (`PublicSiteHeader` `tone="lineup"`), split hero, title marquee, 3:4 show posters (`EventCatalogCard` `poster` / `featured`). Browse events uses category chips. Barlow Condensed added as `font-lineup`. Organizer console, event-detail Hero, and purchased laminate passes are unchanged. No new Laravel endpoints.
+
+Files: `Landing.tsx`, `BrowseEvents.tsx`, `EventCatalogCard.tsx`, `PublicSiteHeader.tsx`, `SiteFooter.tsx`, `src/main.tsx`, `tailwind.config.ts`, `src/index.css`, `design-system/MASTER.md`, `design-system/pages/landing.md`, `design-system/pages/browse-events.md`, `package.json`, `.agent`.
+
+### 2026-08-30 — Home + catalog preview-pass language
+
+Home and Browse events now use the same laminate language as the purchased EventHub pass. Catalog cards are preview passes (emerald spine, serial, oversized date/door/mode, circular poster chip). Home is a full-bleed ink door with the lead listing on the glass; the rest sit in a single-column rack. Public event Hero dropped the cinematic purple pills; default event accent is emerald `#178A5C`. No new Laravel endpoints.
+
+Files: `Landing.tsx`, `BrowseEvents.tsx`, `EventCatalogCard.tsx`, `Hero.tsx`, `StickyRegisterBar.tsx`, `PublicEventPage.tsx`, `SiteFooter.tsx`, `Logo.tsx`, `publicEventsAdapters.ts`, `src/index.css` (`.pass-hairline`), `design-system/MASTER.md`, `.agent`.
+
+### 2026-08-30 — Ticket-house + ops console (post-recolor)
+
+Moved past the emerald recolor. Public is a ticket house: island header, perforated stubs, numbered sections, full-bleed door hero. Organizer is an ops console: desktop ink sidebar (Dashboard, Events, Check-in, Finance). Account/Settings removed from the primary rail. Event Room blank page fixed: `useMyParticipations` now runs before early returns.
+
+Files: `OrganizerLayout.tsx`, `PublicSiteHeader.tsx`, `Landing.tsx`, `BrowseEvents.tsx`, `EventCatalogCard.tsx`, `EventRoom.tsx`, `OrganizerDashboard.tsx`, `SiteFooter.tsx`, `src/index.css`, `design-system/MASTER.md`, `.agent`.
+
+### 2026-08-30 — Complete UI/UX redesign (IA v3)
+
+New EventHub visual system and information architecture. Lovable rose/cinematic defaults are no longer the design source of truth.
+
+Design: ink + emerald tokens in `src/index.css`; Outfit + Source Sans 3 + JetBrains Mono self-hosted; 12px radius; restyled shadcn button/input/card. Spec: `design-system/MASTER.md`.
+
+IA: public Home `/` + Browse events `/events` + event detail; participant chrome is the same `PublicSiteHeader` (Home, Browse events, Next event, My Tickets); organizer nav Dashboard / Events / Check-in / Finance / Account. Finance unifies payouts + plans at `/organizer/finance`. Studio adds `/analytics` and regroups Prepare / Audience / Live / Money and insight / Event. Create event is a short draft form.
+
+Data: React Query keys in `src/lib/queryKeys.ts` and hooks under `src/hooks/queries/`. Used on Home, Browse events, My Tickets, organizer dashboard, organizer Events list, Event Studio event load, studio analytics. Next event is derived from `listParticipations`. No new Laravel endpoints.
+
+Files: `src/index.css`, `tailwind.config.ts`, `index.html`, `src/main.tsx`, `src/App.tsx`, `src/lib/queryKeys.ts`, `src/lib/nextEvent.ts`, `src/lib/lastStudioEvent.ts`, `src/lib/authRedirect.ts`, `src/services/publicEvents.ts`, `src/hooks/queries/*`, `src/components/layout/*`, `src/components/catalog/EventCatalogCard.tsx`, `src/components/event-detail/EventSideNav.tsx`, `src/components/event-studio/StudioTabFrame.tsx`, `src/pages/Landing.tsx`, `src/pages/BrowseEvents.tsx`, `src/pages/Auth.tsx`, `src/pages/Register.tsx`, `src/pages/EventRoom.tsx`, `src/pages/dashboard/AttendeeHome.tsx`, `src/pages/dashboard/Events.tsx`, `src/pages/dashboard/EventDetail.tsx`, `src/pages/dashboard/event-studio/*`, `src/pages/organizer/OrganizerFinance.tsx`, `src/pages/organizer/OrganizerDashboard.tsx`, `src/pages/organizer/OrganizerEventCreate.tsx`, `src/pages/organizer/OrganizerSettings.tsx`, `src/pages/organizer/OrganizerLogin.tsx`, `src/pages/organizer/OrganizerRegister.tsx`, `design-system/MASTER.md`, `.agent`.
+
+Verification: `npx tsc --noEmit` and `pnpm build`. Public routes checked via the running Vite app when available.
+
+### 2026-08-30 — Cross-agent WORKSPACE_STATE.md
+
+Filled the attached SaaS Foundry workspace template with EventHub Web App current state for cross-agent handoff (stage, locked decisions, product, stack, design, open questions). Engineering contracts stay in `.agent`. `AGENTS.md` restored to leftover Lovable stub.
+
+Files: `WORKSPACE_STATE.md`, `.agent`.
 
 ### 2026-08-29 — Lucky wheel excludes waitlisted participants
 

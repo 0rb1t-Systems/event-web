@@ -1,14 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  Users,
-  TrendingUp,
-  Eye,
-  DollarSign,
-  UserCheck,
-  Star,
-  Loader2,
-} from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { IconDollar, IconEye, IconStar, IconTrending, IconUserPlus, IconUsers } from "@/components/organizer-console/orgIcons";
 import {
   BarChart,
   Bar,
@@ -125,25 +118,25 @@ export default function Analytics() {
 
   const statCards = analytics
     ? [
-        { label: "Views", value: analytics.views, icon: Eye },
-        { label: "Registrations", value: analytics.registrations, icon: Users },
+        { label: "Views", value: analytics.views, icon: IconEye },
+        { label: "Registrations", value: analytics.registrations, icon: IconUsers },
         {
           label: "Revenue",
           value: formatMoney(analytics.revenue, currency),
-          icon: DollarSign,
+          icon: IconDollar,
         },
-        { label: "Check-ins", value: analytics.check_ins, icon: UserCheck },
+        { label: "Check-ins", value: analytics.check_ins, icon: IconUserPlus },
         {
           label: "Conversion",
           value:
             analytics.conversion_rate == null ? "—" : `${analytics.conversion_rate}%`,
-          icon: TrendingUp,
+          icon: IconTrending,
         },
         {
           label: "Attendance rate",
           value:
             analytics.attendance_rate == null ? "—" : `${analytics.attendance_rate}%`,
-          icon: UserCheck,
+          icon: IconUserPlus,
         },
         {
           label: "Avg rating",
@@ -151,7 +144,7 @@ export default function Analytics() {
             analytics.average_rating == null
               ? "—"
               : `${analytics.average_rating} (${analytics.feedback_count})`,
-          icon: Star,
+          icon: IconStar,
         },
       ]
     : [];

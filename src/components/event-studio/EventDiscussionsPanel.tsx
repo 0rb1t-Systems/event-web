@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, CheckCircle2, MessageCircle } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { IconChat, IconCheckCircle } from "@/components/organizer-console/orgIcons";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -83,7 +84,7 @@ export default function EventDiscussionsPanel({ eventId, onDenied }: Props) {
     <div className="bg-card rounded-xl p-5 sm:p-6 space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <MessageCircle className="w-4 h-4 text-muted-foreground" />
+          <IconChat className="w-4 h-4 text-muted-foreground" />
           <h3 className="font-display font-semibold">Discussions</h3>
         </div>
         <Select value={speakerFilter} onValueChange={setSpeakerFilter}>
@@ -138,7 +139,7 @@ export default function EventDiscussionsPanel({ eventId, onDenied }: Props) {
                   {busyId === row.id ? (
                     <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
                   ) : (
-                    <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                    <IconCheckCircle className="w-3.5 h-3.5 mr-1.5" />
                   )}
                   Mark answered
                 </Button>

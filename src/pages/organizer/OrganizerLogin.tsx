@@ -6,6 +6,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useOrganizer } from "@/contexts/OrganizerContext";
 import { Logo } from "@/components/Logo";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { motion } from "framer-motion";
 import { staggerContainer, staggerItem } from "@/components/motion/Reveal";
 import { getApiErrorMessage, isOrganizerSuspendedError } from "@/lib/apiError";
@@ -81,37 +82,26 @@ export default function OrganizerLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 py-10 sm:py-12 relative overflow-hidden">
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {[
-          { c: "top-[12%] left-[10%] w-16 h-16 rounded-full bg-primary/10 blur-sm", d: 0, m: 12 },
-          { c: "bottom-[18%] right-[10%] w-14 h-14 rounded-lg bg-primary/10 -rotate-12 blur-sm", d: 0.3, m: -14 },
-        ].map((s, i) => (
-          <motion.div
-            key={i}
-            className={`absolute ${s.c}`}
-            initial={{ opacity: 0, scale: 0.6 }}
-            animate={{ opacity: 1, scale: 1, y: [0, s.m, 0] }}
-            transition={{ opacity: { duration: 0.8 }, y: { duration: 8, repeat: Infinity, ease: "easeInOut" } }}
-          />
-        ))}
+    <div className="relative min-h-screen bg-background flex flex-col items-center justify-center px-4 py-6 sm:py-8">
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
       </div>
 
       <motion.div
         variants={staggerContainer}
         initial="hidden"
         animate="show"
-        className="w-full max-w-md relative z-10"
+        className="w-full max-w-sm relative z-10"
       >
-        <motion.div variants={staggerItem} className="text-center mb-8">
-          <Link to="/" className="inline-block transition-transform duration-300 hover:scale-[1.03]">
-            <Logo size="lg" />
+        <motion.div variants={staggerItem} className="text-center mb-5">
+          <Link to="/" className="inline-block">
+            <Logo size="sm" />
           </Link>
-          <p className="mt-3 text-xs font-bold uppercase tracking-[0.2em] text-primary">Organizer Portal</p>
+          <p className="mt-2 text-xs font-medium text-primary">Organizer</p>
           <p className="text-muted-foreground mt-1 text-sm">Sign in to manage your events</p>
         </motion.div>
 
-        <motion.div variants={staggerItem} className="bg-card rounded-2xl border border-border shadow-lg p-6 sm:p-7">
+        <motion.div variants={staggerItem} className="bg-card rounded-xl border border-border p-4 sm:p-5">
           {isLoading ? (
             <div className="flex justify-center py-10">
               <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
@@ -132,7 +122,6 @@ export default function OrganizerLogin() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="rounded-full h-11 px-4"
                 />
               </div>
               <div className="space-y-1.5">
@@ -144,13 +133,12 @@ export default function OrganizerLogin() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="rounded-full h-11 px-4"
                 />
               </div>
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-full h-11 bg-foreground text-background hover:bg-foreground/90 font-medium"
+                className="w-full"
               >
                 {loading ? "Signing in…" : "Sign in"}
               </Button>

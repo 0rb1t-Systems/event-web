@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
-import { Loader2, Plus } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import { Loader2 } from "lucide-react";
+import { IconPlus } from "@/components/organizer-console/orgIcons";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { getApiErrorMessage, isOrganizerEventAccessError } from "@/lib/apiError";
 import { useEventStudio } from "@/contexts/EventStudioContext";
+import { StudioTabFrame } from "@/components/event-studio/StudioTabFrame";
 import SpeakerCard from "@/components/event-studio/SpeakerCard";
 import SpeakerForm, { emptySpeakerForm, speakerFormToBody, speakerToForm, type SpeakerFormValue } from "@/components/event-studio/SpeakerForm";
 import SponsorCard from "@/components/event-studio/SponsorCard";
@@ -29,6 +31,34 @@ import {
   type OrganizerSpeaker,
   type OrganizerSponsor,
 } from "@/services/organizerEventContent";
+
+function SectionCard({
+  id,
+  title,
+  addLabel,
+  onAdd,
+  children,
+}: {
+  id: string;
+  title: string;
+  addLabel: string;
+  onAdd: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div id={id} className="bg-card rounded-xl p-4 sm:p-6 space-y-4 min-w-0">
+      <div className="flex items-center justify-between gap-2 min-w-0">
+        <h3 className="font-display font-semibold min-w-0 truncate">{title}</h3>
+        <Button size="sm" className="shrink-0 gap-1.5" onClick={onAdd}>
+          <IconPlus className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">{addLabel}</span>
+          <span className="sm:hidden">Add</span>
+        </Button>
+      </div>
+      {children}
+    </div>
+  );
+}
 
 export default function EventStudioContent() {
   const { eventId, handleDenied } = useEventStudio();
@@ -78,18 +108,17 @@ export default function EventStudioContent() {
   }
 
   return (
-    <>
-      <div id="studio-speakers" className="bg-card rounded-xl p-5 sm:p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="font-display font-semibold">Speakers</h3>
-          <Button size="sm" className="rounded-full gap-1.5" onClick={() => { setSpeakerId(null); setSpeakerForm(emptySpeakerForm()); }}>
-            <Plus className="w-3.5 h-3.5" /> Add speaker
-          </Button>
-        </div>
+    <StudioTabFrame title="Program" description="Speakers, sponsors and agenda — published on your public event page.">
+      <SectionCard
+        id="studio-speakers"
+        title="Speakers"
+        addLabel="Add speaker"
+        onAdd={() => { setSpeakerId(null); setSpeakerForm(emptySpeakerForm()); }}
+      >
         {speakers.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-8 text-center">No speakers yet.</p>
+          <p className="text-sm text-muted-foreground py-6 px-1 text-center text-pretty">No speakers yet.</p>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-5">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-5 min-w-0">
             {speakers.map((s) => (
               <SpeakerCard
                 key={s.id}
@@ -107,19 +136,18 @@ export default function EventStudioContent() {
             ))}
           </div>
         )}
-      </div>
+      </SectionCard>
 
-      <div id="studio-sponsors" className="bg-card rounded-xl p-5 sm:p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="font-display font-semibold">Sponsors</h3>
-          <Button size="sm" className="rounded-full gap-1.5" onClick={() => { setSponsorId(null); setSponsorForm(emptySponsorForm()); }}>
-            <Plus className="w-3.5 h-3.5" /> Add sponsor
-          </Button>
-        </div>
+      <SectionCard
+        id="studio-sponsors"
+        title="Sponsors"
+        addLabel="Add sponsor"
+        onAdd={() => { setSponsorId(null); setSponsorForm(emptySponsorForm()); }}
+      >
         {sponsors.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-8 text-center">No sponsors yet.</p>
+          <p className="text-sm text-muted-foreground py-6 px-1 text-center text-pretty">No sponsors yet.</p>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-2 min-w-0">
             {sponsors.map((s) => (
               <SponsorCard
                 key={s.id}
@@ -137,15 +165,14 @@ export default function EventStudioContent() {
             ))}
           </div>
         )}
-      </div>
+      </SectionCard>
 
-      <div id="studio-sessions" className="bg-card rounded-xl p-5 sm:p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="font-display font-semibold">Agenda</h3>
-          <Button size="sm" className="rounded-full gap-1.5" onClick={() => { setSessionId(null); setSessionForm(emptySessionForm()); }}>
-            <Plus className="w-3.5 h-3.5" /> Add session
-          </Button>
-        </div>
+      <SectionCard
+        id="studio-sessions"
+        title="Agenda"
+        addLabel="Add session"
+        onAdd={() => { setSessionId(null); setSessionForm(emptySessionForm()); }}
+      >
         <SessionTimeline
           sessions={sessions}
           onEdit={(s) => { setSessionId(s.id); setSessionForm(sessionToForm(s)); }}
@@ -158,15 +185,15 @@ export default function EventStudioContent() {
             } catch (err) { catchDenied(err, "Couldn't delete session"); }
           }}
         />
-      </div>
+      </SectionCard>
 
       <Dialog open={!!speakerForm} onOpenChange={(o) => !o && setSpeakerForm(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>{speakerId ? "Edit speaker" : "New speaker"}</DialogTitle></DialogHeader>
           {speakerForm && <SpeakerForm value={speakerForm} onChange={setSpeakerForm} />}
           <DialogFooter>
-            <Button variant="outline" className="rounded-full" onClick={() => setSpeakerForm(null)}>Cancel</Button>
-            <Button className="rounded-full" disabled={saving} onClick={async () => {
+            <Button variant="outline" onClick={() => setSpeakerForm(null)}>Cancel</Button>
+            <Button disabled={saving} onClick={async () => {
               if (!speakerForm?.name.trim()) { toast.error("Name is required"); return; }
               setSaving(true);
               try {
@@ -194,8 +221,8 @@ export default function EventStudioContent() {
           <DialogHeader><DialogTitle>{sponsorId ? "Edit sponsor" : "New sponsor"}</DialogTitle></DialogHeader>
           {sponsorForm && <SponsorForm value={sponsorForm} onChange={setSponsorForm} />}
           <DialogFooter>
-            <Button variant="outline" className="rounded-full" onClick={() => setSponsorForm(null)}>Cancel</Button>
-            <Button className="rounded-full" disabled={saving} onClick={async () => {
+            <Button variant="outline" onClick={() => setSponsorForm(null)}>Cancel</Button>
+            <Button disabled={saving} onClick={async () => {
               if (!sponsorForm?.name.trim()) { toast.error("Name is required"); return; }
               setSaving(true);
               try {
@@ -217,8 +244,8 @@ export default function EventStudioContent() {
           <DialogHeader><DialogTitle>{sessionId ? "Edit session" : "New session"}</DialogTitle></DialogHeader>
           {sessionForm && <SessionForm value={sessionForm} onChange={setSessionForm} speakers={speakers} />}
           <DialogFooter>
-            <Button variant="outline" className="rounded-full" onClick={() => setSessionForm(null)}>Cancel</Button>
-            <Button className="rounded-full" disabled={saving} onClick={async () => {
+            <Button variant="outline" onClick={() => setSessionForm(null)}>Cancel</Button>
+            <Button disabled={saving} onClick={async () => {
               if (!sessionForm?.title.trim() || !sessionForm.starts_at) { toast.error("Title and start time are required"); return; }
               setSaving(true);
               try {
@@ -234,6 +261,6 @@ export default function EventStudioContent() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </StudioTabFrame>
   );
 }

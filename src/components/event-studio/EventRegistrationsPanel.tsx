@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 import {
-  Search,
-  Download,
-  Loader2,
-  ChevronLeft,
-  ChevronRight,
-  ArrowUpFromLine,
-} from "lucide-react";
+  IconChevronLeft,
+  IconChevronRight,
+  IconDownload,
+  IconSearch,
+  IconUpload,
+} from "@/components/organizer-console/orgIcons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -301,7 +301,7 @@ export default function EventRegistrationsPanel({ eventId, onDenied, compact }: 
 
       <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
         <div className="relative flex-1 sm:max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
           <Input
             placeholder="Search this page…"
             className="pl-9 h-9 text-sm rounded-full"
@@ -334,7 +334,7 @@ export default function EventRegistrationsPanel({ eventId, onDenied, compact }: 
           onClick={exportCsv}
           disabled={!visible.length}
         >
-          <Download className="w-3.5 h-3.5 mr-1.5" />
+          <IconDownload className="w-3.5 h-3.5 mr-1.5" />
           Export this page
         </Button>
       </div>
@@ -355,7 +355,34 @@ export default function EventRegistrationsPanel({ eventId, onDenied, compact }: 
         </div>
       ) : (
         <>
-          <div className="bg-card rounded-xl overflow-x-auto">
+          <ul className="sm:hidden flex flex-col gap-2">
+            {visible.map((row) => {
+              const status = participationStatus(row.status);
+              const ticket = participationTicket(row);
+              return (
+                <li key={row.id}>
+                  <button
+                    type="button"
+                    className="w-full min-w-0 rounded-xl bg-card p-4 text-left"
+                    onClick={() => void openDetail(row)}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-medium truncate">{row.user?.name ?? "—"}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                          {row.user?.email ?? ticket?.name ?? "—"}
+                        </p>
+                      </div>
+                      <Badge className={cn("capitalize text-xs shrink-0", STATUS_STYLE[status])}>
+                        {labelStatus(status)}
+                      </Badge>
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          <div className="hidden sm:block bg-card rounded-xl min-w-0 overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
@@ -428,7 +455,7 @@ export default function EventRegistrationsPanel({ eventId, onDenied, compact }: 
                   disabled={page <= 1}
                   onClick={() => setPage((p) => p - 1)}
                 >
-                  <ChevronLeft className="w-3.5 h-3.5" />
+                  <IconChevronLeft className="w-3.5 h-3.5" />
                 </Button>
                 <Button
                   variant="outline"
@@ -437,7 +464,7 @@ export default function EventRegistrationsPanel({ eventId, onDenied, compact }: 
                   disabled={page >= lastPage}
                   onClick={() => setPage((p) => p + 1)}
                 >
-                  <ChevronRight className="w-3.5 h-3.5" />
+                  <IconChevronRight className="w-3.5 h-3.5" />
                 </Button>
               </div>
             </div>
@@ -543,7 +570,7 @@ export default function EventRegistrationsPanel({ eventId, onDenied, compact }: 
                     className="rounded-full"
                     onClick={() => setPromoteTarget(detail)}
                   >
-                    <ArrowUpFromLine className="w-3.5 h-3.5 mr-1.5" />
+                    <IconUpload className="w-3.5 h-3.5 mr-1.5" />
                     Promote
                   </Button>
                 )}

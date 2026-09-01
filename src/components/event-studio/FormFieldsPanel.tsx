@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Plus, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { IconPlus } from "@/components/organizer-console/orgIcons";
 import { toast } from "sonner";
 import {
   DndContext,
@@ -108,14 +109,16 @@ export default function FormFieldsPanel({ eventId, onDenied }: Props) {
 
   return (
     <div className="space-y-5">
-      <div className="bg-card rounded-xl p-5 sm:p-6 space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
+      <div className="bg-card rounded-xl p-4 sm:p-6 space-y-4 min-w-0">
+        <div className="flex items-start justify-between gap-2 min-w-0">
+          <div className="min-w-0">
             <h3 className="font-display font-semibold">Form fields</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">Name, email, and phone are collected by default. Drag to reorder extras.</p>
+            <p className="text-xs text-muted-foreground mt-0.5 text-pretty">Name, email, and phone are collected by default. Drag to reorder extras.</p>
           </div>
-          <Button size="sm" className="rounded-full gap-1.5" onClick={() => { setEditingId(null); setForm(emptyFormFieldEditor()); }}>
-            <Plus className="w-3.5 h-3.5" /> Add field
+          <Button size="sm" className="rounded-full gap-1.5 shrink-0" onClick={() => { setEditingId(null); setForm(emptyFormFieldEditor()); }}>
+            <IconPlus className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Add field</span>
+            <span className="sm:hidden">Add</span>
           </Button>
         </div>
 

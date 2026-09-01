@@ -1,358 +1,293 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
-import { motion } from "framer-motion";
 import {
-  AlertTriangle,
-  ArrowRight,
-  CalendarDays,
-  Package,
-  Plus,
-  RefreshCw,
-  TrendingUp,
-  Users,
-  Wallet,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+  IconAlert,
+  IconArrowRight,
+  IconBanknotes,
+  IconCalendar,
+  IconPlus,
+  IconRefresh,
+  IconUsers,
+  IconWallet,
+} from "@/components/organizer-console/orgIcons";
+import { OrgButton } from "@/components/organizer-console/OrgButton";
+import { OrgChip } from "@/components/organizer-console/OrgChip";
+import { OrgStatCard } from "@/components/organizer-console/OrgStatCard";
+import {
+  formatOrgMoney,
+  orgEventStatusTone,
+  orgGreeting,
+} from "@/components/organizer-console/orgTheme";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useOrganizer } from "@/contexts/OrganizerContext";
-import { getOrganizerDashboard } from "@/services/organizerDashboard";
+import { useOrganizerDashboardQuery } from "@/hooks/queries/useOrganizerQueries";
 import { getApiErrorMessage } from "@/lib/apiError";
-import { cn } from "@/lib/utils";
-import type { OrganizerDashboardData, OrganizerDashboardEvent } from "@/types/organizer";
-
-function formatMoney(amount: number) {
-  try {
-    return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(amount);
-  } catch {
-    return `USD ${amount}`;
-  }
-}
+import { EVENT_STATUS_LABELS } from "@/lib/organizerEventAdapters";
+import type { OrganizerDashboardEvent } from "@/types/organizer";
 
 function eventTitle(event: OrganizerDashboardEvent) {
   return event.title || event.name || `Event #${event.id}`;
 }
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] } },
-};
+function eventMeta(event: OrganizerDashboardEvent) {
+  const startsAt = event.starts_at ?? event.event_date;
+  const date = startsAt ? format(new Date(startsAt), "EEE, MMM d · h:mm a") : "Date TBD";
+  return date;
+}
 
-const stagger = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.07 } },
-};
+function renewalFrom(subscription: unknown): string | null {
+  if (!subscription || typeof subscription !== "object") return null;
+  const sub = subscription as Record<string, unknown>;
+  const raw = sub.ends_at ?? sub.expires_at ?? sub.renews_at;
+  if (typeof raw !== "string" || !raw) return null;
+  const date = new Date(raw);
+  return Number.isNaN(date.getTime()) ? null : format(date, "MMM d, yyyy");
+}
+
+function planNameFrom(subscription: unknown): string | null {
+  if (!subscription || typeof subscription !== "object") return null;
+  const sub = subscription as Record<string, unknown>;
+  const snapshot = sub.package_snapshot as Record<string, unknown> | undefined;
+  const name = sub.package_name ?? snapshot?.package_name ?? sub.name;
+  return typeof name === "string" && name.trim() ? name : null;
+}
 
 export default function OrganizerDashboard() {
   const { organizer } = useOrganizer();
-  const [data, setData] = useState<OrganizerDashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const load = () => {
-    setLoading(true);
-    setError(null);
-    getOrganizerDashboard()
-      .then(setData)
-      .catch((err) => setError(getApiErrorMessage(err, "Couldn't load dashboard.")))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
+  const dash = useOrganizerDashboardQuery();
+  const data = dash.data ?? null;
+  const loading = dash.isLoading;
+  const error = dash.error ? getApiErrorMessage(dash.error, "Couldn't load dashboard.") : null;
+  const load = () => void dash.refetch();
 
   const greetingName = organizer?.contact_name || organizer?.business_name || "Organizer";
+  const businessName = organizer?.business_name || "your workspace";
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto space-y-8">
-        <Skeleton className="h-40 w-full rounded-[1.75rem]" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="space-y-4">
+        <Skeleton className="h-16 w-2/3 rounded-2xl" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-32 rounded-3xl" />
+            <Skeleton key={i} className="h-[120px] rounded-2xl" />
           ))}
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <Skeleton className="h-48 rounded-3xl" />
-          <Skeleton className="h-48 rounded-3xl" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <Skeleton className="h-48 rounded-2xl" />
+          <Skeleton className="h-48 rounded-2xl" />
         </div>
-        <Skeleton className="h-64 rounded-3xl" />
+        <Skeleton className="h-72 rounded-2xl" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="max-w-md mx-auto bg-card rounded-3xl p-10 text-center mt-10 border border-border/40">
-        <AlertTriangle className="w-10 h-10 mx-auto mb-4 text-destructive" />
-        <h1 className="text-2xl font-display font-bold mb-2">Couldn't load dashboard</h1>
-        <p className="text-muted-foreground text-sm mb-6">{error}</p>
-        <Button className="rounded-full" onClick={load}>
-          <RefreshCw className="w-4 h-4 mr-2" /> Retry
-        </Button>
+      <div className="max-w-md mx-auto org-card p-10 text-center mt-10">
+        <IconAlert className="w-10 h-10 mx-auto mb-4 text-oc-bad" />
+        <h1 className="text-2xl font-head font-semibold mb-2 text-oc-ink">Couldn't load dashboard</h1>
+        <p className="text-oc-muted text-sm mb-6">{error}</p>
+        <OrgButton onClick={load}>
+          <IconRefresh /> Retry
+        </OrgButton>
       </div>
     );
   }
 
   if (!data) return null;
 
+  const liveCount = data.recent_events?.filter((e) =>
+    ["published", "registration_open", "ongoing", "sold_out"].includes(e.status ?? ""),
+  ).length ?? 0;
+
   const cards = [
-    { label: "Total events", value: String(data.total_events), icon: CalendarDays, hint: "Across all statuses" },
-    { label: "Registrations", value: String(data.total_registrations), icon: Users, hint: "All owned events" },
-    { label: "Revenue", value: formatMoney(data.total_revenue), icon: TrendingUp, hint: "Collected ticket sales" },
-    { label: "Available payout", value: formatMoney(data.available_payout), icon: Wallet, hint: "Ready to request" },
+    { label: "Total events", value: String(data.total_events), icon: IconCalendar, sub: liveCount > 0 ? `${liveCount} currently live` : "Across all statuses", tone: "brand" as const },
+    { label: "Registrations", value: data.total_registrations.toLocaleString(), icon: IconUsers, sub: "Across all events", tone: "brand" as const },
+    { label: "Revenue", value: formatOrgMoney(data.total_revenue), icon: IconBanknotes, sub: "Collected ticket sales", tone: "brand" as const },
+    { label: "Available payout", value: formatOrgMoney(data.available_payout), icon: IconWallet, sub: "Ready to request", tone: "amber" as const },
   ];
 
   const quota = data.quota;
   const recent = Array.isArray(data.recent_events) ? data.recent_events : [];
   const needsPlan = !quota || quota.can_create_event === false;
+  const planName = planNameFrom(data.active_subscription);
+  const renewal = renewalFrom(data.active_subscription);
+  const quotaTotal = quota?.unlimited ? null : quota?.quota ?? null;
+  const quotaPct = quota && quotaTotal ? Math.min(100, Math.round((quota.events_created / Math.max(1, quotaTotal)) * 100)) : quota?.unlimited ? 100 : 0;
 
   return (
-    <div className="max-w-6xl mx-auto pb-10 space-y-8">
-      <motion.header
-        initial="hidden"
-        animate="show"
-        variants={fadeUp}
-        className="relative overflow-hidden rounded-[1.75rem] border border-border/50 bg-card"
-      >
-        <div
-          className="absolute inset-0 opacity-90"
-          style={{
-            background:
-              "radial-gradient(120% 80% at 0% 0%, hsl(var(--primary) / 0.14), transparent 55%), radial-gradient(80% 60% at 100% 10%, hsl(var(--foreground) / 0.04), transparent 45%)",
-          }}
-        />
-        <div className="relative px-6 sm:px-10 py-9 sm:py-11 flex flex-col lg:flex-row lg:items-end justify-between gap-6">
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-3">
-              Organizer portal
-            </p>
-            <h1 className="text-4xl sm:text-5xl font-display font-bold tracking-[-0.03em] leading-[1.05] mb-2">
-              Welcome, {greetingName}
-            </h1>
-            <p className="text-muted-foreground max-w-xl text-sm sm:text-base">
-              {organizer?.business_name
-                ? `${organizer.business_name} — events, registrations, payouts, and plan status at a glance.`
-                : "Events, registrations, payouts, and plan status at a glance."}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button asChild variant="outline" className="rounded-full">
-              <Link to="/organizer/events">All events</Link>
-            </Button>
-            <Button asChild className="rounded-full">
-              <Link to="/organizer/events/new">
-                <Plus className="w-4 h-4 mr-1.5" />
-                Create event
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </motion.header>
+    <div className="space-y-4">
+      <header className="px-2 pt-1 lg:pt-0">
+        <h1 className="font-head font-semibold text-[22px] lg:text-2xl leading-tight text-oc-ink">
+          {orgGreeting()}, {greetingName}
+        </h1>
+        <p className="text-[13px] lg:text-sm text-oc-muted mt-1">
+          Here's what's happening across {businessName} today.
+        </p>
+      </header>
 
       {needsPlan && (
-        <motion.div
-          initial="hidden"
-          animate="show"
-          variants={fadeUp}
-          className="rounded-3xl border border-amber-500/25 bg-amber-500/10 px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-        >
+        <div className="rounded-2xl bg-oc-accent-soft px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <p className="font-display font-semibold text-sm">Event creation is limited on your plan</p>
-            <p className="text-sm text-muted-foreground mt-0.5">
+            <p className="font-head font-semibold text-sm text-oc-ink">Event creation is limited on your plan</p>
+            <p className="text-sm text-oc-muted mt-0.5">
               {quota
                 ? "You've reached your package event quota. Upgrade to create more events."
                 : "Subscribe to a package to unlock event creation."}
             </p>
           </div>
-          <Button asChild size="sm" className="rounded-full shrink-0">
-            <Link to="/organizer/subscription">
-              View plans
-              <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+          <OrgButton asChild size="sm" className="shrink-0">
+            <Link to="/organizer/finance?tab=plans">
+              View plans <IconArrowRight />
             </Link>
-          </Button>
-        </motion.div>
+          </OrgButton>
+        </div>
       )}
 
-      <motion.div
-        initial="hidden"
-        animate="show"
-        variants={stagger}
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
-      >
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
         {cards.map((stat) => (
-          <motion.div
-            key={stat.label}
-            variants={fadeUp}
-            className="rounded-3xl border border-border/50 bg-card p-5 sm:p-6"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-sm text-muted-foreground">{stat.label}</span>
-              <div className="w-10 h-10 rounded-2xl bg-muted flex items-center justify-center">
-                <stat.icon className="w-4 h-4 text-muted-foreground" />
-              </div>
-            </div>
-            <p className="text-3xl font-display font-bold tracking-[-0.02em] tabular-nums">{stat.value}</p>
-            <p className="text-xs text-muted-foreground mt-2">{stat.hint}</p>
-          </motion.div>
+          <OrgStatCard key={stat.label} {...stat} />
         ))}
-      </motion.div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <motion.section
-          initial="hidden"
-          animate="show"
-          variants={fadeUp}
-          className="rounded-3xl border border-border/50 bg-foreground text-background overflow-hidden"
-        >
-          <div className="px-6 sm:px-7 py-6 sm:py-7 space-y-5">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-background/55 mb-1">
-                  Payouts
-                </p>
-                <h2 className="text-xl font-display font-bold">Cash out per event</h2>
-              </div>
-              <Wallet className="w-5 h-5 text-background/50" />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-2xl bg-background/10 px-4 py-3">
-                <p className="text-[11px] uppercase tracking-wide text-background/50 mb-1">Available</p>
-                <p className="font-display font-bold text-lg tabular-nums">
-                  {formatMoney(data.available_payout)}
-                </p>
-              </div>
-              <div className="rounded-2xl bg-background/10 px-4 py-3">
-                <p className="text-[11px] uppercase tracking-wide text-background/50 mb-1">Pending</p>
-                <p className="font-display font-bold text-lg tabular-nums">
-                  {formatMoney(data.pending_payout)}
-                </p>
-              </div>
-            </div>
-            <Button
-              asChild
-              variant="secondary"
-              className="rounded-full w-full sm:w-auto bg-background text-foreground hover:bg-background/90"
-            >
-              <Link to="/organizer/payouts">
-                Manage payouts
-                <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
-              </Link>
-            </Button>
-          </div>
-        </motion.section>
-
-        <motion.section
-          initial="hidden"
-          animate="show"
-          variants={fadeUp}
-          className="rounded-3xl border border-border/50 bg-card p-6 sm:p-7 flex flex-col"
-        >
-          <div className="flex items-center justify-between gap-3 mb-4">
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground mb-1">
-                Subscription
-              </p>
-              <h2 className="text-xl font-display font-bold">Your plan</h2>
-            </div>
-            <Package className="w-5 h-5 text-muted-foreground" />
-          </div>
-
-          {quota ? (
-            <div className="space-y-3 flex-1">
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {quota.unlimited
-                  ? `${quota.events_created} events created · unlimited quota`
-                  : `${quota.events_created} of ${quota.quota ?? "—"} events used`}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <Badge
-                  className={cn(
-                    "border-0 text-[10px] uppercase tracking-wider",
-                    quota.can_create_event
-                      ? "bg-success/15 text-success"
-                      : "bg-amber-500/15 text-amber-700 dark:text-amber-400",
-                  )}
-                >
-                  {quota.can_create_event ? "Can create events" : "Quota reached"}
-                </Badge>
-                {quota.remaining !== null && !quota.unlimited && (
-                  <Badge className="border-0 bg-muted text-muted-foreground text-[10px]">
-                    {quota.remaining} remaining
-                  </Badge>
-                )}
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground flex-1">
-              No active package on this account. Choose a plan to start creating events.
-            </p>
-          )}
-
-          <Button asChild variant="outline" className="rounded-full mt-5 w-full sm:w-auto">
-            <Link to="/organizer/subscription">
-              {needsPlan ? "Choose a plan" : "Manage plan"}
-              <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
-            </Link>
-          </Button>
-        </motion.section>
       </div>
 
-      <motion.section
-        initial="hidden"
-        animate="show"
-        variants={fadeUp}
-        className="rounded-3xl border border-border/50 bg-card overflow-hidden"
-      >
-        <div className="px-6 sm:px-7 py-5 border-b border-border/50 flex items-center justify-between gap-3">
-          <div>
-            <h2 className="font-display font-semibold text-lg">Recent events</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Jump back into Event Studio</p>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <section className="org-card p-5 flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <h2 className="font-head font-semibold text-lg text-oc-ink">Payouts</h2>
+            <Link to="/organizer/finance" className="text-xs font-semibold text-oc-brand hover:underline">
+              Open finance
+            </Link>
           </div>
-          <Button asChild variant="ghost" size="sm" className="rounded-full">
-            <Link to="/organizer/events">View all</Link>
-          </Button>
+          <p className="font-head font-semibold text-[24px] leading-none text-oc-ink tabular-nums">
+            {formatOrgMoney(data.available_payout)}
+          </p>
+          <p className="text-xs text-oc-faint -mt-1">available to request</p>
+          <div className="flex items-center justify-between pt-1">
+            <span className="text-[13px] text-oc-muted">Awaiting review</span>
+            {data.pending_payout > 0 ? (
+              <OrgChip tone="amber" label={formatOrgMoney(data.pending_payout)} />
+            ) : (
+              <span className="text-[13px] text-oc-faint">None</span>
+            )}
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[13px] text-oc-muted">Collected all time</span>
+            <span className="font-data text-[13px] font-semibold text-oc-ink tabular-nums">
+              {formatOrgMoney(data.total_revenue)}
+            </span>
+          </div>
+        </section>
+
+        <section className="org-card p-5 flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <h2 className="font-head font-semibold text-lg text-oc-ink">Subscription</h2>
+            {planName ? (
+              <OrgChip label={planName} />
+            ) : (
+              <OrgChip tone="plain" label="No plan" />
+            )}
+          </div>
+          <p className="text-[13px] text-oc-muted">
+            {quota
+              ? quota.unlimited
+                ? `${quota.events_created} events created · unlimited quota`
+                : `${quota.events_created} of ${quotaTotal ?? "—"} events used`
+              : "No active package on this account. Choose a plan to start creating events."}
+          </p>
+          <div className="h-2 rounded-full bg-oc-bg overflow-hidden" role="progressbar" aria-label="Event quota used" aria-valuenow={quotaPct} aria-valuemin={0} aria-valuemax={100}>
+            <div className="h-full rounded-full bg-oc-brand transition-[width]" style={{ width: `${quotaPct}%` }} />
+          </div>
+          <div className="flex items-center justify-between pt-1 mt-auto">
+            <span className="text-xs text-oc-faint">{renewal ? `Renews ${renewal}` : ""}</span>
+            <Link to="/organizer/finance?tab=plans" className="text-xs font-semibold text-oc-brand hover:underline">
+              {needsPlan ? "Choose a plan" : "Compare plans"}
+            </Link>
+          </div>
+        </section>
+      </div>
+
+      <section>
+        <div className="flex items-baseline justify-between gap-3 px-1 pb-3">
+          <h2 className="font-head font-semibold text-[15px] text-oc-ink">Recent events</h2>
+          <Link to="/organizer/events" className="text-[12px] font-semibold text-oc-brand hover:text-oc-brand-strong">
+            All events
+          </Link>
         </div>
 
         {recent.length === 0 ? (
-          <div className="px-6 py-14 text-center space-y-4">
-            <p className="text-sm text-muted-foreground">No events yet — create your first draft.</p>
-            <Button asChild className="rounded-full">
+          <div className="border border-dashed border-oc-line rounded-[12px] px-5 py-10 text-center">
+            <p className="text-[13px] text-oc-muted mb-4">No events yet.</p>
+            <OrgButton asChild size="sm">
               <Link to="/organizer/events/new">
-                <Plus className="w-4 h-4 mr-1.5" />
-                Create event
+                New event <IconPlus />
               </Link>
-            </Button>
+            </OrgButton>
           </div>
         ) : (
-          <ul className="divide-y divide-border/60">
-            {recent.map((event) => (
-              <li
-                key={event.id}
-                className="px-6 sm:px-7 py-4 flex items-center justify-between gap-3 hover:bg-muted/40 transition-colors"
-              >
-                <div className="min-w-0">
-                  <p className="font-medium truncate">{eventTitle(event)}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5 capitalize">
-                    {event.status ? event.status.replace(/_/g, " ") : "Event"}
-                    {typeof event.registrations_count === "number"
-                      ? ` · ${event.registrations_count} registrations`
-                      : ""}
-                    {event.starts_at
-                      ? ` · ${format(new Date(event.starts_at), "MMM d, yyyy")}`
-                      : ""}
-                  </p>
-                </div>
-                <Button asChild size="sm" variant="outline" className="rounded-full shrink-0">
-                  <Link to={`/organizer/events/${event.id}`}>Open</Link>
-                </Button>
-              </li>
-            ))}
-          </ul>
+          <>
+            <ul className="sm:hidden divide-y divide-oc-line border-t border-oc-line">
+              {recent.map((event) => (
+                <li key={event.id}>
+                  <Link
+                    to={`/organizer/events/${event.id}`}
+                    className="flex items-start justify-between gap-3 py-3"
+                  >
+                    <span className="min-w-0">
+                      <span className="block text-[13px] font-semibold text-oc-ink truncate">{eventTitle(event)}</span>
+                      <span className="block font-data text-[11px] text-oc-faint mt-0.5">{eventMeta(event)}</span>
+                    </span>
+                    <OrgChip
+                      size="sm"
+                      tone={orgEventStatusTone(event.status)}
+                      label={EVENT_STATUS_LABELS[event.status ?? ""] ?? "Draft"}
+                    />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+
+            <div className="hidden sm:block min-w-0 overflow-x-auto">
+              <table className="w-full min-w-[520px]">
+                <thead>
+                  <tr className="border-b border-oc-line text-left">
+                    <th className="pb-2.5 pr-4 text-[11px] font-semibold text-oc-faint">Event</th>
+                    <th className="pb-2.5 pr-4 text-[11px] font-semibold text-oc-faint">When</th>
+                    <th className="pb-2.5 pr-4 text-[11px] font-semibold text-oc-faint text-right">Registered</th>
+                    <th className="pb-2.5 text-[11px] font-semibold text-oc-faint text-right">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recent.map((event) => (
+                    <tr key={event.id} className="border-b border-oc-line/70 last:border-0 group">
+                      <td className="py-3.5 pr-4">
+                        <Link
+                          to={`/organizer/events/${event.id}`}
+                          className="text-[13px] font-medium text-oc-ink group-hover:text-oc-brand"
+                        >
+                          {eventTitle(event)}
+                        </Link>
+                      </td>
+                      <td className="py-3.5 pr-4 font-data text-[12px] text-oc-muted whitespace-nowrap">
+                        {eventMeta(event)}
+                      </td>
+                      <td className="py-3.5 pr-4 font-data text-[12px] font-semibold text-oc-ink tabular-nums text-right">
+                        {typeof event.registrations_count === "number" ? event.registrations_count.toLocaleString() : "—"}
+                      </td>
+                      <td className="py-3.5 text-right">
+                        <OrgChip
+                          size="sm"
+                          tone={orgEventStatusTone(event.status)}
+                          label={EVENT_STATUS_LABELS[event.status ?? ""] ?? "Draft"}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
-      </motion.section>
+      </section>
     </div>
   );
 }

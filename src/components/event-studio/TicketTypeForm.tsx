@@ -1,7 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Crown } from "lucide-react";
+import { IconSparkles } from "@/components/organizer-console/orgIcons";
 import type { TicketTypeWriteBody } from "@/services/organizerTickets";
 
 export type TicketTypeFormValue = {
@@ -66,7 +66,7 @@ export default function TicketTypeForm({ value, onChange }: Props) {
       </div>
       <div className="sm:col-span-2 flex items-center justify-between gap-4 rounded-xl bg-muted/50 px-4 py-3">
         <div className="flex items-center gap-2 min-w-0">
-          <Crown className="w-4 h-4 text-primary shrink-0" />
+          <IconSparkles className="w-4 h-4 text-primary shrink-0" />
           <div className="min-w-0 space-y-0.5">
             <p className="text-sm font-medium">VIP tier</p>
             <p className="text-xs text-muted-foreground leading-snug">

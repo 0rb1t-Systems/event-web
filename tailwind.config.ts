@@ -14,8 +14,13 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['"DM Sans"', "system-ui", "sans-serif"],
-        display: ['"Bricolage Grotesque"', "system-ui", "sans-serif"],
+        sans: ['"Source Sans 3 Variable"', '"Source Sans 3"', "system-ui", "sans-serif"],
+        display: ['"Outfit Variable"', "Outfit", "system-ui", "sans-serif"],
+        lineup: ['"Barlow Condensed"', "Oswald", "Impact", "sans-serif"],
+        mono: ['"JetBrains Mono"', "ui-monospace", "monospace"],
+        head: ['"Funnel Sans Variable"', '"Funnel Sans"', "system-ui", "sans-serif"],
+        body: ['"Inter Variable"', "Inter", "system-ui", "sans-serif"],
+        data: ['"IBM Plex Mono"', "ui-monospace", "monospace"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -68,6 +73,31 @@ export default {
           "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
+        },
+        oc: {
+          bg: "hsl(var(--oc-bg) / <alpha-value>)",
+          surface: "hsl(var(--oc-surface) / <alpha-value>)",
+          ink: "hsl(var(--oc-ink) / <alpha-value>)",
+          muted: "hsl(var(--oc-muted) / <alpha-value>)",
+          faint: "hsl(var(--oc-faint) / <alpha-value>)",
+          line: "hsl(var(--oc-line) / <alpha-value>)",
+          brand: {
+            DEFAULT: "hsl(var(--oc-brand) / <alpha-value>)",
+            strong: "hsl(var(--oc-brand-strong) / <alpha-value>)",
+            soft: "hsl(var(--oc-brand-soft) / <alpha-value>)",
+          },
+          accent: {
+            DEFAULT: "hsl(var(--oc-accent) / <alpha-value>)",
+            soft: "hsl(var(--oc-accent-soft) / <alpha-value>)",
+          },
+          bad: {
+            DEFAULT: "hsl(var(--oc-bad) / <alpha-value>)",
+            soft: "hsl(var(--oc-bad-soft) / <alpha-value>)",
+          },
+          dark: {
+            DEFAULT: "hsl(var(--oc-dark) / <alpha-value>)",
+            soft: "hsl(var(--oc-dark-soft) / <alpha-value>)",
+          },
         },
       },
       borderRadius: {

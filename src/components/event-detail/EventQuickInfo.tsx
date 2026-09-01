@@ -2,9 +2,17 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
+import { OrgButton } from "@/components/organizer-console/OrgButton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarDays, MapPin, Type, FileText, Globe, CalendarX, Users, Video, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import {
+  IconCalendar,
+  IconFileText,
+  IconGlobe,
+  IconMapPin,
+  IconUsers,
+  IconWifi,
+} from "@/components/organizer-console/orgIcons";
 import { toast } from "sonner";
 import { getApiErrorMessage, getLaravelFieldErrors } from "@/lib/apiError";
 import { asEventMode, eventModeRequiresUrl, formatWhyAttend, parseWhyAttendInput, type EventMode } from "@/lib/eventMode";
@@ -175,8 +183,8 @@ export default function EventQuickInfo({ event, onUpdate, categories = [], onUpl
     fieldErrors[key] ? <p className="text-[11px] text-destructive mt-1">{fieldErrors[key]}</p> : null;
 
   return (
-    <div className="bg-card rounded-xl p-4 sm:p-6 space-y-4">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+    <div className="org-card p-4 sm:p-5 space-y-4 min-w-0">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 min-w-0">
         <div className="space-y-2">
           <SmartImageField
             value={draft.cover_preview}
@@ -192,7 +200,7 @@ export default function EventQuickInfo({ event, onUpdate, categories = [], onUpl
             emptyLabel="Drop or click to upload the event cover"
             onUploadFile={onUploadCover}
           />
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-[10px] text-oc-faint">
             Cover upload saves immediately. Other fields save only when you click Save changes.
           </p>
         </div>
@@ -200,7 +208,7 @@ export default function EventQuickInfo({ event, onUpdate, categories = [], onUpl
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 content-start">
           <div className="space-y-1.5 sm:col-span-2">
             <Label className="text-xs flex items-center gap-1">
-              <Type className="w-3 h-3" /> Event name
+              <IconFileText className="w-3 h-3" /> Event name
             </Label>
             <Input
               className="h-9 text-sm font-medium rounded-full"
@@ -212,10 +220,10 @@ export default function EventQuickInfo({ event, onUpdate, categories = [], onUpl
           </div>
           <div className="space-y-1.5 sm:col-span-2">
             <Label className="text-xs flex items-center gap-1">
-              <FileText className="w-3 h-3" /> Description
+              <IconFileText className="w-3 h-3" /> Description
             </Label>
             <Textarea
-              className="text-sm min-h-[120px] resize-y rounded-2xl"
+              className="text-sm min-h-[120px] resize-y rounded-2xl [field-sizing:content]"
               value={draft.description}
               rows={5}
               onChange={(e) => patchDraft({ description: e.target.value })}
@@ -224,10 +232,10 @@ export default function EventQuickInfo({ event, onUpdate, categories = [], onUpl
           </div>
           <div className="space-y-1.5 sm:col-span-2">
             <Label className="text-xs flex items-center gap-1">
-              <FileText className="w-3 h-3" /> Why attend
+              <IconFileText className="w-3 h-3" /> Why attend
             </Label>
             <Textarea
-              className="text-sm min-h-[96px] resize-y rounded-2xl"
+              className="text-sm min-h-[96px] resize-y rounded-2xl [field-sizing:content]"
               placeholder="One reason per line (max 6)"
               value={draft.why_attend_text}
               rows={4}
@@ -237,11 +245,11 @@ export default function EventQuickInfo({ event, onUpdate, categories = [], onUpl
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs flex items-center gap-1">
-              <CalendarDays className="w-3 h-3" /> Event date
+              <IconCalendar className="w-3 h-3" /> Event date
             </Label>
             <Input
               type="datetime-local"
-              className="h-9 text-sm rounded-full"
+              className="h-9 w-full min-w-0 text-sm rounded-full"
               value={draft.event_date}
               onChange={(e) => patchDraft({ event_date: e.target.value })}
             />
@@ -250,11 +258,11 @@ export default function EventQuickInfo({ event, onUpdate, categories = [], onUpl
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs flex items-center gap-1">
-              <CalendarDays className="w-3 h-3" /> End date
+              <IconCalendar className="w-3 h-3" /> End date
             </Label>
             <Input
               type="datetime-local"
-              className="h-9 text-sm rounded-full"
+              className="h-9 w-full min-w-0 text-sm rounded-full"
               value={draft.event_end_date}
               onChange={(e) => patchDraft({ event_end_date: e.target.value })}
             />
@@ -263,13 +271,13 @@ export default function EventQuickInfo({ event, onUpdate, categories = [], onUpl
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs flex items-center gap-1">
-              <Globe className="w-3 h-3" /> Category
+              <IconGlobe className="w-3 h-3" /> Category
             </Label>
             <Select
               value={draft.event_category_id ? String(draft.event_category_id) : "none"}
               onValueChange={(v) => patchDraft({ event_category_id: v === "none" ? null : Number(v) })}
             >
-              <SelectTrigger className="h-9 text-sm rounded-full"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-9 w-full min-w-0 text-sm rounded-full"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">None</SelectItem>
                 {categories.map((c) => (
@@ -281,7 +289,7 @@ export default function EventQuickInfo({ event, onUpdate, categories = [], onUpl
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs flex items-center gap-1">
-              <Video className="w-3 h-3" /> Event mode
+              <IconWifi className="w-3 h-3" /> Event mode
             </Label>
             <Select
               value={draft.event_mode}
@@ -293,10 +301,11 @@ export default function EventQuickInfo({ event, onUpdate, categories = [], onUpl
                 });
               }}
             >
-              <SelectTrigger className="h-9 text-sm rounded-full"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-9 w-full min-w-0 text-sm rounded-full"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="in_person">In person</SelectItem>
                 <SelectItem value="online">Online</SelectItem>
+                <SelectItem value="hybrid">Hybrid</SelectItem>
               </SelectContent>
             </Select>
             {fieldError("event_mode")}
@@ -304,7 +313,7 @@ export default function EventQuickInfo({ event, onUpdate, categories = [], onUpl
           {needsUrl && (
             <div className="space-y-1.5 sm:col-span-2">
               <Label className="text-xs flex items-center gap-1">
-                <Globe className="w-3 h-3" /> Online URL
+                <IconGlobe className="w-3 h-3" /> Online URL
               </Label>
               <Input
                 type="url"
@@ -318,7 +327,7 @@ export default function EventQuickInfo({ event, onUpdate, categories = [], onUpl
           )}
           <div className="space-y-1.5">
             <Label className="text-xs flex items-center gap-1">
-              <MapPin className="w-3 h-3" /> City
+              <IconMapPin className="w-3 h-3" /> City
             </Label>
             <Input
               className="h-9 text-sm rounded-full"
@@ -329,7 +338,7 @@ export default function EventQuickInfo({ event, onUpdate, categories = [], onUpl
           </div>
           <div className="space-y-1.5 sm:col-span-2">
             <Label className="text-xs flex items-center gap-1">
-              <MapPin className="w-3 h-3" /> Address
+              <IconMapPin className="w-3 h-3" /> Address
             </Label>
             <Input
               className="h-9 text-sm rounded-full"
@@ -341,7 +350,7 @@ export default function EventQuickInfo({ event, onUpdate, categories = [], onUpl
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs flex items-center gap-1">
-              <Users className="w-3 h-3" /> Capacity
+              <IconUsers className="w-3 h-3" /> Capacity
             </Label>
             <Input
               type="number"
@@ -355,35 +364,34 @@ export default function EventQuickInfo({ event, onUpdate, categories = [], onUpl
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs flex items-center gap-1">
-              <CalendarX className="w-3 h-3" /> Sales end
+              <IconCalendar className="w-3 h-3" /> Sales end
             </Label>
             <Input
               type="datetime-local"
-              className="h-9 text-sm rounded-full"
+              className="h-9 w-full min-w-0 text-sm rounded-full"
               value={draft.registration_deadline}
               onChange={(e) => patchDraft({ registration_deadline: e.target.value })}
             />
-            <p className="text-[10px] text-muted-foreground">Blank = no deadline</p>
+            <p className="text-[10px] text-oc-faint">Blank = no deadline</p>
             {fieldError("registration_deadline")}
           </div>
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-end gap-2 pt-1 border-t border-border/60">
-        <Button
+      <div className="flex flex-wrap items-center justify-end gap-2 pt-3 border-t border-oc-line">
+        <OrgButton
           type="button"
-          className="rounded-full"
           disabled={saving || !dirty}
           onClick={() => void handleSave()}
         >
           {saving ? (
             <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving…
+              <Loader2 className="animate-spin" /> Saving…
             </>
           ) : (
             "Save changes"
           )}
-        </Button>
+        </OrgButton>
       </div>
     </div>
   );

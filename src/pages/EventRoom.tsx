@@ -19,11 +19,20 @@ import {
   Ticket as TicketIcon,
   Video,
 } from "lucide-react";
-import { motion, useReducedMotion } from "framer-motion";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
+import { PublicSiteHeader } from "@/components/layout/PublicSiteHeader";
+import { useMyParticipations } from "@/hooks/queries/useParticipations";
+import { roomSwitcherList } from "@/lib/nextEvent";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { EventRoomExtras } from "@/components/participant/EventRoomExtras";
 import { Reveal, StaggerGroup, StaggerItem } from "@/components/motion/Reveal";
 import { getApiErrorMessage } from "@/lib/apiError";
@@ -174,12 +183,12 @@ export default function EventRoom() {
   const { registrationId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const reduceMotion = useReducedMotion();
 
   const [detail, setDetail] = useState<ApiInvitationDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<ApiFeedback | null | "unloaded">("unloaded");
+  const { data: parts } = useMyParticipations(!!user);
 
   const numericId = Number(registrationId);
 
@@ -242,23 +251,29 @@ export default function EventRoom() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-background">
+      <div className="house-page min-h-screen flex flex-col">
+        <PublicSiteHeader />
+        <div className="flex-1 flex flex-col items-center justify-center gap-3">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
         <p className="text-sm text-muted-foreground">Opening your event room…</p>
+        </div>
       </div>
     );
   }
 
   if (error || !detail) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 bg-background">
-        <div className="max-w-md w-full rounded-[1.75rem] border border-border/60 bg-card p-10 text-center space-y-4 shadow-sm">
+      <div className="house-page min-h-screen flex flex-col">
+        <PublicSiteHeader />
+        <div className="flex-1 flex items-center justify-center px-4">
+        <div className="max-w-md w-full rounded-2xl border border-border bg-card p-10 text-center space-y-4 house-card">
           <TicketIcon className="w-10 h-10 mx-auto text-muted-foreground" />
-          <h1 className="text-2xl font-display font-bold tracking-[-0.02em]">Event room unavailable</h1>
+          <h1 className="text-2xl font-display font-semibold tracking-tight">Event room unavailable</h1>
           <p className="text-sm text-muted-foreground">{error ?? "Registration not found."}</p>
-          <Button variant="outline" className="rounded-full" onClick={() => navigate(`/registrations/${registrationId}`)}>
+          <Button variant="outline" onClick={() => navigate(`/registrations/${registrationId}`)}>
             <ArrowLeft className="w-4 h-4 mr-2" /> View ticket
           </Button>
+        </div>
         </div>
       </div>
     );
@@ -279,106 +294,95 @@ export default function EventRoom() {
     detail.status !== "waitlisted" &&
     (detail.payment_status === "paid" || detail.payment_status === "not_required");
   const firstName = user?.name?.split(" ")[0];
+  const switcher = roomSwitcherList(parts?.items ?? []);
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Cinematic hero */}
-      <section className="relative min-h-[48vh] sm:min-h-[52vh] overflow-hidden">
-        {banner ? (
-          <motion.img
-            src={banner}
-            alt=""
-            className="absolute inset-0 w-full h-full object-cover"
-            initial={reduceMotion ? false : { scale: 1.06 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
-          />
-        ) : (
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_hsl(var(--primary)/0.28),_transparent_55%),linear-gradient(160deg,_hsl(var(--muted))_0%,_hsl(var(--background))_70%)]" />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/35 to-background" />
-        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-background to-transparent" />
-
-        {/* Glass top bar */}
-        <div className="absolute inset-x-0 top-0 z-20">
-          <div className="max-w-3xl mx-auto px-4 pt-4 sm:pt-5 flex items-center justify-between gap-2">
-            <button
-              type="button"
-              onClick={() => navigate("/dashboard/home")}
-              className="inline-flex items-center gap-1.5 text-sm text-white/90 hover:text-white transition-colors px-3 h-9 rounded-full bg-white/10 backdrop-blur-md border border-white/15"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              My registrations
-            </button>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                className="rounded-full h-9 text-white/90 hover:text-white hover:bg-white/10"
-                onClick={() => load()}
+    <div className="house-page min-h-[100dvh]">
+      <PublicSiteHeader />
+      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/rooms")}>
+            <ArrowLeft className="w-4 h-4 mr-1.5" />
+            Event rooms
+          </Button>
+          <div className="flex items-center gap-2">
+            {switcher.length > 1 && (
+              <Select
+                value={String(detail.id)}
+                onValueChange={(id) => navigate(`/registrations/${id}/room`)}
               >
-                <RefreshCw className="w-3.5 h-3.5 sm:mr-1.5" />
-                <span className="hidden sm:inline">Refresh</span>
-              </Button>
-              <Button asChild size="sm" className="rounded-full h-9 bg-white text-foreground hover:bg-white/90">
-                <Link to={`/registrations/${detail.id}`}>
-                  <TicketIcon className="w-3.5 h-3.5 mr-1.5" />
-                  View ticket
-                </Link>
-              </Button>
-            </div>
+                <SelectTrigger className="h-9 w-[10.5rem]">
+                  <SelectValue placeholder="Switch event" />
+                </SelectTrigger>
+                <SelectContent>
+                  {switcher.map((p) => (
+                    <SelectItem key={p.id} value={String(p.id)}>
+                      {p.event?.title ?? `Ticket ${p.id}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <Button type="button" size="sm" variant="outline" onClick={() => load()}>
+              <RefreshCw className="w-3.5 h-3.5 sm:mr-1.5" />
+              <span className="hidden sm:inline">Refresh</span>
+            </Button>
+            <Button asChild size="sm">
+              <Link to={`/registrations/${detail.id}`}>
+                <TicketIcon className="w-3.5 h-3.5 mr-1.5" />
+                View ticket
+              </Link>
+            </Button>
           </div>
         </div>
 
-        {/* Hero copy */}
-        <div className="relative z-10 max-w-3xl mx-auto px-4 pt-24 sm:pt-28 pb-16 sm:pb-20">
-          <motion.div
-            initial={reduceMotion ? false : { opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
-            className="space-y-5"
-          >
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/12 backdrop-blur-md border border-white/20 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/90">
-              <Sparkles className="w-3.5 h-3.5" />
-              Event room
+        <section className="relative overflow-hidden rounded-[1.5rem] border border-border bg-card house-card">
+          {banner ? (
+            <div className="relative h-48 overflow-hidden sm:h-56">
+              <img src={banner} alt="" className="absolute inset-0 h-full w-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent" />
             </div>
-            <h1 className="font-display font-bold text-3xl sm:text-5xl tracking-[-0.03em] leading-[1.05] text-white max-w-2xl drop-shadow-sm">
+          ) : null}
+          <div className="relative px-6 py-8 sm:px-8">
+            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-primary">
+              <Sparkles className="mr-1.5 inline h-3.5 w-3.5" />
+              Event room
+            </p>
+            <h1 className="mt-2 font-display text-2xl font-semibold tracking-tight">
               {eventTitle}
             </h1>
             {firstName && (
-              <p className="text-base sm:text-lg text-white/80">
-                Welcome in, {firstName} — this is your live hub for the event.
+              <p className="mt-3 max-w-[40ch] text-muted-foreground">
+                {firstName}, this is your door for the event.
               </p>
             )}
-            <div className="flex flex-wrap gap-2 pt-1">
+            <div className="mt-5 flex flex-wrap gap-3 text-sm text-muted-foreground">
               {event?.starts_at && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/12 backdrop-blur-md border border-white/15 px-3 py-1.5 text-xs text-white/90">
-                  <CalendarDays className="w-3.5 h-3.5" />
+                <span className="inline-flex items-center gap-1.5">
+                  <CalendarDays className="w-3.5 h-3.5 text-primary" />
                   {fmtDate(event.starts_at)}
                 </span>
               )}
               {isOnline ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/12 backdrop-blur-md border border-white/15 px-3 py-1.5 text-xs text-white/90">
-                  <Video className="w-3.5 h-3.5" />
+                <span className="inline-flex items-center gap-1.5">
+                  <Video className="w-3.5 h-3.5 text-primary" />
                   Online
                 </span>
               ) : event?.city || event?.address ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/12 backdrop-blur-md border border-white/15 px-3 py-1.5 text-xs text-white/90">
-                  <MapPin className="w-3.5 h-3.5" />
+                <span className="inline-flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-primary" />
                   {event.city || event.address}
                 </span>
               ) : null}
             </div>
-          </motion.div>
-        </div>
-      </section>
+          </div>
+        </section>
+      </div>
 
-      {/* Live features */}
-      <div className="relative z-10 max-w-3xl mx-auto px-4 -mt-6 sm:-mt-8 pb-20 space-y-5">
+      <div className="mx-auto max-w-3xl px-4 pb-20 space-y-5 sm:px-6">
         {detail.status === "waitlisted" && (
           <Reveal>
-            <div className="rounded-[1.5rem] border border-amber-500/25 bg-amber-500/10 backdrop-blur-sm p-4 sm:p-5 text-sm text-amber-950 dark:text-amber-100">
+            <div className="rounded-[1.5rem] border border-amber-200 bg-amber-50 p-4 sm:p-5 text-sm text-amber-900">
               You are on the waitlist. Room features unlock when you get a confirmed seat.
             </div>
           </Reveal>

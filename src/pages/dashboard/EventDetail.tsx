@@ -1,22 +1,25 @@
-import { Button } from "@/components/ui/button";
 import { Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { IconAlert } from "@/components/organizer-console/orgIcons";
 import { toast } from "sonner";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import EventDetailHeader from "@/components/event-detail/EventDetailHeader";
-import EventSideNav, { type EventSection } from "@/components/event-detail/EventSideNav";
+import { useQueryClient } from "@tanstack/react-query";
+import { OrgButton } from "@/components/organizer-console/OrgButton";
+import { OrgStudioNav, OrgStudioMobileNav } from "@/components/organizer-console/OrgStudioNav";
+import { OrgStudioHeader } from "@/components/organizer-console/OrgStudioTopbar";
 import {
   getApiErrorMessage,
   isOrganizerEventAccessError,
 } from "@/lib/apiError";
 import { getMediaUrl } from "@/lib/mediaUrl";
+import { rememberStudioEventId } from "@/lib/lastStudioEvent";
+import { queryKeys } from "@/lib/queryKeys";
 import { EVENT_STATUS_LABELS, studioPatchToWriteBody, toStudioEvent } from "@/lib/organizerEventAdapters";
-import { sectionFromPathname, studioSectionPath } from "@/lib/organizerStudioRoutes";
+import { sectionFromPathname } from "@/lib/organizerStudioRoutes";
 import { EventStudioProvider } from "@/contexts/EventStudioContext";
+import { useOrganizerCategories, useOrganizerEvent } from "@/hooks/queries/useOrganizerQueries";
 import {
   deleteOrganizerEvent,
-  getOrganizerEvent,
-  listEventCategories,
   transitionOrganizerEvent,
   updateOrganizerEvent,
   uploadOrganizerEventBanner,
@@ -43,61 +46,50 @@ const EventDetail = () => {
   const location = useLocation();
   const eventId = Number(id);
   const activeTab = sectionFromPathname(location.pathname);
-  const [raw, setRaw] = useState<OrganizerEvent | null>(null);
-  const [categories, setCategories] = useState<Array<{ id: number; name: string }>>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [denied, setDenied] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const eventQuery = useOrganizerEvent(eventId);
+  const categoriesQuery = useOrganizerCategories();
+  const raw = eventQuery.data ?? null;
+  const categories = categoriesQuery.data ?? [];
+  const denied = !!eventQuery.error && isOrganizerEventAccessError(eventQuery.error);
+  const loadError = eventQuery.error && !denied
+    ? getApiErrorMessage(eventQuery.error, "Couldn't load event")
+    : null;
+  const isLoading = eventQuery.isLoading;
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
   const [transitioning, setTransitioning] = useState(false);
 
   const event = raw ? toStudioEvent(raw) : null;
 
+  useEffect(() => {
+    if (raw?.id) rememberStudioEventId(raw.id);
+  }, [raw?.id]);
+
+  const setRaw = useCallback((next: OrganizerEvent | null | ((prev: OrganizerEvent | null) => OrganizerEvent | null)) => {
+    const resolved = typeof next === "function" ? next(raw) : next;
+    if (resolved) {
+      queryClient.setQueryData(queryKeys.organizer.events.detail(eventId), resolved);
+    }
+  }, [eventId, queryClient, raw]);
+
+  const invalidateStudio = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: queryKeys.organizer.events.detail(eventId) });
+    await queryClient.invalidateQueries({ queryKey: queryKeys.organizer.events.all });
+    await queryClient.invalidateQueries({ queryKey: queryKeys.organizer.dashboard });
+  }, [eventId, queryClient]);
+
   const load = useCallback(async () => {
-    if (!Number.isFinite(eventId) || eventId <= 0) {
-      setDenied(true);
-      setIsLoading(false);
-      return;
-    }
-    setIsLoading(true);
-    setLoadError(null);
-    try {
-      const data = await getOrganizerEvent(eventId);
-      setRaw(data);
-      setDenied(false);
-    } catch (err) {
-      if (isOrganizerEventAccessError(err)) {
-        setDenied(true);
-        setRaw(null);
-      } else {
-        setLoadError(getApiErrorMessage(err, "Couldn't load event"));
-        toast.error(getApiErrorMessage(err, "Couldn't load event"));
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  }, [eventId]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  useEffect(() => {
-    listEventCategories().then(setCategories).catch(() => setCategories([]));
-  }, []);
+    await eventQuery.refetch();
+  }, [eventQuery]);
 
   const handleDenied = useCallback(() => {
-    setDenied(true);
-    setRaw(null);
-  }, []);
+    navigate("/organizer/events");
+  }, [navigate]);
 
   const reloadEvent = useCallback(async () => {
-    if (!Number.isFinite(eventId) || eventId <= 0) return;
-    const data = await getOrganizerEvent(eventId);
-    setRaw(data);
-    setDenied(false);
-  }, [eventId]);
+    await invalidateStudio();
+  }, [invalidateStudio]);
 
   const handleUpdate = useCallback(async (fields: Record<string, unknown>) => {
     if (!raw) return;
@@ -106,13 +98,14 @@ const EventDetail = () => {
     try {
       const updated = await updateOrganizerEvent(raw.id, body);
       setRaw(updated);
+      await invalidateStudio();
     } catch (err) {
       if (isOrganizerEventAccessError(err)) {
         handleDenied();
       }
       throw err;
     }
-  }, [raw, handleDenied]);
+  }, [raw, handleDenied, invalidateStudio]);
 
   const handleUploadCover = useCallback(async (file: File): Promise<string | null> => {
     if (!raw) return null;
@@ -146,6 +139,7 @@ const EventDetail = () => {
     try {
       const result = await transitionOrganizerEvent(raw.id, pendingStatus);
       setRaw(result.event);
+      await invalidateStudio();
       toast.success(`Status is now ${EVENT_STATUS_LABELS[result.event.status as string] || result.event.status}`);
       setPendingStatus(null);
     } catch (err) {
@@ -192,27 +186,27 @@ const EventDetail = () => {
   }, [event, raw, eventId, categories, handleDenied, handleUpdate, handleUploadCover, handleImagesChange, reloadEvent]);
 
   if (isLoading) {
-    return <div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
+    return <div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-oc-brand" /></div>;
   }
 
   if (denied) {
     return (
-      <div className="max-w-md mx-auto bg-card rounded-3xl p-10 text-center mt-10">
-        <AlertTriangle className="w-10 h-10 mx-auto mb-4 text-destructive" />
-        <h1 className="text-2xl font-display font-bold mb-2">{ACCESS_DENIED}</h1>
-        <p className="text-muted-foreground text-sm mb-6">This event is not available in your organizer account.</p>
-        <Button className="rounded-full" onClick={() => navigate("/organizer/events")}>Back to events</Button>
+      <div className="max-w-md mx-auto org-card p-10 text-center mt-10">
+        <IconAlert className="w-10 h-10 mx-auto mb-4 text-oc-bad" />
+        <h1 className="font-head text-2xl font-semibold text-oc-ink mb-2">{ACCESS_DENIED}</h1>
+        <p className="text-oc-muted text-sm mb-6">This event is not available in your organizer account.</p>
+        <OrgButton onClick={() => navigate("/organizer/events")}>Back to events</OrgButton>
       </div>
     );
   }
 
   if (loadError || !event || !studioValue) {
     return (
-      <div className="max-w-md mx-auto bg-card rounded-3xl p-10 text-center mt-10">
-        <AlertTriangle className="w-10 h-10 mx-auto mb-4 text-destructive" />
-        <h1 className="text-2xl font-display font-bold mb-2">Couldn't load event</h1>
-        <p className="text-muted-foreground text-sm mb-6">{loadError || "Something went wrong."}</p>
-        <Button className="rounded-full" onClick={() => void load()}>Retry</Button>
+      <div className="max-w-md mx-auto org-card p-10 text-center mt-10">
+        <IconAlert className="w-10 h-10 mx-auto mb-4 text-oc-bad" />
+        <h1 className="font-head text-2xl font-semibold text-oc-ink mb-2">Couldn't load event</h1>
+        <p className="text-oc-muted text-sm mb-6">{loadError || "Something went wrong."}</p>
+        <OrgButton onClick={() => void load()}>Retry</OrgButton>
       </div>
     );
   }
@@ -221,22 +215,26 @@ const EventDetail = () => {
 
   return (
     <EventStudioProvider value={studioValue}>
-      <div className="space-y-5">
-        <EventDetailHeader
-          event={event}
-          onTransition={setPendingStatus}
-          onDelete={() => setDeleteOpen(true)}
-          transitioning={transitioning}
+      <div className="flex flex-col lg:flex-row gap-4 lg:gap-0 items-start min-w-0 w-full">
+        <OrgStudioNav
+          eventId={eventId}
+          active={activeTab}
+          eventName={event.name}
+          status={event.status}
+          bannerUrl={event.background_image_url ?? getMediaUrl(event.banner_path)}
         />
-
-        <div className="flex flex-col md:flex-row md:gap-5 md:items-start">
-          <EventSideNav
-            active={activeTab}
-            onChange={(s: EventSection) => navigate(studioSectionPath(eventId, s))}
-            attendeesCount={event.registrations_count}
+        <div className="flex-1 min-w-0 w-full flex flex-col gap-3 lg:py-6 lg:pl-8 pb-8">
+          <OrgStudioHeader
+            eventId={eventId}
+            event={event}
+            status={event.status}
+            onTransition={setPendingStatus}
+            onDelete={() => setDeleteOpen(true)}
+            transitioning={transitioning}
           />
+          <OrgStudioMobileNav eventId={eventId} active={activeTab} />
 
-          <div className="flex-1 min-w-0 space-y-5 mt-4 md:mt-0">
+          <div className="min-w-0 w-full">
             <Outlet />
           </div>
         </div>
