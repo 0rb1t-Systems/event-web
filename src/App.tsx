@@ -29,7 +29,6 @@ const Events = lazy(() => import("./pages/dashboard/Events"));
 const EventDetail = lazy(() => import("./pages/dashboard/EventDetail"));
 const EventStudioOverview = lazy(() => import("./pages/dashboard/event-studio/EventStudioOverview"));
 const EventStudioTickets = lazy(() => import("./pages/dashboard/event-studio/EventStudioTickets"));
-const EventStudioForm = lazy(() => import("./pages/dashboard/event-studio/EventStudioForm"));
 const EventStudioContent = lazy(() => import("./pages/dashboard/event-studio/EventStudioContent"));
 const EventStudioBranding = lazy(() => import("./pages/dashboard/event-studio/EventStudioBranding"));
 const EventStudioSettings = lazy(() => import("./pages/dashboard/event-studio/EventStudioSettings"));
@@ -67,6 +66,10 @@ const EventStudioInvitationRedirect = () => {
 const EventStudioCheckInRedirect = () => {
   const { id } = useParams();
   return <Navigate to={`/organizer/events/${id}/scanner`} replace />;
+};
+const EventStudioFormRedirect = () => {
+  const { id } = useParams();
+  return <Navigate to={`/organizer/events/${id}/tickets`} replace />;
 };
 const PublicRegisterRedirect = () => {
   const { id } = useParams();
@@ -162,7 +165,7 @@ const App = () => (
                               <Route path="events/:id" element={<EventDetail />}>
                                 <Route index element={<EventStudioOverview />} />
                                 <Route path="tickets" element={<EventStudioTickets />} />
-                                <Route path="form" element={<EventStudioForm />} />
+                                <Route path="form" element={<EventStudioFormRedirect />} />
                                 <Route path="content" element={<EventStudioContent />} />
                                 <Route path="page" element={<EventStudioPageRedirect />} />
                                 <Route path="branding" element={<EventStudioBranding />} />

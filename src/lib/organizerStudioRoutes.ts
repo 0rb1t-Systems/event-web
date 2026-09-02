@@ -1,12 +1,11 @@
 export type EventSection =
-  | "overview" | "tickets" | "form" | "content" | "branding"
+  | "overview" | "tickets" | "content" | "branding"
   | "attendees" | "lucky-wheel" | "scanner" | "finance" | "analytics" | "settings";
 
 /** Nested studio routes under `/organizer/events/:id` (layout + Outlet). */
 export const STUDIO_PATH_BY_SECTION: Record<EventSection, string> = {
   overview: "",
   tickets: "tickets",
-  form: "form",
   content: "content",
   branding: "branding",
   attendees: "attendees",
@@ -29,6 +28,8 @@ export function sectionFromPathname(pathname: string): EventSection {
   if (slug === "page") return "content";
   if (slug === "edit") return "overview";
   if (slug === "invitation") return "branding";
+  // Legacy registration-form tab — removed from product
+  if (slug === "form") return "tickets";
   // Removed Lovable promotion — treat as overview if somehow visited before redirect
   if (slug === "promotion") return "overview";
   // Legacy check-in path

@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Loader2, CheckCircle2,
@@ -15,9 +14,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { publicApi } from "@/lib/api";
 import { getApiErrorMessage } from "@/lib/apiError";
 import {
-  adaptPublicEventDetailToUi, adaptUiFormFields,
-  type PublicEventDetailResponse, type PublicEventFormFieldResponse,
-  type PublicEventUiModel, type UiFormField,
+  adaptPublicEventDetailToUi,
+  type PublicEventDetailResponse,
+  type PublicEventUiModel,
 } from "@/lib/publicEventsAdapters";
 
 import { PublicEventPage } from "@/components/event-public/PublicEventPage";
@@ -38,8 +37,6 @@ import {
   type DiscountQuote,
 } from "@/services/participantDiscounts";
 import { ParticipantWaafiPayment } from "@/components/participant/ParticipantWaafiPayment";
-
-type FormField = UiFormField;
 
 const formatTicketPrice = (price: number, currency = "USD") => {
   if (!price) return "Free";
@@ -165,88 +162,6 @@ const TicketPicker = ({
     </div>
   </div>
 );
-
-// ─── Single dynamic form field ───────────────────────────────────────────────
-
-const DynamicField = ({
-  field, value, onChange, brandColor,
-}: {
-  field: FormField;
-  value: string;
-  onChange: (key: string, value: string) => void;
-  brandColor: string;
-}) => {
-  const inputClass = "h-12 rounded-full border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-offset-0";
-
-  switch (field.field_type) {
-    case "select": {
-      const opts = Array.isArray(field.options) ? field.options : [];
-      const normalized = opts.map((o) =>
-        typeof o === "string" ? { value: o, label: o } : (o as { value: string; label: string })
-      );
-      return (
-        <Select value={value || ""} onValueChange={(v) => onChange(field.key, v)}>
-          <SelectTrigger className={inputClass} style={{ ["--tw-ring-color" as any]: brandColor }}>
-            <SelectValue placeholder={field.placeholder || field.label} />
-          </SelectTrigger>
-          <SelectContent>
-            {normalized.map((o) => (
-              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      );
-    }
-    case "checkbox":
-      return (
-        <div className="flex items-center gap-2.5">
-          <Checkbox
-            id={field.key}
-            checked={value === "true"}
-            onCheckedChange={(c) => onChange(field.key, c ? "true" : "false")}
-          />
-          <Label htmlFor={field.key} className="text-sm text-foreground/80 cursor-pointer">
-            {field.placeholder || field.label}
-          </Label>
-        </div>
-      );
-    case "date":
-      return (
-        <Input
-          type="date"
-          required={field.required}
-          value={value || ""}
-          onChange={(e) => onChange(field.key, e.target.value)}
-          className={inputClass}
-          style={{ ["--tw-ring-color" as any]: brandColor }}
-        />
-      );
-    case "number":
-      return (
-        <Input
-          type="number"
-          placeholder={field.placeholder || field.label}
-          required={field.required}
-          value={value || ""}
-          onChange={(e) => onChange(field.key, e.target.value)}
-          className={inputClass}
-          style={{ ["--tw-ring-color" as any]: brandColor }}
-        />
-      );
-    default:
-      return (
-        <Input
-          type="text"
-          placeholder={field.placeholder || field.label}
-          required={field.required}
-          value={value || ""}
-          onChange={(e) => onChange(field.key, e.target.value)}
-          className={inputClass}
-          style={{ ["--tw-ring-color" as any]: brandColor }}
-        />
-      );
-  }
-};
 
 // ─── Result screens ───────────────────────────────────────────────────────────
 
@@ -425,9 +340,6 @@ const RegistrationLockedPanel = ({
 // ─── Registration form ────────────────────────────────────────────────────────
 
 const RegistrationForm = ({
-  formFields,
-  formData,
-  onFieldChange,
   consent,
   onConsentChange,
   onSubmit,
@@ -447,9 +359,6 @@ const RegistrationForm = ({
   onClearDiscount,
   className = "",
 }: {
-  formFields: FormField[] | undefined;
-  formData: Record<string, string>;
-  onFieldChange: (key: string, value: string) => void;
   consent: boolean;
   onConsentChange: (v: boolean) => void;
   onSubmit: (e: React.FormEvent) => void;
@@ -546,32 +455,6 @@ const RegistrationForm = ({
         </div>
       )}
 
-      {(formFields?.length ?? 0) > 0 && (
-        <div className="space-y-1">
-          <Label className="text-sm font-medium text-slate-600">
-            Your details
-          </Label>
-        </div>
-      )}
-
-      <div className="space-y-3.5">
-        {formFields?.map((field) => (
-          <div key={field.id} className="space-y-1.5">
-            {field.field_type !== "checkbox" && (
-              <Label className="text-xs font-medium text-foreground/80">
-                {field.label}{field.required && <span style={{ color: brandColor }}> *</span>}
-              </Label>
-            )}
-            <DynamicField
-              field={field}
-              value={formData[field.key] || ""}
-              onChange={onFieldChange}
-              brandColor={brandColor}
-            />
-          </div>
-        ))}
-      </div>
-
       {isPaid && (
         <motion.div
           initial={{ opacity: 0, y: 8 }}
@@ -642,11 +525,9 @@ const Register = () => {
   const [retryNonce, setRetryNonce] = useState(0);
 
   const [event, setEvent] = useState<PublicEventUiModel | null>(null);
-  const [formFields, setFormFields] = useState<FormField[] | undefined>(undefined);
   const [modules, setModules] = useState<any[]>([]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState<Record<string, string>>({});
   const [consent, setConsent] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [discountCode, setDiscountCode] = useState("");
@@ -884,14 +765,13 @@ const Register = () => {
     setLoadError(null);
 
     const eventPromise = publicApi.get<PublicEventDetailResponse>(`/events/${eventId}`);
-    const fieldsPromise = publicApi.get<PublicEventFormFieldResponse>(`/events/${eventId}/form-fields`);
     const participationPromise =
       user && Number.isFinite(eventId)
         ? listParticipations({ per_page: 50 }).catch(() => null)
         : Promise.resolve(null);
 
-    Promise.all([eventPromise, fieldsPromise, participationPromise])
-      .then(([eventResp, formFieldsResp, participationResult]) => {
+    Promise.all([eventPromise, participationPromise])
+      .then(([eventResp, participationResult]) => {
         if (cancelled) return;
 
         if (participationResult) {
@@ -907,7 +787,6 @@ const Register = () => {
 
         const apiEvent = eventResp.data.data;
         setEvent(adaptPublicEventDetailToUi(apiEvent));
-        setFormFields(adaptUiFormFields(formFieldsResp.data));
         setModules(buildModules(adaptPublicEventDetailToUi(apiEvent)));
       })
       .catch((err: any) => {
@@ -942,10 +821,6 @@ const Register = () => {
 
   const submitDisabled = !registrationAllowed;
 
-  const handleFieldChange = useCallback((key: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [key]: value }));
-  }, []);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -963,16 +838,6 @@ const Register = () => {
       return;
     }
 
-    // Required field validation — use field.key for lookup but field.label for error message
-    const missing = formFields?.filter((f) => {
-      if (!f.required) return false;
-      if (f.field_type === "checkbox") return formData[f.key] !== "true";
-      return !formData[f.key]?.trim();
-    }) ?? [];
-    if (missing.length > 0) {
-      toast.error(`Please fill in: ${missing.map((f) => f.label).join(", ")}`);
-      return;
-    }
     if (tickets.length > 0 && !selectedTicketId) {
       toast.error("Please choose a ticket to continue.");
       return;
@@ -980,25 +845,12 @@ const Register = () => {
 
     setIsSubmitting(true);
 
-    // Build custom_field_answers using backend key (not label)
-    const custom_field_answers: Record<string, unknown> = {};
-    for (const field of formFields ?? []) {
-      const val = formData[field.key];
-      if (val !== undefined && val !== "") {
-        custom_field_answers[field.key] =
-          field.field_type === "number" ? Number(val) :
-          field.field_type === "checkbox" ? val === "true" :
-          val;
-      }
-    }
-
     const selectedTicketNum = selectedTicketId ? Number(selectedTicketId) : null;
 
     try {
       const participation = await createParticipation({
         event_id: event.id,
         ticket_type_id: selectedTicketNum || undefined,
-        custom_field_answers: Object.keys(custom_field_answers).length > 0 ? custom_field_answers : undefined,
         discount_code: discountQuote?.code || undefined,
       });
 
@@ -1237,9 +1089,6 @@ const Register = () => {
   }
 
   const formProps = {
-    formFields,
-    formData,
-    onFieldChange: handleFieldChange,
     consent,
     onConsentChange: setConsent,
     onSubmit: handleSubmit,

@@ -1,6 +1,6 @@
 # EventHub Web App — Agent Context
 
-Last updated: 2026-09-01 — Event detail partner logos, compact speakers, no Powered by
+Last updated: 2026-09-02 — Ticket-only registration (no custom form fields)
 Repository: D:\Orbit Systems\EventHub\event-web
 Git remote: https://github.com/Abdiaziiz-1717/event-web.git
 Default branch: main (GitHub HEAD; CI also listens to `master`)
@@ -110,7 +110,7 @@ IA v3:
 - Public funnel: `/` Home → `/events` Browse events → `/events/:id` Detail + Register.
 - Participant nav (`PublicSiteHeader`): Home, Browse events, Next event (contextual list at `/dashboard/rooms`), My Tickets (purchased stubs). Settings in the avatar menu. House pages use the slim white header; event detail uses slim `EventPulseHeader` on the cover (logo + account + Register). On-page section links are `EventSectionNav` after scroll.
 - Finance is `/organizer/finance` (Payouts | Plans tabs).
-- Event Studio nav groups (pen): EVENT (Overview, Tickets, Registration form, Program, Invitation), PEOPLE (Attendees, Check-in, Lucky wheel), MANAGE (Finance, Settings). Analytics stays routed at `/organizer/events/:id/analytics` but is not in the pen nav.
+- Event Studio nav groups (pen): EVENT (Overview, Tickets, Program, Invitation), PEOPLE (Attendees, Check-in, Lucky wheel), MANAGE (Finance, Settings). Analytics stays routed at `/organizer/events/:id/analytics` but is not in the pen nav. **Custom registration form fields are removed from the product** — join is ticket-only (free join or paid ticket + Waafi).
 - Participant login default home is `/` (not `/dashboard`).
 
 ## Environment
@@ -326,7 +326,7 @@ Organizer chrome: desktop persistent `OrgTopbar` (underline nav + account menu; 
 - `/organizer/events/:id` → EventDetail layout + nested studio:
   - index → overview
   - `/tickets` → ticket types + discount codes
-  - `/form` → form builder
+  - `/form` → redirect → `/tickets` (legacy; registration form builder removed)
   - `/content` → speakers, sponsors, sessions (`/page` → here)
   - `/branding` → invitation designer (`/invitation` → here)
   - `/attendees` → registrations + announcements
@@ -365,7 +365,7 @@ Guards:
 | Homepage/catalog | house Home (`Landing`) + filter-rail Browse events (`/events`) | `GET /events` + `GET /event-categories` via React Query (`usePublicEventList`) | Yes | Home: photo island + overlapping What/Where `q`, uniform 16:9 grid (4-col `xl`); no featured lead; organizer CTA after the grid; `/events` uses the same compact `EventCatalogCard`; branding still from BrandingProvider |
 | Platform branding | `Logo` + document title/favicon | `GET /platform/branding` (publicApi) | Yes | Admin Settings → Organization is the write UI; Web App read-only; fallback `VITE_APP_NAME` + glyph when empty |
 | Auth | house header + compact `max-w-sm` white card + verify/forgot + Continue with Google | Laravel `/auth/*` incl. `POST /auth/google/login` | Yes | participant register/login/verify/logout/me/google; admin users can use `/auth/login` as web-participant; no duplicate logo on `/auth` (header already has it); Google needs `VITE_GOOGLE_CLIENT_ID` + Laravel `GOOGLE_CLIENT_ID` |
-| Public event page + registration | PublicEventPage + cover-photo Hero (banner island + countdown + Register, no in-hero section pill) + overlapping black facts + row agenda + navy partner tiles + house `SiteFooter` | `GET /events/{id}`, `GET /events/{id}/form-fields` (publicApi); `POST /participant/events/{id}/discount-codes/validate`, `POST /participant/participations` (+ optional `discount_code`), `POST /participant/payments/charge`, `GET /participant/participations/{id}` (participantApi) | Yes | Cover fills a rounded island; type sits bottom-left over a light gradient so the photo shows. Industry type scale (hero ~24–34px). Pulse countdown + black facts bar kept. About is a stacked lead + body with a teal rule. Why attend is a mint lead band plus compact rows. Agenda is time/title/speaker rows with no section CTAs. Partners are real-color logos on white tiles over navy (no invert). Speakers are compact teal-field row-cards (not a full-page stage). `EventSectionNav` after scroll. Footer is shared `SiteFooter` (light-locked). No “Powered by” line. Sessions pass description/room/ends_at; speakers pass bio. Page chrome accent is Pulse teal `#2ECFC2`. Tickets with `sales_enabled=false` omitted; paid flow can validate + apply discount quote before join. |
+| Public event page + registration | PublicEventPage + cover-photo Hero (banner island + countdown + Register, no in-hero section pill) + overlapping black facts + row agenda + navy partner tiles + house `SiteFooter` | `GET /events/{id}` (publicApi); `POST /participant/events/{id}/discount-codes/validate`, `POST /participant/participations` (ticket + optional `discount_code` only — **no custom form fields**), `POST /participant/payments/charge`, `GET /participant/participations/{id}` (participantApi) | Yes | Registration UI: pick ticket (if any) → privacy consent → join or pay. Free events with no ticket types join directly. Paid: discount quote optional, then Waafi. No `GET /events/{id}/form-fields` on register. Cover fills a rounded island; type sits bottom-left over a light gradient so the photo shows. Industry type scale (hero ~24–34px). Pulse countdown + black facts bar kept. About is a stacked lead + body with a teal rule. Why attend is a mint lead band plus compact rows. Agenda is time/title/speaker rows with no section CTAs. Partners are real-color logos on white tiles over navy (no invert). Speakers are compact teal-field row-cards (not a full-page stage). `EventSectionNav` after scroll. Footer is shared `SiteFooter` (light-locked). No “Powered by” line. Sessions pass description/room/ends_at; speakers pass bio. Page chrome accent is Pulse teal `#2ECFC2`. Tickets with `sales_enabled=false` omitted; paid flow can validate + apply discount quote before join. |
 | Participant dashboard (home) | AttendeeHome as My Tickets (light perforated EventHub pass + QR) | `GET /participant/participations` via `useMyParticipations` | Yes | Lists purchased tickets, not event-room cards. QR from `qr_token` when the ticket is valid. |
 | Event rooms list | EventRooms at `/dashboard/rooms` | same participations list, filtered by `roomSwitcherList` | Yes | Next event lands here. User picks which room to open. |
 | Registration detail (ticket) | RegistrationDetail | `GET .../invitation`, `GET .../certificate` (participantApi) | Yes | `/registrations/:id`; My Tickets primary open target; invitation + in-person QR + PDF; **Open event room** CTA when ticket valid |
@@ -374,10 +374,9 @@ Guards:
 | Organizer events | grid: banner/gradient cards, status chips, search + All/Published/Draft/Ended pills (`?status=` URL) | `GET /organizer/events` via `useOrganizerEventList` | Yes | Published = catalog set (`isPublicCatalogStatus`); Ended = completed+cancelled; grouped pills fetch `per_page: 100` and filter in memory (Laravel `status` is exact). Draft still sends `status=draft`. |
 | Organizer event create | pen modal over dark scrim (title, category, mode segmented, dates, online URL) | `POST /organizer/events` | Yes | required title, category, `event_mode`, dates; `online_url` when online/hybrid; rest finished in studio |
 | Organizer event detail | EventDetail + Outlet + EventStudioProvider with sticky `OrgStudioNav` (12px items, 232px) + `OrgStudioHeader` | `GET/PATCH/DELETE` via `useOrganizerEvent` | Yes | Desktop: native page scroll; rail sticky. MANAGE (Finance, Settings) is in the rail — do not clip it with viewport lock. 403/404: "You don't have access to this event." Mutations invalidate event, list, dashboard. |
-| Organizer event studio — tickets | TicketTypeCard/Form + DiscountCodeForm | ticket-types + discount-codes | Yes | VIP = `is_vip`; sales_enabled pause ≠ sold out |
-| Organizer event studio — form | FormFieldCard/Editor + reorder | form-fields CRUD + reorder | Yes | key immutable after create |
+| Organizer event studio — tickets | TicketTypeCard/Form + DiscountCodeForm | ticket-types + discount-codes | Yes | VIP = `is_vip`; sales_enabled pause ≠ sold out; registration is ticket-only (no custom form tab) |
 | Organizer event studio — content | speakers/sponsors/sessions | CRUD | Yes | speaker photo file upload (not URL); sponsor tiers; sessions timeline |
-| Attendees / registrations | Event Studio Audience tab | participations promote/cancel | Yes | `/organizer/attendees` redirects to `/organizer/events`; page-only search/CSV; no auto-refund claim |
+| Attendees / registrations | Event Studio Audience tab | participations promote/cancel | Yes | `/organizer/attendees` redirects to `/organizer/events`; page-only search/CSV; no auto-refund claim; no custom-field answers panel |
 | Lucky wheel | Event Studio `/lucky-wheel` (`LuckyWheelPanel`) | `GET/POST …/lucky-wheel` | Yes | confirmed seats only (`joined`/`paid`/`checked_in`); waitlisted + cancelled excluded; spin stores attempts + unique winners |
 | Announcements | Event Studio attendees tab | announcements GET/POST | Yes | toast includes recipient count |
 | Analytics | Event Studio `/analytics` + Recharts | `GET …/analytics` via `useOrganizerEventAnalytics` | Yes | scalars only; `/organizer/analytics` redirects to last studio event or Events |
@@ -534,7 +533,7 @@ Do not allow Web App architecture to accidentally use admin-panel tokens.
 - other organizers' events return 404 "Event not found"; UI must show "You don't have access to this event." and must not render leaked details
 - create quota failures are 403 with package messages; link organizers to `/organizer/subscription` for self-serve subscribe/upgrade (Prompt 15 backend + Web UI)
 - gallery upload field name is `image`; jpeg/png/jpg/gif/webp; max 4096 KB
-- form field `key` is immutable after create; delete deactivates the field when answers exist
+- **Custom registration form fields are not used in the Web App.** `/events/:id` join sends ticket + discount only. Studio **Registration** tab removed; `/form` redirects to `/tickets`. Laravel form-field APIs may still exist — if an event has active required custom fields in DB, join may 422 until those fields are deactivated server-side.
 - ticket type delete is soft trash even when quantity_sold > 0
 - `sales_enabled=false` means sales paused (ticket still exists) — not sold out. Organizer UI must say "Sales enabled" / "Sales paused" with the participant-facing explanation. Public registration filters those tickets out via `adaptTicketTypes`.
 - Participant discount quote: `POST /participant/events/{event}/discount-codes/validate` body `{ code, ticket_type_id }` → `{ code, type, value, original_amount, discount_amount, final_amount }`. Join may include `discount_code`. Waafi / join charge uses snapshotted `final_amount` (display that amount; do not invent client-side pricing).
@@ -797,6 +796,21 @@ Event `scan_token` is generated on create; organizer show/update/banner/transiti
 - Public `online_url` is hidden; registered participants see it on invitation/event room
 
 ## Change Log
+
+### 2026-09-02 — Ticket-only registration (remove custom form fields)
+
+Client policy: no custom registration questions. Join flow is **free → join** or **paid ticket → pay → participant**.
+
+Web App:
+- `Register.tsx` — removed `GET /events/{id}/form-fields`, dynamic field UI, client validation, and `custom_field_answers` on `POST /participant/participations`. Register panel = ticket picker (when tickets exist) + discount (paid) + privacy consent + CTA.
+- `OrgStudioNav.tsx` — removed **Registration** studio tab.
+- `App.tsx` — `/organizer/events/:id/form` redirects to `/tickets` (`EventStudioFormRedirect`).
+- `organizerStudioRoutes.ts` — dropped `form` from `EventSection`; legacy `/form` pathname maps to `tickets` for nav highlight.
+- `EventRegistrationsPanel.tsx` — removed form-field label fetch and custom-answers block in attendee detail.
+
+Laravel form-field endpoints unchanged; deactivate legacy active fields on events if join 422s on missing answers.
+
+Files: `Register.tsx`, `OrgStudioNav.tsx`, `App.tsx`, `organizerStudioRoutes.ts`, `EventRegistrationsPanel.tsx`, `.agent`.
 
 ### 2026-09-02 — Public door scanner at `/qrscan`
 
