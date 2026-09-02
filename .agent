@@ -1,6 +1,6 @@
 # EventHub Web App — Agent Context
 
-Last updated: 2026-09-02 — Ticket-only registration (no custom form fields)
+Last updated: 2026-09-02 — Custom form fields removed (web + Laravel API + admin)
 Repository: D:\Orbit Systems\EventHub\event-web
 Git remote: https://github.com/Abdiaziiz-1717/event-web.git
 Default branch: main (GitHub HEAD; CI also listens to `master`)
@@ -191,12 +191,11 @@ The following are available with X-API-Key and no participant Bearer token:
 - GET /events
 - GET /events/{id} — `{id}` is the numeric event primary key (Laravel has no event slugs). Public payload includes `event_mode` (`in_person`|`online`|`hybrid`), `online_url`, `why_attend` (string[]|null), `banner_path` (site-relative e.g. `/assets/images/events/…`), `banner_url` (absolute when path is relative), plus speakers/sponsors/sessions/ticket_types.
 - GET /event-categories
-- GET /events/{id}/form-fields
 - GET /platform/branding — `{ name, logo_url, logo_dark_url, icon_url }` (nulls when unset; no contact PII). Managed in Laravel Admin → Settings → Organization. Web App `BrandingProvider` applies title/favicon/logos.
 
 Response handling (as implemented in `src/lib/publicEventsAdapters.ts`):
 - GET `/events` and GET `/event-categories` return raw Laravel paginators (no `{ success, data }` envelope)
-- GET `/events/{id}` and GET `/events/{id}/form-fields` return the JSON envelope from `ApiResponseTrait`: `{ success, message?, status_code, data }`
+- GET `/events/{id}` returns the JSON envelope from `ApiResponseTrait`: `{ success, message?, status_code, data }`
 - GET `/platform/branding` returns the same `{ success, data }` envelope (`src/services/platformBranding.ts`)
 
 Smoke-tested locally: GET /events with a valid public key returned HTTP 200 and a data payload.
@@ -533,7 +532,7 @@ Do not allow Web App architecture to accidentally use admin-panel tokens.
 - other organizers' events return 404 "Event not found"; UI must show "You don't have access to this event." and must not render leaked details
 - create quota failures are 403 with package messages; link organizers to `/organizer/subscription` for self-serve subscribe/upgrade (Prompt 15 backend + Web UI)
 - gallery upload field name is `image`; jpeg/png/jpg/gif/webp; max 4096 KB
-- **Custom registration form fields are not used in the Web App.** `/events/:id` join sends ticket + discount only. Studio **Registration** tab removed; `/form` redirects to `/tickets`. Laravel form-field APIs may still exist — if an event has active required custom fields in DB, join may 422 until those fields are deactivated server-side.
+- **Custom registration form fields removed from product.** Web App join is ticket-only. Laravel endpoints `GET/POST …/form-fields` and admin `event-form-fields` routes are **removed**; `ParticipationService::join()` ignores answers. DB table `event_form_fields` and legacy `participations.custom_field_answers` rows may remain for history.
 - ticket type delete is soft trash even when quantity_sold > 0
 - `sales_enabled=false` means sales paused (ticket still exists) — not sold out. Organizer UI must say "Sales enabled" / "Sales paused" with the participant-facing explanation. Public registration filters those tickets out via `adaptTicketTypes`.
 - Participant discount quote: `POST /participant/events/{event}/discount-codes/validate` body `{ code, ticket_type_id }` → `{ code, type, value, original_amount, discount_amount, final_amount }`. Join may include `discount_code`. Waafi / join charge uses snapshotted `final_amount` (display that amount; do not invent client-side pricing).
@@ -572,7 +571,7 @@ For every meaningful change:
 All under `/api/v1`. Header `X-API-Key` + Bearer `participant_token`.
 
 - `POST /participant/events/{event}/discount-codes/validate` — body `{ code, ticket_type_id }`. Ticket must belong to the event and have `sales_enabled=true`. Success data: `{ code, type, value, original_amount, discount_amount, final_amount }` (amounts as `12.34` strings). 404 `discount_not_valid_for_event` / ticket not found; 400 `discount_inactive` | `discount_expired` | `discount_usage_exhausted`. Service: `src/services/participantDiscounts.ts`.
-- `POST /participant/participations` — body `{ event_id, ticket_type_id?, custom_field_answers?, discount_code? }`. Never send `user_id`. Returns wrapped `{ success, data: Participation }` (201). Participation may include `original_amount`, `discount_amount`, `final_amount` when a code was applied. Possible errors: 422 validation, 400 "already has an active participation", 400 "Registration deadline has passed", 400 "Invalid ticket type", 400 "Ticket type sales are disabled", 400 "Ticket type quantity exhausted", 400 discount_* codes.
+- `POST /participant/participations` — body `{ event_id, ticket_type_id?, discount_code? }`. Never send `user_id` or `custom_field_answers`. Returns wrapped `{ success, data: Participation }` (201). Participation may include `original_amount`, `discount_amount`, `final_amount` when a code was applied. Possible errors: 422 validation, 400 "already has an active participation", 400 "Registration deadline has passed", 400 "Invalid ticket type", 400 "Ticket type sales are disabled", 400 "Ticket type quantity exhausted", 400 discount_* codes.
   - `participation.status` values: `joined | waitlisted | paid | checked_in | cancelled`
   - `participation.payment_status` values: `not_required | pending | paid | refunded | failed`
   - Free or no-ticket → `payment_status=not_required`, `status=joined` → navigate to `/registrations/{id}`
@@ -583,8 +582,6 @@ All under `/api/v1`. Header `X-API-Key` + Bearer `participant_token`.
 - `POST /participant/payments/charge` — body `{ participation_id, payer_phone }`. Returns wrapped `{ success, data: Payment }`. Uses **210-second Axios timeout** (WaafiPay holds connection up to 180s). Backend charges snapshotted `final_amount` (not a client-invented amount). `payment.status` values: `pending | completed | refunded | failed`. On failure: `failure_code` + `failure_reason`. Error 400 "A payment is already pending" = idempotency guard. Error 400 "already paid" = race win, re-fetch participation.
 
 - `GET /participant/participations/{id}` — returns wrapped `{ success, data: Participation }` with `event` + `ticketType` relationships. Used both by Ticket page and as fallback re-check after charge.
-
-- `custom_field_answers` keys: always use the backend `key` field from form schema, never the `label`. FormFieldType enum: `text | number | select | checkbox | date`.
 
 ## Participant Dashboard + Invitation API Contracts Confirmed
 
@@ -656,7 +653,7 @@ Documented paths (all under OrganizerLayout):
 
 Studio **section** sidebar groups (`OrgStudioNav`): EVENT (Overview, Tickets, Registration, Program, Invitation), PEOPLE (Attendees, Check-in, Lucky wheel), MANAGE (Finance, Settings). Branding nav label is **Invitation**. Analytics stays routed, not in the rail. No Promotion item. This rail is not app nav. Desktop rail is `sticky top-16` with 12px items; the page scrolls natively.
 
-Reusable UI lives in `src/components/event-studio/` (`TicketTypeCard`, `TicketTypeForm`, `DiscountCodeForm`, `FormFieldCard`, `FormFieldEditor`, `SpeakerCard`, `SpeakerForm`, `SponsorCard`, `SponsorForm`, `SessionTimeline`, `SessionForm`, `InvitationDesigner`, `EventRegistrationsPanel`, `AnnouncementsPanel`, `LuckyWheelPanel`, `EventFinancePanel`, `SubscriptionQuotaPanel`). Scanner UI: `src/components/event-detail/CheckInScanner.tsx` via `EventStudioScanner`. Lucky wheel UI: `LuckyWheelPanel.tsx` via `EventStudioLuckyWheel`. Shared ticket canvas: `src/components/invitation/InvitationCanvasPreview.tsx`. Overlay drag layer: `InvitationOverlayEditor.tsx`. Coordinate helpers: `src/lib/invitationCanvas.ts`.
+Reusable UI lives in `src/components/event-studio/` (`TicketTypeCard`, `TicketTypeForm`, `DiscountCodeForm`, `SpeakerCard`, `SpeakerForm`, `SponsorCard`, `SponsorForm`, `SessionTimeline`, `SessionForm`, `InvitationDesigner`, `EventRegistrationsPanel`, `AnnouncementsPanel`, `LuckyWheelPanel`, `EventFinancePanel`, `SubscriptionQuotaPanel`). Scanner UI: `src/components/event-detail/CheckInScanner.tsx` via `EventStudioScanner`. Lucky wheel UI: `LuckyWheelPanel.tsx` via `EventStudioLuckyWheel`. Shared ticket canvas: `src/components/invitation/InvitationCanvasPreview.tsx`. Overlay drag layer: `InvitationOverlayEditor.tsx`. Coordinate helpers: `src/lib/invitationCanvas.ts`.
 
 Organizer chrome (`OrganizerLayout`): top bar with Dashboard, Events, Check-in, Finance. Settings in the avatar menu only. Org Attendees/Analytics URLs redirect into Events / studio analytics.
 
@@ -677,14 +674,6 @@ Discounts:
 - `PATCH /organizer/discount-codes/{id}`
 - `PATCH /organizer/discount-codes/{id}/active` — `{ active }`
 - `DELETE /organizer/discount-codes/{id}`
-
-Form fields:
-
-- `GET /organizer/events/{id}/form-fields` (`active_only` optional)
-- `POST /organizer/events/{id}/form-fields` — `key` regex `^[a-z][a-z0-9_]*$`, `label`, `type` text|number|select|checkbox|date, `options?`, `required?`, `sort_order?`, `active?`
-- `PATCH /organizer/form-fields/{id}` — **key cannot be changed**
-- `PATCH /organizer/events/{id}/form-fields/reorder` — `{ ordered_ids: number[] }`
-- `DELETE /organizer/form-fields/{id}` — `{ action: deactivated|deleted, form_field }`. Deactivates when participations already have answers for that key.
 
 Speakers / sponsors / sessions (list envelope `{ items, pagination }`):
 
@@ -797,20 +786,21 @@ Event `scan_token` is generated on create; organizer show/update/banner/transiti
 
 ## Change Log
 
-### 2026-09-02 — Ticket-only registration (remove custom form fields)
+### 2026-09-02 — Ticket-only registration (remove custom form fields everywhere)
 
 Client policy: no custom registration questions. Join flow is **free → join** or **paid ticket → pay → participant**.
 
-Web App:
-- `Register.tsx` — removed `GET /events/{id}/form-fields`, dynamic field UI, client validation, and `custom_field_answers` on `POST /participant/participations`. Register panel = ticket picker (when tickets exist) + discount (paid) + privacy consent + CTA.
-- `OrgStudioNav.tsx` — removed **Registration** studio tab.
-- `App.tsx` — `/organizer/events/:id/form` redirects to `/tickets` (`EventStudioFormRedirect`).
-- `organizerStudioRoutes.ts` — dropped `form` from `EventSection`; legacy `/form` pathname maps to `tickets` for nav highlight.
-- `EventRegistrationsPanel.tsx` — removed form-field label fetch and custom-answers block in attendee detail.
+**Web App:** deleted `FormFieldsPanel`, `FormFieldEditor`, `FormFieldCard`, `FormLivePreview`, `EventStudioForm`, `organizerFormFields.ts`; cleaned `publicEvents.ts`, `publicEventsAdapters.ts`, `participationService.ts`, `TemplatePreview.tsx`. Register = ticket picker + discount + consent + CTA only. Studio Registration tab removed; `/form` → `/tickets`.
 
-Laravel form-field endpoints unchanged; deactivate legacy active fields on events if join 422s on missing answers.
+**Laravel API:** removed public `GET /events/{id}/form-fields`, organizer form-field routes, admin `/event-form-fields` route group. `ParticipationService::join()` ignores custom answers (always stores `null`). Controllers no longer accept `custom_field_answers` on join.
 
-Files: `Register.tsx`, `OrgStudioNav.tsx`, `App.tsx`, `organizerStudioRoutes.ts`, `EventRegistrationsPanel.tsx`, `.agent`.
+**Laravel Admin SPA:** removed Form Fields tab (`FormFieldOversight.tsx` deleted); cleaned `event.ts` + types.
+
+Tests: deleted `EventFormFieldModuleTest`, `FormFieldValidationServiceTest`; updated `ParticipantWebApiTest`, `OrganizerWebCoreApiTest`, `Prompt12CategoryATest`.
+
+DB table `event_form_fields` and legacy `participations.custom_field_answers` remain for historical rows only.
+
+Files: web — see above; Laravel — `ParticipationService.php`, `ParticipantParticipationController.php`, `ParticipationController.php`, `routes/api.php`, `routes/api/v1/events.php`, `routes/api/v1/organizer-web-core.php`, `resources/js/src/pages/event/show.tsx`, `resources/js/src/services/event.ts`, tests, `.agent` (both repos).
 
 ### 2026-09-02 — Public door scanner at `/qrscan`
 

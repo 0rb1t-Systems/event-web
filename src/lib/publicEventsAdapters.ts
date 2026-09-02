@@ -111,60 +111,6 @@ export type PublicEventDetail = PublicEventCatalogItem & {
 
 export type PublicEventDetailResponse = WrappedSuccess<PublicEventDetail>;
 
-// GET /events/{id}/form-fields (wrapped success)
-export type PublicEventFormFieldResponse = WrappedSuccess<
-  Array<{
-    id: number | string;
-    /** Snake_case machine key — always use this as the custom_field_answers key. */
-    key: string;
-    label: string;
-    /** Laravel FormFieldType enum value: text | number | select | checkbox | date */
-    type: string;
-    options?: unknown;
-    required: boolean;
-    sort_order?: number;
-  }>
->;
-
-export type UiFormFieldType = "text" | "number" | "select" | "checkbox" | "date";
-export type UiFormField = {
-  id: string;
-  /** Backend key — use this as the key in custom_field_answers, never the label. */
-  key: string;
-  label: string;
-  field_type: UiFormFieldType;
-  required: boolean;
-  placeholder?: string | null;
-  options?: Array<{ value: string; label: string }> | string[] | null;
-};
-
-export function adaptUiFormFields(resp: PublicEventFormFieldResponse): UiFormField[] {
-  const fields = resp.data ?? [];
-  return fields
-    .map((f) => {
-      const fieldType = mapLaravelFieldType(f.type);
-      return {
-        id: String(f.id),
-        key: f.key ?? String(f.id),
-        label: f.label ?? "",
-        field_type: fieldType,
-        required: !!f.required,
-        placeholder: f.label ?? null,
-        options: f.options as UiFormField["options"],
-      } satisfies UiFormField;
-    })
-    .filter((f) => !!f.label);
-}
-
-function mapLaravelFieldType(t: string): UiFormFieldType {
-  const normalized = (t || "").toLowerCase();
-  if (normalized === "number") return "number";
-  if (normalized === "select") return "select";
-  if (normalized === "checkbox") return "checkbox";
-  if (normalized === "date") return "date";
-  return "text";
-}
-
 export function adaptTicketTypes(apiTickets: PublicEventCatalogItem["ticket_types"]): TicketTier[] {
   const list = apiTickets ?? [];
   return list

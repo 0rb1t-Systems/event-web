@@ -3,7 +3,6 @@ import type {
   PublicEventCatalogResponse,
   PublicEventCategoriesResponse,
   PublicEventDetail,
-  PublicEventFormFieldResponse,
   WrappedSuccess,
 } from "@/lib/publicEventsAdapters";
 
@@ -37,9 +36,4 @@ export async function listPublicCategories(): Promise<PublicEventCategoriesRespo
 export async function getPublicEvent(id: number): Promise<PublicEventDetail> {
   const { data } = await publicApi.get<WrappedSuccess<PublicEventDetail>>(`/events/${id}`);
   return data.data;
-}
-
-export async function getPublicEventFormFields(id: number): Promise<PublicEventFormFieldResponse> {
-  const { data } = await publicApi.get<PublicEventFormFieldResponse>(`/events/${id}/form-fields`);
-  return data;
 }

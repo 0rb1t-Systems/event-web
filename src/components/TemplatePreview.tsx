@@ -13,14 +13,10 @@ interface TemplatePreviewProps {
   colorMode?: "light" | "dark";
 }
 
-const FormFieldsMock = () => (
+const TicketJoinMock = () => (
   <div className="space-y-1.5">
-    <div className="h-1.5 w-10 rounded bg-muted-foreground/20 text-[6px]" />
-    <div className="h-4 rounded border border-border bg-background" />
-    <div className="h-1.5 w-12 rounded bg-muted-foreground/20" />
-    <div className="h-4 rounded border border-border bg-background" />
-    <div className="h-1.5 w-8 rounded bg-muted-foreground/20" />
-    <div className="h-4 rounded border border-border bg-background" />
+    <div className="h-1.5 w-14 rounded bg-muted-foreground/20" />
+    <div className="h-5 rounded border border-border bg-background" />
     <div className="h-5 rounded bg-primary mt-2" />
   </div>
 );
@@ -64,7 +60,7 @@ const TemplatePreview = (props: TemplatePreviewProps) => {
         <div className="flex items-center justify-center h-full p-4">
           <div className="w-full max-w-[160px] space-y-2">
             <EventInfo {...props} />
-            <FormFieldsMock />
+            <TicketJoinMock />
           </div>
         </div>
       )}
@@ -74,7 +70,7 @@ const TemplatePreview = (props: TemplatePreviewProps) => {
           <ImagePlaceholder flyerUrl={flyerUrl} className="w-1/2 h-full" />
           <div className="w-1/2 p-2 flex flex-col justify-center space-y-2">
             <EventInfo {...props} />
-            <FormFieldsMock />
+            <TicketJoinMock />
           </div>
         </div>
       )}
@@ -84,7 +80,7 @@ const TemplatePreview = (props: TemplatePreviewProps) => {
           <ImagePlaceholder flyerUrl={flyerUrl} className="h-[60px] w-full" />
           <div className="flex-1 p-2 space-y-1 overflow-hidden">
             <EventInfo {...props} />
-            <FormFieldsMock />
+            <TicketJoinMock />
           </div>
         </div>
       )}
@@ -98,7 +94,7 @@ const TemplatePreview = (props: TemplatePreviewProps) => {
             </div>
           </div>
           <div className="flex-1 p-2 space-y-1 overflow-hidden">
-            <FormFieldsMock />
+            <TicketJoinMock />
           </div>
         </div>
       )}

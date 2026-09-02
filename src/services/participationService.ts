@@ -67,7 +67,6 @@ export type ApiPayment = {
 export type CreateParticipationBody = {
   event_id: number;
   ticket_type_id?: number | null;
-  custom_field_answers?: Record<string, unknown>;
   /** Optional code string; Laravel quotes and snapshots on join. */
   discount_code?: string | null;
 };
