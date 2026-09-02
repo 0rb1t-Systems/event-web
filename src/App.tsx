@@ -45,6 +45,7 @@ const OrganizerRegister = lazy(() => import("./pages/organizer/OrganizerRegister
 const OrganizerDashboard = lazy(() => import("./pages/organizer/OrganizerDashboard"));
 const OrganizerEventCreate = lazy(() => import("./pages/organizer/OrganizerEventCreate"));
 const OrganizerSettings = lazy(() => import("./pages/organizer/OrganizerSettings"));
+const PublicQrScanPage = lazy(() => import("./pages/PublicQrScanPage"));
 const OrganizerScannerPage = lazy(() => import("./pages/organizer/OrganizerScannerPage"));
 const OrganizerFinance = lazy(() => import("./pages/organizer/OrganizerFinance"));
 const EventStudioAnalytics = lazy(() => import("./pages/dashboard/event-studio/EventStudioAnalytics"));
@@ -110,6 +111,7 @@ const App = () => (
                   <Route path="/events" element={<BrowseEvents />} />
                   <Route path="/events/:id" element={<Register />} />
                   <Route path="/register/:id" element={<PublicRegisterRedirect />} />
+                  <Route path="/qrscan" element={<PublicQrScanPage />} />
                   <Route path="/ticket/:registrationId" element={<TicketRedirect />} />
 
                   {/* Participant */}

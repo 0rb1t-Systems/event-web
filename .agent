@@ -298,6 +298,7 @@ PUBLIC:
 - `/auth` → Auth (participant login / sign up / verify / forgot-reset). House header + compact `max-w-sm` white card (no second logo). Safe internal `redirect` or `/`. `?expired=1` after session 401.
 - `/events/:id` → Register (cinematic public event; numeric PK)
 - `/register/:id` → redirect → `/events/:id`
+- `/qrscan` → PublicQrScanPage (lazy; **no login** — unlock with event `scan_token`; not linked from home nav)
 - `/registrations/:registrationId/room` → EventRoom (lazy; dedicated participant room: join link, announcements, ask-a-speaker, feedback after ends; not the ticket)
 - `/registrations/:registrationId` → RegistrationDetail (lazy; ticket/invitation/QR only; link to event room)
 - `/ticket/:registrationId` → redirect → `/registrations/:registrationId`
@@ -765,14 +766,26 @@ UI: one shared `EventFinancePanel` for Event Studio Finance tab and `/organizer/
 
 ## Organizer QR Check-In API Contracts Confirmed
 
-All under `/api/v1`, `organizerApi` (X-API-Key + Bearer `organizer_token`). Service: `src/services/organizerQr.ts`. Identity from Bearer — never send `organizer_id`.
+Organizer-authenticated scanner (`organizerApi` + Bearer `organizer_token`). Service: `src/services/organizerQr.ts`.
 
 - `POST /organizer/scanner/unlock` — body `{ scan_token }` → `{ event_id, title, status, event_mode }` for owned events only.
 - `POST /organizer/qr-scan-logs/validate` — body `{ token, gate?, event_id? }`. When `event_id` is set, tickets from other events are `INVALID`. Response includes `result` (`valid` | `already_used` | `invalid`), `checked_in`, `participation`, `scan_log`.
 - `GET /organizer/events/{id}/qr-scan-logs` — `{ event_id, stats, scan_logs }`
 - `GET /organizer/events/{id}/check-in-stats` — door stats
 
-Routes: **main nav** `/organizer/scanner` (token unlock) and studio `/organizer/events/:id/scanner`. Event `scan_token` is generated on create; organizer show/update/banner/transition JSON includes it (`makeVisible`). Studio Settings maps `scan_token` through `toStudioEvent` and Copy; missing tokens are backfilled on GET and can use **Generate token**. Online events: invitation omits door `qr_token`.
+Routes: **organizer nav** `/organizer/scanner` (logged-in, token unlock) and studio `/organizer/events/:id/scanner`.
+
+## Public door scanner (`/qrscan`)
+
+No login — API-key only + event `scan_token`. Service: `src/services/publicQr.ts`. Page: `PublicQrScanPage.tsx` at **`/qrscan`**. **Not linked** from marketing home nav; door staff use the URL directly.
+
+- `POST /public/scanner/unlock` — `{ scan_token }` → `{ event_id, title, status, event_mode }`
+- `POST /public/qr-scan-logs/validate` — `{ scan_token, token, gate?, event_id? }` (same result shape as organizer validate)
+- `POST /public/scanner/events/{id}/qr-scan-logs` — body `{ scan_token }` → `{ event_id, stats, scan_logs }`
+
+`CheckInScanner` accepts optional `scanToken` prop to call public endpoints instead of organizer ones.
+
+Event `scan_token` is generated on create; organizer show/update/banner/transition JSON includes it (`makeVisible`). Studio Settings maps `scan_token` through `toStudioEvent` and Copy; missing tokens are backfilled on GET and can use **Generate token**. Online events: invitation omits door `qr_token`.
 
 ## Participant event room + discussions
 
@@ -784,6 +797,10 @@ Routes: **main nav** `/organizer/scanner` (token unlock) and studio `/organizer/
 - Public `online_url` is hidden; registered participants see it on invitation/event room
 
 ## Change Log
+
+### 2026-09-02 — Public door scanner at `/qrscan`
+
+Client: check-in must work **without login**; URL is shared manually (not on public home nav). New public route `/qrscan` (`PublicQrScanPage`) unlocks with event `scan_token` and reuses `CheckInScanner` via `scanToken` prop + `publicQr.ts` (`publicApi`). Laravel: `PublicQrController` + `/api/v1/public/scanner/*` and `/public/qr-scan-logs/validate` (API-key only). Organizer `/organizer/scanner` and studio scanner unchanged for logged-in organizers.
 
 ### 2026-09-01 — Event detail: partner logos visible, compact speakers, drop Powered by
 

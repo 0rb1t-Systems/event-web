@@ -25,6 +25,10 @@ import {
   type OrganizerQrParticipation,
   type OrganizerQrScanLog,
 } from "@/services/organizerQr";
+import {
+  getPublicEventQrScanLogs,
+  validatePublicQrScan,
+} from "@/services/publicQr";
 
 type UiResult =
   | {
@@ -47,13 +51,16 @@ type Props = {
   eventId: number;
   eventTitle: string;
   onDenied?: () => void;
+  /** Public door scanner at `/qrscan` — uses scan_token instead of organizer login. */
+  scanToken?: string;
 };
 
 const DEBOUNCE_MS = 2500;
 const RESULT_HOLD_MS = 0; // user dismisses via Scan next
 
 /** Door scanner — dark card for camera contrast, constrained to the console column. */
-export default function CheckInScanner({ eventId, eventTitle, onDenied }: Props) {
+export default function CheckInScanner({ eventId, eventTitle, onDenied, scanToken }: Props) {
+  const isPublicScanner = Boolean(scanToken?.trim());
   const containerId = `checkin-qr-${eventId}`;
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const busyRef = useRef(false);
@@ -108,11 +115,13 @@ export default function CheckInScanner({ eventId, eventTitle, onDenied }: Props)
 
   const refreshStats = useCallback(async () => {
     try {
-      const data = await getOrganizerEventQrScanLogs(eventId);
+      const data = isPublicScanner
+        ? await getPublicEventQrScanLogs(eventId, scanToken!)
+        : await getOrganizerEventQrScanLogs(eventId);
       setStats(data.stats);
       setRecent(data.scan_logs.slice(0, 8));
     } catch (err) {
-      if (isOrganizerEventAccessError(err)) {
+      if (!isPublicScanner && isOrganizerEventAccessError(err)) {
         onDenied?.();
         return;
       }
@@ -120,7 +129,7 @@ export default function CheckInScanner({ eventId, eventTitle, onDenied }: Props)
     } finally {
       setStatsLoading(false);
     }
-  }, [eventId, onDenied]);
+  }, [eventId, isPublicScanner, onDenied, scanToken]);
 
   useEffect(() => {
     setStatsLoading(true);
@@ -206,11 +215,18 @@ export default function CheckInScanner({ eventId, eventTitle, onDenied }: Props)
       setResult(null);
 
       try {
-        const data = await validateOrganizerQrScan({
-          token,
-          gate: `event:${eventId}`,
-          event_id: eventId,
-        });
+        const data = isPublicScanner
+          ? await validatePublicQrScan({
+              scanToken: scanToken!,
+              token,
+              gate: `event:${eventId}`,
+              eventId,
+            })
+          : await validateOrganizerQrScan({
+              token,
+              gate: `event:${eventId}`,
+              event_id: eventId,
+            });
         if (typeof navigator !== "undefined" && "vibrate" in navigator) {
           try {
             navigator.vibrate(data.checked_in ? 80 : 40);
@@ -227,7 +243,7 @@ export default function CheckInScanner({ eventId, eventTitle, onDenied }: Props)
             message: getApiErrorMessage(err, "Connection problem. Try again."),
             token,
           });
-        } else if (isOrganizerEventAccessError(err)) {
+        } else if (!isPublicScanner && isOrganizerEventAccessError(err)) {
           onDenied?.();
         } else {
           // Server/validation errors — not "invalid ticket"
@@ -247,7 +263,7 @@ export default function CheckInScanner({ eventId, eventTitle, onDenied }: Props)
         }
       }
     },
-    [eventId, mapOutcome, onDenied, refreshStats],
+    [eventId, isPublicScanner, mapOutcome, onDenied, refreshStats, scanToken],
   );
 
   const resumeScanning = useCallback(() => {
