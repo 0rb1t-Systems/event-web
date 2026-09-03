@@ -175,7 +175,7 @@ export default function OrganizerRegister() {
                 </div>
               </div>
               <ContinueWithGoogleButton onClick={handleGoogle} disabled={loading} />
-              <p className="text-center text-[11px] text-muted-foreground mt-3 leading-relaxed">
+              <p className="text-center text-xs text-muted-foreground mt-3 leading-relaxed">
                 Google creates your organizer account using your Google name. You can edit business details later in Settings.
               </p>
             </>

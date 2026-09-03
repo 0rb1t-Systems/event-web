@@ -47,15 +47,15 @@ export default function TicketTypeCard({ ticket, onEdit, onDelete, onSalesToggle
       <div className="flex-1 min-w-0 space-y-1">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm font-medium truncate">{ticket.name}</span>
-          <Badge className="border-0 bg-card text-[10px] rounded-full">{paid ? "Paid" : "Free"}</Badge>
+          <Badge variant="outline" className="text-xs rounded-full bg-oc-well border-oc-line text-oc-muted">{paid ? "Paid" : "Free"}</Badge>
           {isVip && (
-            <Badge className="border-0 bg-primary/15 text-primary text-[10px] rounded-full">VIP</Badge>
+            <Badge variant="outline" className="text-xs rounded-full bg-oc-brand-soft border-oc-brand/40 text-oc-brand-strong">VIP</Badge>
           )}
           {soldOut && (
-            <Badge className="border-0 bg-destructive/15 text-destructive text-[10px] rounded-full">Sold out</Badge>
+            <Badge variant="outline" className="text-xs rounded-full bg-oc-bad-soft border-oc-bad/40 text-oc-bad">Sold out</Badge>
           )}
           {!salesOn && (
-            <Badge className="border-0 bg-amber-500/15 text-amber-800 dark:text-amber-300 text-[10px] rounded-full">
+            <Badge variant="outline" className="text-xs rounded-full bg-oc-accent-soft border-oc-accent/45 text-oc-accent-strong">
               Sales paused
             </Badge>
           )}

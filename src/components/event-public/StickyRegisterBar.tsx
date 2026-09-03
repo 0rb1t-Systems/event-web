@@ -34,8 +34,8 @@ export function StickyRegisterBar({
           className="fixed bottom-4 left-0 right-0 z-40 flex justify-center px-4"
           style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         >
-          <div className="flex w-full max-w-lg items-center gap-3 rounded-full bg-white p-1.5 shadow-[0_16px_50px_-20px_rgba(15,23,42,0.45)] sm:px-2 sm:py-1.5">
-            <span className="hidden min-w-0 flex-1 truncate pl-3 text-sm font-medium text-slate-700 sm:block">
+          <div className="flex w-full max-w-lg items-center gap-3 rounded-full border border-border bg-card p-1.5 shadow-[0_16px_50px_-20px_rgba(15,23,42,0.45)] sm:px-2 sm:py-1.5">
+            <span className="hidden min-w-0 flex-1 truncate pl-3 text-sm font-medium text-foreground sm:block">
               {eventName}
             </span>
             <button

@@ -752,7 +752,7 @@ function ImageStudioDialog({
                       <IconClose className="w-3.5 h-3.5" />
                     </Button>
                     {row.source === "ai" && (
-                      <span className="absolute top-1.5 left-1.5 text-[10px] uppercase tracking-wide bg-background/90 px-1.5 py-0.5 rounded-full">AI</span>
+                      <span className="absolute top-1.5 left-1.5 text-xs uppercase tracking-wide bg-background/90 px-1.5 py-0.5 rounded-full">AI</span>
                     )}
                   </div>
                 ))}

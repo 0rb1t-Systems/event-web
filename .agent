@@ -1,6 +1,6 @@
 # EventHub Web App — Agent Context
 
-Last updated: 2026-09-03 — Short 8-char door qr_token (scan or type)
+Last updated: 2026-09-03 — Homepage scale, 3-col catalog, Rooms nav label
 Repository: D:\Orbit Systems\EventHub\event-web
 Git remote: https://github.com/Abdiaziiz-1717/event-web.git
 Default branch: main (GitHub HEAD; CI also listens to `master`)
@@ -84,23 +84,23 @@ Do not restore removed Lovable features unless the product explicitly requires t
 
 ## Design / UI Source of Truth
 
-The 2026-08-30 **house** restyle is the visual source of truth for Home (`/`), Browse (`/events`), Auth, and participant product pages. Public event detail (`/events/:id`) is a **cover-photo conference**: rounded island filled by the event banner, countdown and Register over a dark gradient, Pulse black facts bar, row-style agenda, navy partner logo tiles. Section links appear in `EventSectionNav` after scroll, not as a white pill on the cover. It does **not** inherit house chrome except the shared `SiteFooter` at the bottom. Organizer remains an ops console. Written tokens live in `design/MASTER.md`; page overrides in `design-system/pages/landing.md`, `browse-events.md`, `participant.md`, and `event-detail.md`. Event-detail palette: `src/components/event-public/pulseTheme.ts`.
+The 2026-08-30 **house** restyle is the visual source of truth for Home (`/`), Browse (`/events`), Auth, and participant product pages. Public event detail (`/events/:id`) is a **cover-photo conference**: shared `PublicSiteHeader` above the banner island, countdown and Register over a dark gradient, Pulse black facts bar, white-card two-column body (about / why-attend / speakers / agenda left; register + Event Detail + organizer + partners right; full-width gallery below). It does **not** inherit house chrome except the shared `SiteFooter` at the bottom. Organizer remains an ops console. Written tokens live in `design/MASTER.md`; page overrides in `design-system/pages/landing.md`, `browse-events.md`, `participant.md`, and `event-detail.md`. Event-detail palette: `src/components/event-public/pulseTheme.ts`.
 
 Locked system:
 
 - House accent: emerald only (`160 72% 34%`). Cool zinc neutrals on white. Not inspiration blue, not Pulse teal on Home/Browse, not rose, not cream, not orange, not acid `#00FF00`.
 - Public discovery + participant concept: **the house**. Slim masthead (`PublicSiteHeader` default), `.house-page` follows `html.dark`, rounded photography cards, admission-stub motif. Night lineup (ink bed, `tone="lineup"`, Barlow Condensed, 3:4 posters, title marquee) is retired on these surfaces.
-- Event detail is a **cover-photo conference**: banner fills a rounded island, slim in-hero chrome (logo + account + Register), countdown, overlapping black facts bar, row agenda, navy partner logo tiles, teal speaker field. No white pill section nav on the cover. Catalog cards are house cards; the detail hero is the event cover, not a catalog card.
+- Event detail is a **cover-photo conference**: shared `PublicSiteHeader` above the cover island, countdown, overlapping black facts bar, white-card two-column body, full-width gallery grid. No `EventPulseHeader` on the photo. Catalog cards are house cards; the detail hero is the event cover, not a catalog card.
 - Purchased stubs are **light perforated EventHub passes** (serial `EH-xxxxx`, QR when valid). Not dark laminate.
 - Organizer concept: **org console** (warm paper canvas `#FCFAF7`, teal brand `#0F6E56`, amber accent `#E8A33D`, ink `#141B17`, danger `#C2452D`). Chrome is a **single persistent topbar**, not a sidebar (sidebar removed 2026-09-01 in the anti-slop redesign; see review canvas `canvases/organizer-portal-review.canvas.tsx`). Desktop chrome = `OrgTopbar`: sticky top-0 bar, logo + wordmark, underline nav (Dashboard/Events/Check-in/Finance), `AccountMenu` (workspace + email, Settings, Log out). Search, Bell, New event, and Public site are **not** in the topbar — Create stays on the Events page. Mobile = `OrgAppBar` + `OrgBottomNav` (4 items, `text-[11px]` labels; no Home / Bell). Dashboard `<main>` is `max-w-[1200px]`; studio is `max-w-[1280px]`. `/organizer/scanner` **keeps the topbar** (not immersive); unlock is a centered `max-w-md` card. Event Studio is the **only** left rail: `OrgStudioNav` (232px, 12px items, EVENT/PEOPLE/MANAGE, All events + identity) plus slim `OrgStudioHeader` actions; desktop studio is document flow with a sticky rail (`top-16`) and native page scroll. `SmoothScroll` / Lenis is skipped on `/organizer`. Dashboard Recent events is a hairline table, not thumb-rows. Overview is **edit-only** (`EventQuickInfo` + gallery). Type: H1 `text-[22px] lg:text-2xl`, `OrgStatCard` `text-[22px] lg:text-[26px]`, event titles `text-base`, `OrgButton` md `py-2.5 text-[13px]`. Thumbs teal/amber/slate only. Analytics stays routed, not in nav. Dark console remaps `--oc-*` under `.dark .org-console`; theme toggle lives on the topbar.
 - Console tokens live in `src/index.css` under `.org-console` (`--oc-*` HSL vars; shadcn `--primary`/`--card`/`--muted`… remapped onto them so existing panels adopt the palette). Console radii normalized: `.rounded-xl`→16px, `.rounded-md`→12px inside `.org-console`. Shared primitives in `src/components/organizer-console/`: `OrgButton` (primary/ghost/dark/danger), `OrgChip` (brand/plain/faint/amber/bad dot chips), `OrgStatCard`, `orgTheme.ts` (status tones, money format, thumb gradients, initials).
 - Console type: Funnel Sans Variable (`font-head`, headings), Inter Variable (body), IBM Plex Mono (`font-data`, tokens/amounts/serials). House pages keep Outfit Variable + Source Sans 3 Variable + JetBrains Mono. Self-hosted via `@fontsource*`.
 - Icons: organizer console uses Heroicons 2 outline (`react-icons/hi2`) through `src/components/organizer-console/orgIcons.ts`. Lucide stays for spinners (`Loader2`) and for house/shadcn primitives. Do not mix lucide glyphs into organizer chrome or studio panels.
 - Motion: framer-motion, honor `prefers-reduced-motion`. Console screens are motion-light (dial 2). `SmoothScroll` mounts Lenis on public/participant routes only — never on `/organizer`.
-- Dual theme via `next-themes` (`storageKey` `app-theme`, default `system`). House pages (`.house-page`) and the org console (`.org-console`) follow `html.dark`. Public event detail (`.pulse-event`) stays light-locked as the cover-photo conference. QR pads stay white so codes scan. `Logo` uses `logo_dark_url` when the resolved theme is dark.
+- Dual theme via `next-themes` (`storageKey` `app-theme`, default `system`). House pages (`.house-page`) and the org console (`.org-console`) follow `html.dark`. Public event detail (`.pulse-event`) follows `html.dark` with Pulse teal primary. QR pads stay white so codes scan. `Logo` uses `logo_dark_url` when the resolved theme is dark.
 - Public discovery dials: Home/Browse variance 6, motion 5, density 4. Event detail cover-photo conference: variance 7, motion 6, density 4. Participant product: variance 4, motion 3, density 6. Organizer product: variance 3, motion 2, density 7.
 
-CTA lock (one label per intent): Home · Browse events · Register · Next event · My Tickets · Create event · Organizer.
+CTA lock (one label per intent): Home · Browse events · Register · Rooms · My Tickets · Create event · Organizer.
 
 Public event detail (`/events/:id`) is a cover-photo conference on warm paper. It does not use `.house-page`, `.lineup-page`, or `font-lineup`. Hero is the event banner in a rounded island with type at the bottom-left. Chrome accent is Pulse teal `#2ECFC2`. Override spec: `design-system/pages/event-detail.md`. Registration stays on this page (no separate checkout route).
 
@@ -108,7 +108,7 @@ IA v3:
 
 - Organizer chrome: Dashboard, Events, Check-in, Finance in `OrgTopbar`; Settings in the account menu. Event Studio section rail is not app nav.
 - Public funnel: `/` Home → `/events` Browse events → `/events/:id` Detail + Register.
-- Participant nav (`PublicSiteHeader`): Home, Browse events, Next event (contextual list at `/dashboard/rooms`), My Tickets (purchased stubs). Settings in the avatar menu. House pages use the slim white header; event detail uses slim `EventPulseHeader` on the cover (logo + account + Register). On-page section links are `EventSectionNav` after scroll.
+- Participant nav (`PublicSiteHeader`): Home, Browse events, Rooms (`/dashboard/rooms`), My Tickets (purchased stubs). Settings in the avatar menu. House pages and **public event detail** use this slim white header; event detail no longer uses in-cover `EventPulseHeader`.
 - Finance is `/organizer/finance` (Payouts | Plans tabs).
 - Event Studio nav groups (pen): EVENT (Overview, Tickets, Program, Invitation), PEOPLE (Attendees, Check-in, Lucky wheel), MANAGE (Finance, Settings). Analytics stays routed at `/organizer/events/:id/analytics` but is not in the pen nav. **Custom registration form fields are removed from the product** — join is ticket-only (free join or paid ticket + Waafi).
 - Participant login default home is `/` (not `/dashboard`).
@@ -364,7 +364,7 @@ Guards:
 | Homepage/catalog | house Home (`Landing`) + filter-rail Browse events (`/events`) | `GET /events` + `GET /event-categories` via React Query (`usePublicEventList`) | Yes | Home: photo island + overlapping What/Where `q`, uniform 16:9 grid (4-col `xl`); no featured lead; organizer CTA after the grid; `/events` uses the same compact `EventCatalogCard`; branding still from BrandingProvider |
 | Platform branding | `Logo` + document title/favicon | `GET /platform/branding` (publicApi) | Yes | Admin Settings → Organization is the write UI; Web App read-only; fallback `VITE_APP_NAME` + glyph when empty |
 | Auth | house header + compact `max-w-sm` white card + verify/forgot + Continue with Google | Laravel `/auth/*` incl. `POST /auth/google/login` | Yes | participant register/login/verify/logout/me/google; admin users can use `/auth/login` as web-participant; no duplicate logo on `/auth` (header already has it); Google needs `VITE_GOOGLE_CLIENT_ID` + Laravel `GOOGLE_CLIENT_ID` |
-| Public event page + registration | PublicEventPage + cover-photo Hero (banner island + countdown + Register, no in-hero section pill) + overlapping black facts + row agenda + navy partner tiles + house `SiteFooter` | `GET /events/{id}` (publicApi); `POST /participant/events/{id}/discount-codes/validate`, `POST /participant/participations` (ticket + optional `discount_code` only — **no custom form fields**), `POST /participant/payments/charge`, `GET /participant/participations/{id}` (participantApi) | Yes | Registration UI: pick ticket (if any) → privacy consent → join or pay. Free events with no ticket types join directly. Paid: discount quote optional, then Waafi. No `GET /events/{id}/form-fields` on register. Cover fills a rounded island; type sits bottom-left over a light gradient so the photo shows. Industry type scale (hero ~24–34px). Pulse countdown + black facts bar kept. About is a stacked lead + body with a teal rule. Why attend is a mint lead band plus compact rows. Agenda is time/title/speaker rows with no section CTAs. Partners are real-color logos on white tiles over navy (no invert). Speakers are compact teal-field row-cards (not a full-page stage). `EventSectionNav` after scroll. Footer is shared `SiteFooter` (light-locked). No “Powered by” line. Sessions pass description/room/ends_at; speakers pass bio. Page chrome accent is Pulse teal `#2ECFC2`. Tickets with `sales_enabled=false` omitted; paid flow can validate + apply discount quote before join. |
+| Public event page + registration | PublicEventPage + cover-photo Hero (banner island + countdown + Register, no in-hero section pill) + overlapping black facts + white-card two-column body + in-page checkout + house `SiteFooter` | `GET /events/{id}` (publicApi); `POST /participant/events/{id}/discount-codes/validate`, `POST /participant/participations` (ticket + optional `discount_code` only — **no custom form fields**), `POST /participant/payments/charge`, `GET /participant/participations/{id}` (participantApi) | Yes | Registration UI: pick ticket (if any) → privacy consent → join or pay. Free events with no ticket types join directly. Paid: discount quote optional, then Waafi. No `GET /events/{id}/form-fields` on register. Cover fills a rounded island; type sits bottom-left over a light gradient so the photo shows. Industry type scale (hero ~24–34px). Pulse countdown + black facts bar kept. Left column: About, Why attend this event (separate card), speakers, agenda timeline. Gallery is full-width below the two-column block. Right sticky rail: starting price + Register + Share, Event Detail (date/time/venue/map), organizer, partners. `PublicSiteHeader` above hero. Footer is shared `SiteFooter` (light-locked). Sessions pass description/room/ends_at; speakers pass bio. Page chrome accent is Pulse teal `#2ECFC2`. Tickets with `sales_enabled=false` omitted; paid flow can validate + apply discount quote before join. |
 | Participant dashboard (home) | AttendeeHome as My Tickets (light perforated EventHub pass + QR) | `GET /participant/participations` via `useMyParticipations` | Yes | Lists purchased tickets, not event-room cards. QR from `qr_token` when the ticket is valid. |
 | Event rooms list | EventRooms at `/dashboard/rooms` | same participations list, filtered by `roomSwitcherList` | Yes | Next event lands here. User picks which room to open. |
 | Registration detail (ticket) | RegistrationDetail | `GET .../invitation` (ticket payload; `invitation` always null) | Yes | `/registrations/:id`; static EventHub pass stub; QR panel shows `qr_token` under the code (scan or type at door); **Download ticket** saves a PNG of the pass only (`ticketImage.ts`); **Open event room** CTA when ticket valid |
@@ -582,7 +582,7 @@ All under `/api/v1`. Header `X-API-Key` + Bearer `participant_token`.
   - Capacity full → **400 Event capacity reached** (no waitlist)
   - Waafi **failure** or pending **expiry** → participation **cancelled**, ticket quantity released, seat freed; user may join again
 
-- `POST /participant/payments/charge` — body `{ participation_id, payer_phone }`. Returns wrapped `{ success, data: Payment }`. Uses **210-second Axios timeout** (WaafiPay holds connection up to 180s). Backend charges snapshotted `final_amount` (not a client-invented amount). `payment.status` values: `pending | completed | refunded | failed`. On failure: `failure_code` + `failure_reason`. Error 400 "A payment is already pending" = idempotency guard. Error 400 "already paid" = race win, re-fetch participation.
+- `POST /participant/payments/charge` — body `{ participation_id, payer_phone }`. Returns wrapped `{ success, data: Payment }`. Uses **210-second Axios timeout** (WaafiPay holds connection up to 180s). Backend charges snapshotted `final_amount` (not a client-invented amount). `payment.status` values: `pending | completed | refunded | failed`. On failure: `failure_code` + `failure_reason`. Error 400 "A payment is already pending" = idempotency guard. Error 400 "already paid" = race win, re-fetch participation. **Web client:** while charging, polls `GET /participant/participations/{id}` every 4s; treats `payment_status=paid|not_required` as success even if charge HTTP is still open, returns `pending`, or times out.
 
 - `GET /participant/participations/{id}` — returns wrapped `{ success, data: Participation }` with `event` + `ticketType` relationships. Used both by Ticket page and as fallback re-check after charge.
 
@@ -787,6 +787,84 @@ Event `scan_token` is generated on create; organizer show/update/banner/transiti
 - Public `online_url` is hidden; registered participants see it on invitation/event room
 
 ## Change Log
+
+### 2026-09-03 — Pending registration: resume main checkout UI
+
+`/registrations/:id` with `payment_status=pending|failed` now renders `CheckoutLayout` + `WaafiPayStep` (same as in-event checkout) instead of a locked stub + standalone Waafi card. Loads `GET /participant/participations/{id}` for snapshotted `final_amount` / discount totals via `participationCheckoutPricing`.
+
+Files: `RegistrationDetail.tsx`, `participationCheckout.ts`, `.agent`.
+
+### 2026-09-03 — My Tickets: hide unpaid pending registrations
+
+`/dashboard/home` (My Tickets) lists only purchased tickets (`payment_status` paid or not_required, not cancelled/waitlisted). Pending checkout rows stay on `/registrations/:id` for payment completion but no longer appear in the ticket list. Register cancel copy updated accordingly.
+
+Files: `AttendeeHome.tsx`, `nextEvent.ts`, `Register.tsx`, `.agent`.
+
+### 2026-09-03 — App-wide dark mode status badges + scanner buttons
+
+Centralized theme-safe status pills in `src/lib/statusBadges.ts` + `StatusBadge` component. Participant pages (registration, My Tickets), organizer attendees table, and lucky wheel use shared badge classes with explicit `dark:` text colors. Check-in scanner white buttons use `orgOnWhiteBtnClass` (fixed dark ink) instead of `text-oc-ink`, which flips to near-white in dark mode and made **Start camera** / **Scan next** invisible.
+
+Files: `statusBadges.ts`, `StatusBadge.tsx`, `CheckInScanner.tsx`, `RegistrationDetail.tsx`, `EventRegistrationsPanel.tsx`, `LuckyWheelPanel.tsx`, `AttendeeHome.tsx`, `PurchasedTicketStub.tsx`, `orgTheme.ts`, `badge.tsx`, `.agent`.
+
+### 2026-09-03 — Registration confirmation dark mode badges + buttons
+
+Confirmation page (`/registrations/:id`) no longer forces light `#F8FAFC` ink on the page (which made outline buttons unreadable on dark cards). Status on `PurchasedTicketStub` renders as a proper pill with dark-mode-safe `statusMeta` classes. Checkout stepper inactive steps use `text-muted-foreground` instead of white-on-muted.
+
+Files: `RegistrationDetail.tsx`, `PurchasedTicketStub.tsx`, `ConfirmationEventCard.tsx`, `CheckoutStepper.tsx`, `.agent`.
+
+### 2026-09-03 — Waafi checkout: poll participation after phone approval
+
+`ParticipantWaafiPayment` now polls `GET /participant/participations/{id}` every 4s while the charging spinner is visible. If the user approves EVC on their phone before the long-running charge HTTP returns (or if charge returns `pending`/times out), checkout still advances to confirmation when `payment_status` becomes `paid`. Pending charge responses no longer show a false failure. **Check status** is available during charging and after errors.
+
+Files: `ParticipantWaafiPayment.tsx`, `.agent`.
+
+### 2026-09-03 — Checkout: drop details step, Waafi-only payment screen
+
+Removed the separate attendee-details checkout step. Ticket selection now includes privacy consent and **Complete purchase** (creates participation in one step). After join, paid events show **WaafiPayStep** only — no duplicate details + payment UI. Fail state retries Waafi on the same pending participation.
+
+Files: `Register.tsx`, `TicketSelectStep.tsx`, `WaafiPayStep.tsx` (new), deleted `PaymentStep.tsx`, `CheckoutStepper.tsx`, `design/pages/checkout.md`, `.agent`.
+
+### 2026-09-03 — Event detail dark mode
+
+`.pulse-event` now follows `html.dark` (removed light-lock). Body cards, sidebar, sticky bar, checkout, and footer use semantic tokens (`bg-card`, `text-foreground`, `border-border`, etc.) instead of hardcoded white/slate.
+
+Files: `index.css`, `PublicEventPage.tsx`, `EventCard.tsx`, `PublicModule.tsx`, `StickyRegisterBar.tsx`, `Register.tsx`, `event-checkout/*`, `design/pages/event-detail.md`, `.agent`.
+
+### 2026-09-03 — Event detail: app nav header + larger hero/facts
+
+Added shared `PublicSiteHeader` (Home, Browse events, Rooms, My Tickets) above the event cover; removed in-cover `EventPulseHeader` and `EventSectionNav`. Hero and facts bar scaled up (~24–36rem cover, `lg:text-[3rem]` title, roomier facts bar).
+
+Files: `PublicEventPage.tsx`, `Hero.tsx`, `EventFactsBar.tsx`, `design/pages/event-detail.md`, `design/MASTER.md`, `.agent`.
+
+### 2026-09-03 — Event detail: restore section nav + compact hero/facts
+
+Re-added `EventSectionNav` (floating pill after scroll). Hero cover scaled down to industry type (~26–32px title, shorter island ~14–18rem min with max cap). Facts bar tightened: smaller padding/type, `max-w-6xl` aligned with hero inset.
+
+Files: `PublicEventPage.tsx`, `Hero.tsx`, `EventFactsBar.tsx`, `EventSectionNav.tsx`, `design/pages/event-detail.md`, `design/MASTER.md`, `.agent`.
+
+### 2026-09-03 — Homepage scale, 3-col catalog, Rooms nav
+
+Home `/` gets `.landing-page` (+6.25% type scale). Hero island taller (`22/28/34rem` min-heights), larger headline/subcopy, roomier search bar. Event catalog grids on Home and Browse are capped at **3 columns** (`lg:grid-cols-3`, no `xl:grid-cols-4`). Participant nav label **Next event** → **Rooms** (always when signed in; links to `/dashboard/rooms`). No Laravel changes.
+
+Files: `Landing.tsx`, `BrowseEvents.tsx`, `PublicSiteHeader.tsx`, `src/index.css`, `.agent`.
+
+### 2026-09-03 — Industry type scale (16px body baseline)
+
+Raised the global type scale so the app reads at standard browser zoom (100%), not the previous dense 12–13px console/catalog sizing. `tailwind.config.ts` extends `fontSize`: body `1rem` (16px), secondary UI `0.9375rem` (15px), captions `0.8125rem` (13px), micro labels `0.6875rem` (11px). `body` and `.org-console` use `text-base` / `1rem`. Replaced hardcoded `text-[10–13px]` across `src/` with semantic tokens (`text-sm`, `text-xs`, `text-2xs`). House chrome: `PublicSiteHeader` is 64px with `text-base` nav; shadcn `Button` default is `h-11` + `text-base`; `Input` is `h-11` + `text-base`; `EventCatalogCard` titles/meta/Register CTA bumped one step. No Laravel changes.
+
+Files: `tailwind.config.ts`, `src/index.css`, `src/components/ui/button.tsx`, `src/components/ui/input.tsx`, `src/components/layout/PublicSiteHeader.tsx`, `src/components/catalog/EventCatalogCard.tsx`, `src/components/organizer-console/OrgButton.tsx`, bulk `src/**/*.tsx`, `.agent`.
+
+### 2026-09-03 — Event detail: gallery breaks two-column layout
+
+Gallery now renders below the two-column block at full content width (`max-w-6xl`), not inside the left column. Modules before gallery stay in the left/right split; gallery grid uses up to 4 columns on large screens.
+
+Files: `PublicEventPage.tsx`, `PublicModule.tsx`, `design/pages/event-detail.md`, `.agent`.
+
+### 2026-09-03 — Event detail sidebar layout + gallery grid
+
+Public `/events/:id` body refinements to match the white-card reference: removed `EventSectionNav`; About and **Why attend this event** are separate left-column cards; venue/date/time moved to a right-column **Event Detail** card (register box above it); partners render in the sidebar below organizer; gallery uses a static grid instead of carousel. Hero + black facts bar unchanged. No Laravel endpoints.
+
+Files: `PublicEventPage.tsx`, `PublicModule.tsx` (`EventDetailSidebar`, exported `Sponsors`, grid `Gallery`), `Register.tsx` (`buildModules` why-attend heading), `design/pages/event-detail.md`, `.agent`.
 
 ### 2026-09-03 — Short door QR tokens (one line)
 

@@ -58,14 +58,16 @@ function formatMoney(amount: number, currency: string) {
   }
 }
 
-const th = "text-left text-[10px] font-bold uppercase tracking-[1px] text-oc-faint pb-2";
-const td = "py-3 text-[13px] text-oc-ink align-middle";
+const th = "text-left text-xs font-bold uppercase tracking-[1px] text-oc-faint pb-2";
+const td = "py-3 text-sm text-oc-ink align-middle";
 
 type Props = {
   eventId: number;
   eventTitle?: string;
   /** Hide outer title when studio tab already provides context. */
   compact?: boolean;
+  /** Hide per-event request list when a parent page already shows history. */
+  hideRequestList?: boolean;
   onDenied?: () => void;
 };
 
@@ -73,6 +75,7 @@ export default function EventFinancePanel({
   eventId,
   eventTitle,
   compact,
+  hideRequestList,
   onDenied,
 }: Props) {
   const [finance, setFinance] = useState<OrganizerEventFinance | null>(null);
@@ -163,9 +166,7 @@ export default function EventFinancePanel({
     setSubmitting(true);
     try {
       const created = await createOrganizerEventPayoutRequest(eventId, requestedNum);
-      toast.success(
-        `Payout requested · ${asMoneyNumber(created.commission_rate)}% commission snapshotted`,
-      );
+      toast.success(`Payout requested`);
       setConfirmOpen(false);
       setAmount("");
       await load();
@@ -187,82 +188,43 @@ export default function EventFinancePanel({
 
   const cards = finance
     ? [
-        {
-          label: "Collected",
-          value: formatMoney(finance.total_collected, currency),
-          icon: IconDollar,
-          hint: "Completed payments (refunded payments are excluded from this total)",
-        },
-        {
-          label: "Reserved / paid out",
-          value: formatMoney(finance.total_reserved, currency),
-          icon: IconLock,
-          hint: `Includes requested, approved, and paid. Settled paid-out: ${formatMoney(finance.total_paid_out, currency)}`,
-        },
-        {
-          label: "Available payout",
-          value: formatMoney(finance.outstanding_balance, currency),
-          icon: IconWallet,
-          hint: "Collected minus reserved/paid payout amounts",
-        },
+        { label: "Collected", value: formatMoney(finance.total_collected, currency), icon: IconDollar },
+        { label: "Reserved", value: formatMoney(finance.total_reserved, currency), icon: IconLock },
+        { label: "Available", value: formatMoney(finance.outstanding_balance, currency), icon: IconWallet },
       ]
     : [];
 
   return (
     <div className="space-y-5">
-      {!compact && (
-        <div>
-          <h3 className="font-head font-semibold text-[17px] text-oc-ink">
-            {eventTitle ? `Finance · ${eventTitle}` : "Event finance"}
-          </h3>
-          <p className="text-[13px] text-oc-muted">
-            Per-event balances from Laravel. Commission is set by the platform and snapshotted when
-            you request a payout.
-          </p>
-        </div>
+      {!compact && eventTitle && (
+        <h3 className="font-head font-semibold text-[17px] text-oc-ink">{eventTitle}</h3>
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {cards.map((c) => (
-          <div key={c.label} className="rounded-[12px] bg-oc-bg p-4">
+          <div key={c.label} className="rounded-[12px] bg-oc-well p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[13px] text-oc-muted">{c.label}</span>
+              <span className="text-sm text-oc-muted">{c.label}</span>
               <div className="w-8 h-8 rounded-[10px] bg-oc-surface flex items-center justify-center">
                 <c.icon className="w-4 h-4 text-oc-faint" />
               </div>
             </div>
             <p className="text-[22px] lg:text-[24px] font-head font-semibold tabular-nums text-oc-ink">{c.value}</p>
-            <p className="text-[11px] text-oc-faint mt-2 leading-snug">{c.hint}</p>
           </div>
         ))}
       </div>
 
-      <p className="text-xs text-oc-faint">
-        After a payout is recorded as paid, related refunds may be blocked by the platform
-        (<code className="mx-1 text-[10px] font-data">refund_blocked_payout_recorded</code>
-        ). Automatic clawback is not promised.
-      </p>
-
-      <div className="rounded-[12px] bg-oc-bg p-4 sm:p-5 space-y-4">
-        <div>
-          <h4 className="font-head font-semibold text-[15px] text-oc-ink flex items-center gap-2">
-            <IconBanknotes className="w-4 h-4 text-oc-faint" />
-            Request payout
-          </h4>
-          <p className="text-xs text-oc-muted mt-0.5">
-            Available now:{" "}
-            <span className="font-medium text-oc-ink">
-              {formatMoney(available, currency)}
-            </span>
-            . Payouts are per event — there is no organizer-wide batch request.
-          </p>
-        </div>
+      <div className="rounded-[12px] bg-oc-well p-4 sm:p-5 space-y-4">
+        <h4 className="font-head font-semibold text-[15px] text-oc-ink flex items-center gap-2">
+          <IconBanknotes className="w-4 h-4 text-oc-faint" />
+          Request payout
+          <span className="text-sm font-normal text-oc-muted">
+            · {formatMoney(available, currency)} available
+          </span>
+        </h4>
 
         {available <= 0 ? (
-          <p className="text-[13px] text-oc-muted py-2">
-            No available balance for this event. New requests open when collected funds exceed
-            reserved and paid payouts.
-          </p>
+          <p className="text-sm text-oc-muted py-2">No balance available.</p>
         ) : (
           <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
             <div className="space-y-1.5 flex-1 sm:max-w-xs">
@@ -282,21 +244,22 @@ export default function EventFinancePanel({
               Continue
             </OrgButton>
             <OrgButton variant="ghost" onClick={() => setAmount(String(available))}>
-              Use full available
+              Max
             </OrgButton>
           </div>
         )}
       </div>
 
-      <div className="space-y-3">
-        <h4 className="font-head font-semibold text-[15px] text-oc-ink">Payout requests</h4>
+      {!hideRequestList && (
+        <div className="space-y-3">
+          <h4 className="font-head font-semibold text-[15px] text-oc-ink">Requests</h4>
         {loading ? (
           <div className="flex justify-center py-10">
             <Loader2 className="w-5 h-5 animate-spin text-oc-brand" />
           </div>
         ) : items.length === 0 ? (
-          <div className="rounded-[12px] bg-oc-bg p-8 text-center text-[13px] text-oc-muted">
-            No payout requests for this event yet.
+          <div className="rounded-[12px] bg-oc-well p-8 text-center text-sm text-oc-muted">
+            None yet.
           </div>
         ) : (
           <>
@@ -316,7 +279,7 @@ export default function EventFinancePanel({
                     return (
                       <tr
                         key={row.id}
-                        className="border-b border-oc-line/60 last:border-0 cursor-pointer hover:bg-oc-bg"
+                        className="border-b border-oc-line/60 last:border-0 cursor-pointer hover:bg-oc-well"
                         onClick={() => void openDetail(row)}
                       >
                         <td className={`${td} font-data font-semibold tabular-nums`}>
@@ -326,7 +289,7 @@ export default function EventFinancePanel({
                           <OrgChip label={status.replace(/_/g, " ")} tone={orgPayoutTone(status)} size="sm" />
                         </td>
                         <td className={`${td} text-oc-muted hidden sm:table-cell`}>
-                          {asMoneyNumber(row.commission_rate)}% snapshot
+                          {asMoneyNumber(row.commission_rate)}%
                         </td>
                         <td className={`${td} text-oc-muted hidden md:table-cell`}>
                           {format(new Date(row.created_at), "MMM d, yyyy")}
@@ -366,27 +329,16 @@ export default function EventFinancePanel({
             )}
           </>
         )}
-      </div>
+        </div>
+      )}
 
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent className="rounded-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm payout request?</AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-2 text-sm text-oc-muted">
-                <p>
-                  Request{" "}
-                  <span className="font-medium text-oc-ink">
-                    {formatMoney(requestedNum || 0, currency)}
-                  </span>{" "}
-                  from this event. Available: {formatMoney(available, currency)}.
-                </p>
-                <p>
-                  Platform commission is applied at the current rate and stored on this request. Net
-                  to you uses that snapshot — not a later rate change. Admins approve and pay
-                  outside this app.
-                </p>
-              </div>
+            <AlertDialogDescription>
+              Request {formatMoney(requestedNum || 0, currency)} from{" "}
+              {formatMoney(available, currency)} available. Commission is snapshotted at submit.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -469,8 +421,8 @@ function PayoutDetailBody({
           {formatMoney(asMoneyNumber(payout.requested_amount), currency)}
         </span>
       </div>
-      <div className="rounded-[12px] bg-oc-bg p-3 space-y-1.5">
-        <p className="text-[10px] font-bold tracking-[1px] text-oc-faint">Commission (snapshot)</p>
+      <div className="rounded-[12px] bg-oc-well p-3 space-y-1.5">
+        <p className="text-xs font-bold tracking-[1px] text-oc-faint">Commission</p>
         <div className="flex justify-between">
           <span className="text-oc-muted">Rate</span>
           <span>{asMoneyNumber(payout.commission_rate)}%</span>
@@ -483,17 +435,11 @@ function PayoutDetailBody({
           <span>Net</span>
           <span className="tabular-nums">{formatMoney(net, currency)}</span>
         </div>
-        {!storedCommission && (
-          <p className="text-[11px] text-oc-faint pt-1">
-            Amounts computed from the snapshotted rate. Stored commission/net appear after admin
-            approval.
-          </p>
-        )}
       </div>
       {payout.admin_notes ? (
         <div className="space-y-1">
-          <p className="text-[10px] font-bold tracking-[1px] text-oc-faint">Admin notes</p>
-          <p className="text-sm whitespace-pre-wrap rounded-[12px] bg-oc-bg p-3">{payout.admin_notes}</p>
+          <p className="text-xs font-bold tracking-[1px] text-oc-faint">Admin notes</p>
+          <p className="text-sm whitespace-pre-wrap rounded-[12px] bg-oc-well p-3">{payout.admin_notes}</p>
         </div>
       ) : null}
       <div className="grid grid-cols-2 gap-2 text-xs text-oc-faint">

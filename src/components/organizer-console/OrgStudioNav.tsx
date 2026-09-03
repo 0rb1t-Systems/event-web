@@ -70,7 +70,7 @@ export function OrgStudioNav({ eventId, active, eventName, status, bannerUrl }: 
     <aside className="hidden lg:flex w-[232px] shrink-0 flex-col border-r border-oc-line py-5 pr-5 lg:sticky lg:top-16 lg:max-h-[calc(100dvh-4rem)] lg:overflow-y-auto">
       <Link
         to="/organizer/events"
-        className="flex items-center gap-2 px-2 py-2 rounded-[10px] text-[12px] font-medium text-oc-muted hover:text-oc-ink hover:bg-oc-surface transition-colors"
+        className="flex items-center gap-2 px-2 py-2 rounded-[10px] text-xs font-medium text-oc-muted hover:text-oc-ink hover:bg-oc-surface transition-colors"
       >
         <IconArrowLeft className="w-3.5 h-3.5" />
         All events
@@ -85,7 +85,7 @@ export function OrgStudioNav({ eventId, active, eventName, status, bannerUrl }: 
           </span>
         )}
         <div className="min-w-0">
-          <p className="text-[12px] font-semibold text-oc-ink truncate">{eventName}</p>
+          <p className="text-xs font-semibold text-oc-ink truncate">{eventName}</p>
           <OrgChip label={statusLabel} tone={orgEventStatusTone(status)} size="sm" className="mt-1" />
         </div>
       </div>
@@ -93,7 +93,7 @@ export function OrgStudioNav({ eventId, active, eventName, status, bannerUrl }: 
       <nav className="flex flex-col gap-5" aria-label="Event studio sections">
         {STUDIO_GROUPS.map((group) => (
           <div key={group.label} className="flex flex-col gap-0.5">
-            <p className="text-[10px] font-bold tracking-[1.2px] text-oc-faint px-3">{group.label}</p>
+            <p className="text-xs font-bold tracking-[1.2px] text-oc-faint px-3">{group.label}</p>
             {group.items.map((item) => {
               const isActive = active === item.key;
               return (
@@ -102,7 +102,7 @@ export function OrgStudioNav({ eventId, active, eventName, status, bannerUrl }: 
                   to={studioSectionPath(eventId, item.key)}
                   aria-current={isActive ? "page" : undefined}
                   className={cn(
-                    "flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[12px] transition-colors",
+                    "flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-xs transition-colors",
                     isActive
                       ? "bg-oc-brand-soft text-oc-brand-strong font-semibold"
                       : "text-oc-muted font-medium hover:text-oc-ink hover:bg-oc-surface",
@@ -144,7 +144,7 @@ export function OrgStudioMobileNav({ eventId, active }: { eventId: number; activ
                 to={studioSectionPath(eventId, item.key)}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "flex items-center gap-1.5 h-full -mb-px border-b-2 px-2.5 text-[12px] whitespace-nowrap transition-colors",
+                  "flex items-center gap-1.5 h-full -mb-px border-b-2 px-2.5 text-xs whitespace-nowrap transition-colors",
                   isActive
                     ? "border-oc-brand text-oc-ink font-semibold"
                     : "border-transparent text-oc-muted font-medium",

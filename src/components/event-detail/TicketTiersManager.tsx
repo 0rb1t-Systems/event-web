@@ -118,7 +118,7 @@ export default function TicketTiersManager({ tiers, currency = "USD", onChange }
               </div>
               <div className="text-right shrink-0">
                 <div className="text-sm font-display font-semibold">{formatPrice(t.price, t.currency || currency)}</div>
-                <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                <div className="text-xs text-muted-foreground uppercase tracking-wider">
                   {t.capacity == null ? "Unlimited" : `${t.capacity} seats`}
                 </div>
               </div>

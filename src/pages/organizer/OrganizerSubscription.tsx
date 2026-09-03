@@ -51,25 +51,25 @@ function formatRemaining(seconds: number | null | undefined) {
 }
 
 function quotaFeature(pkg: OrganizerPackage): string {
-  if (pkg.event_quota == null) return "Unlimited event creations";
-  if (pkg.event_quota === 0) return "No event creations included";
-  return `Up to ${pkg.event_quota} event${pkg.event_quota === 1 ? "" : "s"}`;
+  if (pkg.event_quota == null) return "Unlimited events";
+  if (pkg.event_quota === 0) return "No events";
+  return `${pkg.event_quota} event${pkg.event_quota === 1 ? "" : "s"}`;
 }
 
 function durationFeature(pkg: OrganizerPackage): string {
-  return pkg.duration_label ? `${pkg.duration_label} billing period` : "Non-expiring access";
+  return pkg.duration_label ?? "Non-expiring";
 }
 
 function ctaLabel(pkg: OrganizerPackage): string {
-  if (pkg.is_current) return "Your current plan";
-  if (pkg.upgrade_allowed) return "Upgrade to this plan";
-  if (!pkg.selectable) return "Not available";
-  if (isFreePackage(pkg)) return "Activate free plan";
-  return "Subscribe now";
+  if (pkg.is_current) return "Current plan";
+  if (pkg.upgrade_allowed) return "Upgrade";
+  if (!pkg.selectable) return "Unavailable";
+  if (isFreePackage(pkg)) return "Activate";
+  return "Subscribe";
 }
 
-const th = "text-left text-[10px] font-bold uppercase tracking-[1px] text-oc-faint pb-2";
-const td = "py-3 text-[13px] text-oc-ink align-middle";
+const th = "text-left text-xs font-bold uppercase tracking-[1px] text-oc-faint pb-2";
+const td = "py-3 text-sm text-oc-ink align-middle";
 
 export default function OrganizerSubscription() {
   const [packages, setPackages] = useState<OrganizerPackage[]>([]);
@@ -171,8 +171,8 @@ export default function OrganizerSubscription() {
       {/* Current plan */}
       <div className="org-card p-5 flex flex-col sm:flex-row sm:items-center gap-4">
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-[1.2px] text-oc-faint mb-1.5">
-            Current plan
+          <p className="text-xs font-bold uppercase tracking-[1.2px] text-oc-faint mb-1.5">
+            Plan
           </p>
           {planName ? (
             <>
@@ -184,25 +184,26 @@ export default function OrganizerSubscription() {
                   </span>
                 )}
               </h2>
-              <p className="text-[13px] text-oc-muted mt-1">
-                {quota
-                  ? quota.unlimited
-                    ? `${quota.events_created} events created · unlimited quota`
-                    : `${quota.events_created} of ${quota.quota ?? "—"} concurrent events used`
-                  : null}
-                {active?.expires_at
-                  ? ` · Renews ${format(new Date(active.expires_at), "MMM d, yyyy")}`
-                  : " · Non-expiring"}
-                {remainingLabel ? ` · ${remainingLabel}` : ""}
-              </p>
+              {(quota || active?.expires_at || remainingLabel) && (
+                <p className="text-sm text-oc-muted mt-1">
+                  {[
+                    quota
+                      ? quota.unlimited
+                        ? `${quota.events_created} events`
+                        : `${quota.events_created}/${quota.quota ?? "—"} events`
+                      : null,
+                    active?.expires_at
+                      ? `Renews ${format(new Date(active.expires_at), "MMM d, yyyy")}`
+                      : null,
+                    remainingLabel,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              )}
             </>
           ) : (
-            <>
-              <h2 className="font-head text-xl font-semibold text-oc-ink">No active plan</h2>
-              <p className="text-[13px] text-oc-muted mt-1">
-                Pick a package below to unlock event creation and organizer tools.
-              </p>
-            </>
+            <h2 className="font-head text-xl font-semibold text-oc-ink">No plan</h2>
           )}
         </div>
         <OrgButton variant="ghost" size="sm" className="shrink-0" onClick={() => void load()}>
@@ -213,7 +214,7 @@ export default function OrganizerSubscription() {
       {/* Pricing tiers */}
       {sortedPackages.length === 0 ? (
         <div className="org-card py-16 text-center">
-          <p className="text-oc-muted text-sm">No active packages are available right now.</p>
+          <p className="text-oc-muted text-sm">No packages available.</p>
         </div>
       ) : (
         <div
@@ -232,17 +233,6 @@ export default function OrganizerSubscription() {
             const features = [
               { ok: true, label: quotaFeature(pkg) },
               { ok: true, label: durationFeature(pkg) },
-              { ok: true, label: isFreePackage(pkg) ? "No payment required" : "Pay with Waafi / EVC Plus" },
-              {
-                ok: selectable || current,
-                label: current
-                  ? "Already active on your account"
-                  : selectable
-                    ? pkg.upgrade_allowed
-                      ? "Instant upgrade after payment"
-                      : "Available to activate"
-                    : pkg.blocked_reason || "Not available on your current plan",
-              },
             ];
 
             return (
@@ -257,9 +247,9 @@ export default function OrganizerSubscription() {
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <h3 className="font-head text-lg font-semibold text-oc-ink">{pkg.name}</h3>
                     {current ? (
-                      <OrgChip label="Your plan" tone="brand" size="sm" />
+                      <OrgChip label="Current" tone="brand" size="sm" />
                     ) : highlighted ? (
-                      <OrgChip label="Recommended" tone="brand" size="sm" />
+                      <OrgChip label="Popular" tone="brand" size="sm" />
                     ) : null}
                   </div>
                   <div className="flex items-baseline gap-1.5">
@@ -274,11 +264,11 @@ export default function OrganizerSubscription() {
 
                 <ul className="flex flex-col gap-2.5 flex-1">
                   {features.map((f) => (
-                    <li key={f.label} className="flex gap-2.5 text-[13px]">
+                    <li key={f.label} className="flex gap-2.5 text-sm">
                       <span
                         className={cn(
                           "mt-px w-5 h-5 rounded-full flex items-center justify-center shrink-0",
-                          f.ok ? "bg-oc-brand-soft text-oc-brand-strong" : "bg-oc-bg text-oc-faint",
+                          f.ok ? "bg-oc-brand-soft text-oc-brand-strong" : "bg-oc-well text-oc-faint",
                         )}
                       >
                         {f.ok ? <IconCheck className="w-3 h-3" /> : <IconClose className="w-3 h-3" />}
@@ -306,12 +296,11 @@ export default function OrganizerSubscription() {
       {/* Subscription history */}
       {(history.length > 0 || orders.length > 0) && (
         <div className="org-card p-5">
-          <h3 className="font-head text-[17px] font-semibold text-oc-ink mb-1">Subscription history</h3>
-          <p className="text-[13px] text-oc-muted mb-4">Subscription payments run through WaafiPay.</p>
+          <h3 className="font-head text-[17px] font-semibold text-oc-ink mb-4">History</h3>
           <ul className="md:hidden flex flex-col gap-2.5">
             {orders.length > 0
               ? orders.map((order) => (
-                  <li key={order.id} className="rounded-[12px] bg-oc-bg p-4 flex flex-col gap-2 min-w-0">
+                  <li key={order.id} className="rounded-[12px] bg-oc-well p-4 flex flex-col gap-2 min-w-0">
                     <div className="flex items-start justify-between gap-3">
                       <p className="font-semibold text-sm text-oc-ink min-w-0">
                         {order.package?.name ?? order.package_snapshot?.package_name ?? `Package #${order.package_id}`}
@@ -333,7 +322,7 @@ export default function OrganizerSubscription() {
                       {formatMoney(order.amount, order.currency)}
                     </p>
                     <p className="text-xs text-oc-faint">
-                      {order.created_at ? format(new Date(order.created_at), "MMM d, yyyy") : "—"} · WaafiPay
+                      {order.created_at ? format(new Date(order.created_at), "MMM d, yyyy") : "—"}
                     </p>
                     {order.failure_reason && order.status === "failed" && (
                       <p className="text-xs text-oc-bad break-words">{order.failure_reason}</p>
@@ -341,7 +330,7 @@ export default function OrganizerSubscription() {
                   </li>
                 ))
               : history.slice(0, 8).map((row) => (
-                  <li key={row.id} className="rounded-[12px] bg-oc-bg p-4 flex flex-col gap-2 min-w-0">
+                  <li key={row.id} className="rounded-[12px] bg-oc-well p-4 flex flex-col gap-2 min-w-0">
                     <div className="flex items-start justify-between gap-3">
                       <p className="font-semibold text-sm text-oc-ink min-w-0">
                         {row.package_snapshot?.package_name ?? row.package?.name ?? `Package #${row.package_id}`}
@@ -349,7 +338,7 @@ export default function OrganizerSubscription() {
                       <OrgChip label={row.status} tone={row.status === "active" ? "brand" : "plain"} size="sm" />
                     </div>
                     <p className="text-xs text-oc-faint">
-                      {row.started_at ? format(new Date(row.started_at), "MMM d, yyyy") : "—"} · WaafiPay
+                      {row.started_at ? format(new Date(row.started_at), "MMM d, yyyy") : "—"}
                     </p>
                   </li>
                 ))}
@@ -361,7 +350,6 @@ export default function OrganizerSubscription() {
                   <th className={th}>Date</th>
                   <th className={th}>Plan</th>
                   <th className={th}>Amount</th>
-                  <th className={th}>Method</th>
                   <th className={th}>Status</th>
                 </tr>
               </thead>
@@ -384,7 +372,6 @@ export default function OrganizerSubscription() {
                         <td className={`${td} font-data font-semibold tabular-nums`}>
                           {formatMoney(order.amount, order.currency)}
                         </td>
-                        <td className={`${td} text-oc-muted`}>WaafiPay · EVC Plus</td>
                         <td className={td}>
                           <OrgChip
                             label={order.status}
@@ -411,7 +398,6 @@ export default function OrganizerSubscription() {
                           </span>
                         </td>
                         <td className={`${td} text-oc-muted`}>—</td>
-                        <td className={`${td} text-oc-muted`}>WaafiPay · EVC Plus</td>
                         <td className={td}>
                           <OrgChip label={row.status} tone={row.status === "active" ? "brand" : "plain"} size="sm" />
                         </td>

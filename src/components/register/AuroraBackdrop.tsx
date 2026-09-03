@@ -12,10 +12,10 @@ interface Props {
  * Uses radial-gradients + motion + a subtle film grain for premium feel.
  */
 export function AuroraBackdrop({ brandColor, isDark = false, variant = "full" }: Props) {
-  // Base canvas: deep indigo→violet for dark, soft cream for light.
+  // Base canvas: deep indigo for dark, white for light.
   const base = isDark
     ? "radial-gradient(at 20% 0%, hsl(260 60% 12%) 0%, transparent 50%), radial-gradient(at 80% 100%, hsl(220 50% 8%) 0%, transparent 50%), linear-gradient(180deg, hsl(250 35% 6%), hsl(240 40% 4%))"
-    : "radial-gradient(at 20% 0%, hsl(260 100% 97%) 0%, transparent 50%), radial-gradient(at 80% 100%, hsl(220 100% 97%) 0%, transparent 50%), linear-gradient(180deg, hsl(0 0% 100%), hsl(240 30% 98%))";
+    : "radial-gradient(at 20% 0%, hsl(260 100% 97%) 0%, transparent 50%), radial-gradient(at 80% 100%, hsl(220 100% 97%) 0%, transparent 50%), linear-gradient(180deg, hsl(0 0% 100%), hsl(0 0% 100%))";
 
   const opacity = variant === "soft" ? (isDark ? 0.55 : 0.4) : (isDark ? 0.85 : 0.65);
 

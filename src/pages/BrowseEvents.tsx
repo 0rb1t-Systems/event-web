@@ -150,8 +150,7 @@ export default function BrowseEvents() {
 
       <section className="border-b border-border bg-background">
         <div className="mx-auto max-w-7xl px-5 pb-6 pt-8 sm:px-8">
-          <p className="text-sm text-muted-foreground">Home / Browse events</p>
-          <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
+          <div className="flex flex-wrap items-end justify-between gap-4">
             <h1 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">Upcoming events</h1>
             {typeof total === "number" ? (
               <p className="text-sm text-muted-foreground">
@@ -159,9 +158,6 @@ export default function BrowseEvents() {
               </p>
             ) : null}
           </div>
-          <p className="mt-3 max-w-[48ch] text-muted-foreground">
-            Search by title or city. Open a card to register.
-          </p>
 
           <form className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center" onSubmit={onSearch}>
             <label className="sr-only" htmlFor="browse-search">
@@ -204,7 +200,7 @@ export default function BrowseEvents() {
 
         <div className="min-w-0 flex-1">
           {catalog.isLoading ? (
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {[1, 2, 3, 4, 5, 6].map((i) => (
                 <Skeleton key={i} className="aspect-[16/9] rounded-xl" />
               ))}
@@ -214,7 +210,7 @@ export default function BrowseEvents() {
           ) : events.length === 0 ? (
             <p className="text-sm text-muted-foreground">No events match those filters.</p>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {events.map((event) => (
                 <EventCatalogCard key={event.id} event={event} variant="grid" />
               ))}

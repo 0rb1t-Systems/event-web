@@ -54,29 +54,29 @@ export function EventCatalogCard({ event, variant = "grid", eager = false }: Pro
               />
             ) : null}
             {category ? (
-              <span className="absolute left-1.5 top-1.5 rounded-full bg-background/95 px-2 py-0.5 text-[10px] font-medium text-primary">
+              <span className="absolute left-1.5 top-1.5 rounded-full bg-background/95 px-2 py-0.5 text-xs font-medium text-primary">
                 {category}
               </span>
             ) : null}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-              <CalendarDays className="h-3 w-3 text-primary" />
+            <p className="inline-flex items-center gap-1 text-sm text-muted-foreground">
+              <CalendarDays className="h-3.5 w-3.5 text-primary" />
               {when}
             </p>
-            <h3 className="mt-0.5 font-display text-sm font-semibold leading-snug tracking-tight text-foreground line-clamp-2">
+            <h3 className="mt-0.5 font-display text-base font-semibold leading-snug tracking-tight text-foreground line-clamp-2">
               {event.title}
             </h3>
             {place ? (
-              <p className="mt-0.5 inline-flex items-center gap-1 text-xs text-muted-foreground">
-                <MapPin className="h-3 w-3 text-primary" />
+              <p className="mt-0.5 inline-flex items-center gap-1 text-sm text-muted-foreground">
+                <MapPin className="h-3.5 w-3.5 text-primary" />
                 {place}
               </p>
             ) : null}
           </div>
           <div className="flex shrink-0 items-center justify-between gap-3 sm:flex-col sm:items-end">
-            <p className="font-mono text-xs font-medium text-primary">{price}</p>
-            <span className="inline-flex h-8 items-center rounded-full bg-primary px-3 text-xs font-medium text-primary-foreground">
+            <p className="font-mono text-sm font-medium text-primary">{price}</p>
+            <span className="inline-flex h-9 items-center rounded-full bg-primary px-3.5 text-sm font-medium text-primary-foreground">
               Register
             </span>
           </div>
@@ -103,28 +103,28 @@ export function EventCatalogCard({ event, variant = "grid", eager = false }: Pro
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--accent)),hsl(var(--muted))_62%)]" />
           )}
           {category ? (
-            <span className="absolute left-2 top-2 rounded-full bg-background/95 px-2 py-0.5 text-[10px] font-medium text-primary">
+            <span className="absolute left-2 top-2 rounded-full bg-background/95 px-2 py-0.5 text-xs font-medium text-primary">
               {category}
             </span>
           ) : null}
         </div>
         <div className="flex flex-1 flex-col p-3">
-          <h3 className="font-display text-sm font-semibold leading-snug tracking-tight text-foreground line-clamp-2">
+          <h3 className="font-display text-base font-semibold leading-snug tracking-tight text-foreground line-clamp-2">
             {event.title}
           </h3>
-          <p className="mt-1.5 inline-flex items-center gap-1 text-xs text-muted-foreground">
-            <CalendarDays className="h-3 w-3 shrink-0 text-primary" />
+          <p className="mt-1.5 inline-flex items-center gap-1 text-sm text-muted-foreground">
+            <CalendarDays className="h-3.5 w-3.5 shrink-0 text-primary" />
             {when}
           </p>
           {place ? (
-            <p className="mt-0.5 inline-flex items-center gap-1 text-xs text-muted-foreground">
-              <MapPin className="h-3 w-3 shrink-0 text-primary" />
+            <p className="mt-0.5 inline-flex items-center gap-1 text-sm text-muted-foreground">
+              <MapPin className="h-3.5 w-3.5 shrink-0 text-primary" />
               <span className="line-clamp-1">{place}</span>
             </p>
           ) : null}
           <div className="mt-auto flex items-center justify-between gap-2 pt-3">
-            <p className="font-mono text-xs font-medium text-primary">{price}</p>
-            <span className="inline-flex h-8 items-center rounded-full bg-primary px-3 text-xs font-medium text-primary-foreground">
+            <p className="font-mono text-sm font-medium text-primary">{price}</p>
+            <span className="inline-flex h-9 items-center rounded-full bg-primary px-3.5 text-sm font-medium text-primary-foreground">
               Register
             </span>
           </div>

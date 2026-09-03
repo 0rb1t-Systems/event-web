@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -40,14 +41,6 @@ const WHEEL_PALETTE = [
   { fill: "hsl(24 95% 53%)", text: "#fff" },
   { fill: "hsl(280 68% 55%)", text: "#fff" },
 ];
-
-const STATUS_STYLE: Record<string, string> = {
-  joined: "bg-primary/10 text-primary border-0",
-  paid: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-0",
-  checked_in: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-0",
-  waitlisted: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-0",
-  cancelled: "bg-destructive/10 text-destructive border-0",
-};
 
 type Props = {
   eventId: number;
@@ -332,7 +325,7 @@ function LuckyWheelVisual({
                 exit={{ opacity: 0, scale: 0.9 }}
                 className="relative z-20 max-w-[70%] rounded-2xl bg-background/95 backdrop-blur border border-primary/30 px-4 py-3 shadow-xl text-center"
               >
-                <p className="text-[10px] uppercase tracking-wider text-primary font-bold mb-0.5">Winner</p>
+                <p className="text-xs uppercase tracking-wider text-primary font-bold mb-0.5">Winner</p>
                 <p className="font-display font-bold text-sm leading-tight">{centerRevealName}</p>
               </motion.div>
             ) : (
@@ -470,9 +463,11 @@ function ParticipantRow({ p }: { p: OrganizerParticipation }) {
         <p className="text-sm font-medium truncate">{name}</p>
         <p className="text-xs text-muted-foreground truncate">{p.user?.email ?? "—"}</p>
       </div>
-      <Badge variant="secondary" className={cn("capitalize shrink-0", STATUS_STYLE[status])}>
-        {status.replace("_", " ")}
-      </Badge>
+      <StatusBadge label={status.replace("_", " ")} tone={
+        status === "cancelled" ? "danger"
+        : status === "waitlisted" ? "warning"
+        : "success"
+      } size="sm" className="shrink-0 border-0" />
     </div>
   );
 }
@@ -712,7 +707,7 @@ export default function LuckyWheelPanel({ eventId, onDenied }: Props) {
         <div className="flex items-center gap-2 rounded-2xl bg-card border border-border/60 px-4 py-3 shrink-0">
           <IconUsers className="w-4 h-4 text-primary" />
           <div>
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Pool</p>
+            <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Pool</p>
             <p className="font-display font-bold text-xl tabular-nums leading-none">{participantCount}</p>
           </div>
         </div>
@@ -891,7 +886,7 @@ export default function LuckyWheelPanel({ eventId, onDenied }: Props) {
                         className="flex items-center gap-3 rounded-xl bg-background/80 border border-border/50 px-3 py-2.5 shadow-sm"
                       >
                         <Avatar className="h-8 w-8">
-                          <AvatarFallback className="text-[10px] font-bold bg-gradient-to-br from-primary to-violet-600 text-white">
+                          <AvatarFallback className="text-xs font-bold bg-gradient-to-br from-primary to-violet-600 text-white">
                             {initials(winner.name)}
                           </AvatarFallback>
                         </Avatar>

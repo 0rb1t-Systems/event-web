@@ -8,7 +8,7 @@ Public discovery (Home, Browse) and the participant product are **the house**: a
 
 Intent: a visitor finds a real event, opens it, and keeps every admission in one wallet — on a daylight canvas that feels like EventHub, not a generic ticketing clone and not the retired night lineup.
 
-The house is emerald on white. The venue (event detail) stays Pulse teal on warm paper. That handoff is deliberate. Do not paint Home in `#2ECFC2` to “match” detail.
+The house is emerald on white. The venue (event detail) stays Pulse teal on white. That handoff is deliberate. Do not paint Home in `#2ECFC2` to “match” detail.
 
 ## Design tokens and foundations
 
@@ -22,8 +22,8 @@ The house is emerald on white. The venue (event detail) stays Pulse teal on warm
 ### Concept
 
 - Public Home / Browse / Auth / participant chrome: **the house**. Slim masthead, rounded photography cards, admission-stub motif, Outfit display. Follows `html.dark` (cool zinc, emerald accent).
-- Public event detail: **cover-photo conference**. Stays light-locked (`.pulse-event`). Do not inherit `.house-page`, the slim house header, or catalog cards. Spec: `design-system/pages/event-detail.md`. Tokens in `pulseTheme.ts`.
-- Organizer: **org console** per `design/design-system.pen`. Light: warm paper `#FCFAF7`, white 16px cards, teal `#0F6E56`. Dark: warm ink canvas (`--oc-bg` ~150 16% 7%), elevated `--oc-surface`, teal brand kept. Desktop = persistent `OrgTopbar` (Dashboard / Events / Check-in / Finance; Settings in the account menu; theme toggle in the bar). Mobile = `OrgAppBar` + `OrgBottomNav`. Event Studio is the only left rail (`OrgStudioNav` section tabs under the global topbar; sticky, 12px labels). Dashboard Recent events is a table, not thumb-rows. Overview is the edit form, not a public-page snapshot. Check-in keeps the topbar; unlock is centered. Finance is one row: Payouts | Plans. Type: Funnel Sans (headings, H1 22/24px), Inter (body), IBM Plex Mono (data). Tokens: `.org-console` `--oc-*` vars in `src/index.css`; primitives in `src/components/organizer-console/`.
+- Public event detail: **cover-photo conference**. Stays light-locked (`.pulse-event`). Spec: `design/pages/event-detail.md` + in-page checkout `design/pages/checkout.md`. Tokens in `pulseTheme.ts`.
+- Organizer: **org console** per `design/design-system.pen`. Light: white canvas `#FFFFFF`, white 16px cards with hairline `--oc-line`, teal `#0F6E56`. Nested wells use cool `--oc-well` (not cream). Dark: warm ink canvas (`--oc-bg` ~150 16% 7%), elevated `--oc-surface`, teal brand kept. Active filter/tab pills are `bg-oc-ink text-oc-surface` (never `text-white` on ink — ink is light in dark). Status chips (`OrgChip`, studio/house status `Badge`s) are soft-outline: pale `--oc-*-soft` tint, mid-opacity stroke, tone-colored label. Desktop = persistent `OrgTopbar` (Dashboard / Events / Check-in / Finance; Settings in the account menu; theme toggle in the bar). Mobile = `OrgAppBar` + `OrgBottomNav`. Event Studio is the only left rail (`OrgStudioNav` section tabs under the global topbar; sticky, 12px labels). Dashboard Recent events is a table, not thumb-rows. Overview is the edit form, not a public-page snapshot. Check-in keeps the topbar; unlock is centered. Finance is one row: Payouts | Plans. Type: Funnel Sans (headings, H1 22/24px, dashboard greeting ~32/40px), Inter (body), IBM Plex Mono (data). Tokens: `.org-console` `--oc-*` vars in `src/index.css`; primitives in `src/components/organizer-console/`.
 - Signature: the **admission stub** — notched ticket geometry, serial `EH-00012`, JetBrains Mono data, QR when the ticket is valid.
 
 ### Palette (house)
@@ -41,7 +41,7 @@ House pages wrap `.house-page` and follow `html.dark`. Public event detail stays
 | Border | zinc-200 / `214 16% 90%` |
 | Success (confirmed steps) | green `hsl(160 60% 32%)` |
 
-Cool zinc only. Not cream (event-detail paper). Not inspiration blue `#2E86FB`. Not orange, rose, or acid green.
+Cool zinc only. Not cream. Not inspiration blue `#2E86FB`. Not orange, rose, or acid green.
 
 ### Type
 
@@ -76,7 +76,7 @@ Anatomy: logo left, nav center (Home, Browse events, Next event if signed in + u
 - Disabled / loading: 32px spinner, `aria-busy` not required on the bar itself
 - Mobile: icon button opens a right sheet with the same links
 - Do not restore `tone="lineup"` ink bar
-- Event detail uses `EventPulseHeader` (logo + account + Register on the cover; section links live in `EventSectionNav` after scroll), not this component
+- Event detail uses shared `PublicSiteHeader` (Home, Browse events, Rooms, My Tickets) above the cover hero — not `EventPulseHeader` on the photo and not `EventSectionNav`
 
 ### EventCatalogCard
 
@@ -153,13 +153,13 @@ Empty Browse: “No events match those filters.” Empty tickets: “You have no
 - Do not retune global `--primary`, `--radius`, or `button.tsx` defaults
 - Do not invent testimonials, ratings, category photos, or event counts
 - Do not add a Date search facet until Laravel supports it
-- Do not extract checkout from event detail
+- Do not extract checkout to a separate URL — checkout is an in-page view on `/events/:id`
 
 ## QA checklist
 
 - [ ] Home, Browse, Auth, My Tickets, registration detail, event-room shell use `.house-page` and the slim header
 - [ ] Dark theme: house + organizer follow `html.dark`; `/events/:id` stays `.pulse-event` light; QR pads stay white
-- [ ] `/events/:id` still uses `.pulse-event` and slim `EventPulseHeader` (no in-hero section pill); footer is `SiteFooter`; no house catalog cards
+- [ ] `/events/:id` uses `.pulse-event`; hero + black facts bar; two-column white-card body; Register opens in-page checkout; footer is `SiteFooter`
 - [ ] Organizer chrome: `OrgTopbar` desktop, `OrgAppBar` + `OrgBottomNav` mobile; studio uses sticky section `OrgStudioNav` (EVENT / PEOPLE / MANAGE) under the topbar with native page scroll; Check-in is not immersive
 - [ ] Phone: document scrolls with touch/wheel; studio section chips swipe horizontally; tables become stacked cards or sit in `.h-scroll`; no clipped “half page”
 - [ ] Catalog Register goes to `/events/:id`

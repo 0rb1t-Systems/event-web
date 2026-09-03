@@ -67,17 +67,17 @@ function AccountMenu() {
           aria-label="Account menu"
           className="flex items-center gap-2 rounded-full pl-1 pr-2.5 py-1 hover:bg-oc-surface transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-oc-brand"
         >
-          <span className="w-[30px] h-[30px] rounded-full bg-oc-accent-soft text-oc-accent flex items-center justify-center text-[11px] font-bold shrink-0">
+          <span className="w-[30px] h-[30px] rounded-full bg-oc-accent-soft text-oc-accent flex items-center justify-center text-xs font-bold shrink-0">
             {orgInitials(contactName)}
           </span>
-          <span className="hidden xl:block text-[13px] font-semibold text-oc-ink max-w-[140px] truncate">
+          <span className="hidden xl:block text-sm font-semibold text-oc-ink max-w-[140px] truncate">
             {businessName}
           </span>
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-60">
         <DropdownMenuLabel className="flex flex-col gap-0.5">
-          <span className="text-[13px] font-semibold text-oc-ink truncate">{businessName}</span>
+          <span className="text-sm font-semibold text-oc-ink truncate">{businessName}</span>
           {email ? <span className="text-xs font-normal text-oc-muted truncate">{email}</span> : null}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />

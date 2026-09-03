@@ -343,7 +343,7 @@ export default function EventRoom() {
             </div>
           ) : null}
           <div className="relative px-6 py-8 sm:px-8">
-            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-primary">
+            <p className="font-mono text-xs uppercase tracking-[0.22em] text-primary">
               <Sparkles className="mr-1.5 inline h-3.5 w-3.5" />
               Event room
             </p>

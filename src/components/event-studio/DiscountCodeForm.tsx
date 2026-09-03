@@ -56,7 +56,7 @@ export default function DiscountCodeForm({ value, onChange }: Props) {
           onChange={(e) => onChange({ ...value, code: e.target.value.toUpperCase() })}
           className="rounded-full uppercase tracking-wider"
         />
-        <p className="text-[10px] text-muted-foreground">Stored uppercase, matching the backend.</p>
+        <p className="text-xs text-muted-foreground">Stored uppercase, matching the backend.</p>
       </div>
       <div className="space-y-1.5">
         <Label className="text-xs">Type</Label>

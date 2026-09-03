@@ -89,9 +89,6 @@ export default function AnnouncementsPanel({ eventId, onDenied }: Props) {
             <IconMegaphone className="w-4 h-4 text-muted-foreground shrink-0" />
             Announcements
           </h3>
-          <p className="text-xs text-muted-foreground mt-0.5 text-pretty">
-            Messages are emailed to non-cancelled participants and stored as sent.
-          </p>
         </div>
         <Button size="sm" className="rounded-full gap-1.5 shrink-0" onClick={() => setOpen(true)}>
           <IconPlus className="w-3.5 h-3.5" /> Send
@@ -110,7 +107,7 @@ export default function AnnouncementsPanel({ eventId, onDenied }: Props) {
             <li key={a.id} className="rounded-xl bg-muted/40 p-4 space-y-1.5">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <p className="text-sm font-medium">{a.subject}</p>
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
                   Sent
                 </span>
               </div>

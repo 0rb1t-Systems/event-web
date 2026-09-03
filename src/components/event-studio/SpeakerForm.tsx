@@ -116,7 +116,7 @@ export default function SpeakerForm({ value, onChange }: Props) {
       </div>
       <div className="space-y-1.5">
         <Label className="text-xs">Photo</Label>
-        <p className="text-[10px] text-muted-foreground">JPEG, PNG, GIF, or WebP · max 4 MB</p>
+        <p className="text-xs text-muted-foreground">JPEG, PNG, GIF, or WebP · max 4 MB</p>
         <div
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}

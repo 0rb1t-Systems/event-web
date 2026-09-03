@@ -5,6 +5,15 @@ export function canEnterEventRoom(p: ApiParticipation) {
   return p.payment_status === "paid" || p.payment_status === "not_required";
 }
 
+/** Confirmed purchase — show in My Tickets, QR, and downloads. Excludes pending/failed/refunded. */
+export function hasPurchasedTicket(p: ApiParticipation) {
+  return canEnterEventRoom(p);
+}
+
+export function purchasedParticipations(items: ApiParticipation[]): ApiParticipation[] {
+  return items.filter(hasPurchasedTicket);
+}
+
 /** Soonest upcoming or currently active registration that can open a room. */
 export function pickNextParticipation(items: ApiParticipation[]): ApiParticipation | null {
   const eligible = items.filter((p) => p.status !== "cancelled" && canEnterEventRoom(p));

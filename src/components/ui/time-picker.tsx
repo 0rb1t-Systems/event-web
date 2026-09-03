@@ -127,7 +127,7 @@ export function TimePicker({ value, onChange, placeholder = "Select time", class
           <span className="truncate flex items-center gap-2">
             <span>{value ? formatLabel(value) : placeholder}</span>
             {currentDuration !== null && currentDuration > 0 && (
-              <span className="text-[11px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
+              <span className="text-xs font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
                 {formatDuration(currentDuration)}
               </span>
             )}
@@ -140,7 +140,7 @@ export function TimePicker({ value, onChange, placeholder = "Select time", class
           <div className="mb-2">
             <div className="flex items-center gap-1.5 mb-1.5">
               <Sparkles className="h-3 w-3 text-primary" />
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 After {formatLabel(startTime!)}
               </div>
             </div>
@@ -173,7 +173,7 @@ export function TimePicker({ value, onChange, placeholder = "Select time", class
           </div>
         ) : (
           <div className="mb-2">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">Quick pick</div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">Quick pick</div>
             <div className="flex flex-wrap gap-1">
               {PRESETS.map(p => {
                 const active = value === p;
@@ -197,7 +197,7 @@ export function TimePicker({ value, onChange, placeholder = "Select time", class
 
         <div className="grid grid-cols-[1fr_1fr_auto] gap-2 pt-2 border-t border-border">
           <div>
-            <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1 text-center">Hour</div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1 text-center">Hour</div>
             <div ref={hourRef} className="h-40 overflow-y-auto rounded-md bg-muted/40 py-1 scrollbar-thin">
               {hours.map(h => {
                 const active = parsed ? h === hour : false;
@@ -219,7 +219,7 @@ export function TimePicker({ value, onChange, placeholder = "Select time", class
             </div>
           </div>
           <div>
-            <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1 text-center">Min</div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1 text-center">Min</div>
             <div ref={minRef} className="h-40 overflow-y-auto rounded-md bg-muted/40 py-1 scrollbar-thin">
               {minutes.map(m => {
                 const active = parsed ? m === minute : false;
@@ -272,7 +272,7 @@ export function TimePicker({ value, onChange, placeholder = "Select time", class
               Clear
             </Button>
             {currentDuration !== null && currentDuration > 0 && (
-              <span className="text-[11px] text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 Duration: <span className="font-medium text-foreground">{formatDuration(currentDuration)}</span>
               </span>
             )}

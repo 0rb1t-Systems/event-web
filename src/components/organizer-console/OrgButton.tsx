@@ -13,14 +13,14 @@ export interface OrgButtonProps extends React.ButtonHTMLAttributes<HTMLButtonEle
 
 const variantClasses: Record<OrgButtonVariant, string> = {
   primary: "bg-oc-brand text-white hover:bg-oc-brand-strong",
-  ghost: "bg-oc-surface text-oc-ink border border-oc-line hover:bg-oc-bg",
-  dark: "bg-oc-ink text-oc-bg hover:opacity-90",
+  ghost: "bg-oc-surface text-oc-ink border border-oc-line hover:bg-oc-well",
+  dark: "bg-oc-ink text-oc-surface hover:opacity-90",
   danger: "bg-oc-bad text-white hover:bg-oc-bad/90",
 };
 
 const sizeClasses: Record<OrgButtonSize, string> = {
-  md: "px-4 py-2.5 text-[13px] gap-2",
-  sm: "px-3.5 py-[9px] text-[13px] gap-1.5",
+  md: "px-4 py-2.5 text-sm gap-2",
+  sm: "px-3.5 py-[9px] text-sm gap-1.5",
 };
 
 /** Console button — Btn/Primary and Btn/Ghost from design-system.pen. */

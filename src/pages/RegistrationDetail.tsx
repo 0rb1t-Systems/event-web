@@ -19,34 +19,43 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  getParticipationInvitation,
+  getParticipation,
   getParticipationCertificate,
-  type ApiInvitationDetail,
+  type ApiParticipation,
   type ApiCertificateResult,
 } from "@/services/participationService";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { getMediaUrl } from "@/lib/mediaUrl";
+import { participationCheckoutPricing } from "@/lib/participationCheckout";
 import { toast } from "sonner";
-import { ParticipantWaafiPayment } from "@/components/participant/ParticipantWaafiPayment";
 import { asEventMode } from "@/lib/eventMode";
 import { PublicSiteHeader } from "@/components/layout/PublicSiteHeader";
+import { SiteFooter } from "@/components/layout/SiteFooter";
 import { PurchasedTicketStub } from "@/components/participant/PurchasedTicketStub";
 import { downloadTicketPng } from "@/lib/ticketImage";
+import { CheckoutLayout } from "@/components/event-checkout/CheckoutLayout";
+import { CheckoutStepper } from "@/components/event-checkout/CheckoutStepper";
+import { ConfirmationEventCard } from "@/components/event-checkout/ConfirmationEventCard";
+import { WaafiPayStep } from "@/components/event-checkout/WaafiPayStep";
+import { PULSE } from "@/components/event-public/pulseTheme";
+import { registrationStatusBadge } from "@/lib/statusBadges";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-type Status = ApiInvitationDetail["status"];
-type PaymentStatus = ApiInvitationDetail["payment_status"];
+type Status = ApiParticipation["status"];
+type PaymentStatus = ApiParticipation["payment_status"];
 
 function statusMeta(status: Status, paymentStatus: PaymentStatus) {
-  if (status === "cancelled") return { label: "Cancelled", icon: <XCircle className="w-4 h-4" />, cls: "bg-muted text-muted-foreground" };
-  if (status === "waitlisted") return { label: "Waitlisted", icon: <Clock className="w-4 h-4" />, cls: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" };
-  if (status === "checked_in") return { label: "Checked in", icon: <CheckCircle2 className="w-4 h-4" />, cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" };
-  if (paymentStatus === "pending") return { label: "Awaiting payment", icon: <AlertTriangle className="w-4 h-4" />, cls: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" };
-  if (paymentStatus === "failed") return { label: "Payment failed", icon: <AlertTriangle className="w-4 h-4" />, cls: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" };
-  if (paymentStatus === "refunded") return { label: "Payment refunded", icon: <XCircle className="w-4 h-4" />, cls: "bg-muted text-muted-foreground" };
-  if (paymentStatus === "paid" || status === "paid") return { label: "Confirmed · Paid", icon: <CheckCircle2 className="w-4 h-4" />, cls: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" };
-  return { label: "Registered", icon: <CheckCircle2 className="w-4 h-4" />, cls: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" };
+  const { label, badgeClass } = registrationStatusBadge(status, paymentStatus);
+  let icon = <CheckCircle2 className="w-4 h-4" />;
+  if (status === "cancelled" || paymentStatus === "refunded") {
+    icon = <XCircle className="w-4 h-4" />;
+  } else if (status === "waitlisted") {
+    icon = <Clock className="w-4 h-4" />;
+  } else if (paymentStatus === "pending" || paymentStatus === "failed") {
+    icon = <AlertTriangle className="w-4 h-4" />;
+  }
+  return { label, cls: badgeClass, icon };
 }
 
 /**
@@ -153,7 +162,7 @@ export default function RegistrationDetail() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const [detail, setDetail] = useState<ApiInvitationDetail | null>(null);
+  const [detail, setDetail] = useState<ApiParticipation | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [certificate, setCertificate] = useState<ApiCertificateResult | null>(null);
@@ -170,7 +179,7 @@ export default function RegistrationDetail() {
     setLoading(true);
     setError(null);
 
-    getParticipationInvitation(numericId)
+    getParticipation(numericId)
       .then(async (d) => {
         if (cancelled) return;
         setDetail(d);
@@ -309,16 +318,14 @@ export default function RegistrationDetail() {
   const eventEnded =
     detail.event?.status === "completed" ||
     (!!detail.event?.ends_at && new Date(detail.event.ends_at).getTime() < Date.now());
-  // "Check status" is useful whenever the payment outcome may still be resolving
-  const showCheckStatus = isPaymentPending && !isCancelled;
-  const eventTitle = detail.event?.title ?? "Event";
-  const eventId = detail.event?.id;
   const showFeedbackHint = eventEnded && detail.status !== "cancelled";
+  const eventTitle = detail.event?.title ?? "Event";
+  const eventId = detail.event?.id ?? detail.event_id;
   const eventLocation = [detail.event?.address, detail.event?.city].filter(Boolean).join(", ") || null;
   const calendarHref = googleCalendarUrl(eventTitle, detail.event?.starts_at, eventLocation);
 
   const handleShare = async () => {
-    const url = window.location.href;
+    const url = eventId ? `${window.location.origin}/events/${eventId}` : window.location.href;
     try {
       if (navigator.share) {
         await navigator.share({ title: eventTitle, url });
@@ -331,6 +338,203 @@ export default function RegistrationDetail() {
     }
   };
 
+  // Pending / failed payment — same checkout shell as event registration.
+  if ((isPaymentPending || isPaymentFailed) && !isCancelled && eventId) {
+    const pricing = participationCheckoutPricing(detail);
+    const eventImage =
+      detail.event?.banner_url
+      ?? (detail.event?.banner_path ? getMediaUrl(detail.event.banner_path) : null);
+
+    return (
+      <CheckoutLayout
+        eventId={eventId}
+        eventName={eventTitle}
+        current="payment"
+        onBackToEvent={() => navigate(`/events/${eventId}`)}
+      >
+        {isPaymentFailed ? (
+          <div className="mx-auto mb-6 max-w-md rounded-2xl border border-border bg-card p-6 text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
+              <AlertTriangle className="h-7 w-7 text-destructive" />
+            </div>
+            <h2 className="font-display text-lg font-semibold tracking-tight">Payment failed</h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              Your seat is still reserved. Complete payment below to confirm your registration.
+            </p>
+          </div>
+        ) : null}
+
+        <WaafiPayStep
+          participation={detail}
+          eventName={eventTitle}
+          eventImage={eventImage}
+          ticketName={pricing.ticketName}
+          currency={pricing.currency}
+          unitPrice={pricing.unitPrice}
+          discountQuote={pricing.discountQuote}
+          displayTotal={pricing.displayTotal}
+          waafiAmount={pricing.waafiAmount}
+          onSuccess={(participation) => {
+            setDetail(participation);
+          }}
+          onFailure={(reason) => {
+            toast.error(reason, { duration: 6000 });
+          }}
+          onCancel={() => navigate(`/events/${eventId}`)}
+        />
+      </CheckoutLayout>
+    );
+  }
+
+  if (ticketValid) {
+    return (
+      <div className="pulse-event min-h-[100dvh] overflow-x-hidden">
+        <div className="house-page">
+          <PublicSiteHeader />
+        </div>
+        <div className="px-4 py-8 sm:py-12">
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            className="mx-auto max-w-2xl space-y-6"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={handleBack}
+                className="-ml-1 inline-flex h-9 items-center gap-1.5 rounded-full px-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                My Tickets
+              </button>
+              <Button asChild size="sm" className="rounded-full" style={{ background: PULSE.teal }}>
+                <Link to="/dashboard/rooms">Event rooms</Link>
+              </Button>
+            </div>
+
+            <div className="flex justify-center">
+              <CheckoutStepper current="confirmation" />
+            </div>
+
+            <div className="space-y-2 pb-1 text-center">
+              <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+                Registration confirmed
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Thank you{user?.name ? `, ${user.name.split(" ")[0]}` : ""}. Your order{" "}
+                <span className="font-mono font-semibold text-foreground">{padSerial(detail.id)}</span> is complete.
+                {user?.email ? (
+                  <>
+                    {" "}A confirmation has been sent to{" "}
+                    <span className="font-medium text-primary">{user.email}</span>.
+                  </>
+                ) : (
+                  "."
+                )}
+              </p>
+            </div>
+
+            <ConfirmationEventCard
+              title={eventTitle}
+              bannerUrl={detail.event?.banner_url}
+              bannerPath={detail.event?.banner_path}
+              location={eventLocation}
+              startsAt={detail.event?.starts_at}
+              endsAt={detail.event?.ends_at}
+            />
+
+            <PurchasedTicketStub
+              id="ticket-stub"
+              ticket={{
+                id: detail.id,
+                title: eventTitle,
+                location: eventLocation,
+                startsAt: detail.event?.starts_at,
+                ticketType: detail.ticket_type?.name,
+                qrToken: !isOnline ? detail.qr_token : null,
+                valid: true,
+                statusLabel: meta.label,
+                statusBadgeClass: meta.cls,
+              }}
+            />
+
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button
+                className="rounded-full text-white"
+                style={{ background: PULSE.teal }}
+                onClick={() => void handleDownload()}
+                disabled={downloading}
+              >
+                {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                Download ticket
+              </Button>
+              {calendarHref ? (
+                <Button
+                  variant="outline"
+                  className="rounded-full border-border bg-card text-foreground hover:bg-muted hover:text-foreground"
+                  asChild
+                >
+                  <a href={calendarHref} target="_blank" rel="noreferrer">
+                    <CalendarDays className="h-4 w-4" />
+                    Add to calendar
+                  </a>
+                </Button>
+              ) : null}
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-full border-border bg-card text-foreground hover:bg-muted hover:text-foreground"
+                onClick={() => void handleShare()}
+              >
+                <Share2 className="h-4 w-4" />
+                Share event
+              </Button>
+            </div>
+
+            <AnimatePresence>
+              {isCheckedIn && certificate && (
+                <motion.div
+                  key="cert"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <CertificatePanel result={certificate} />
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {showFeedbackHint && (
+              <div className="rounded-2xl border border-border bg-card p-4 text-center text-sm text-muted-foreground">
+                Feedback is available in the{" "}
+                <Link
+                  to={`/registrations/${detail.id}/room`}
+                  className="font-medium text-primary hover:underline"
+                >
+                  event room
+                </Link>
+                .
+              </div>
+            )}
+
+            {eventId ? (
+              <p className="text-center text-xs text-muted-foreground">
+                Need help with your order?{" "}
+                <Link to="/dashboard/home" className="font-medium text-primary hover:underline">
+                  Contact support
+                </Link>
+              </p>
+            ) : null}
+          </motion.div>
+        </div>
+        <div className="house-page">
+          <SiteFooter />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="house-page min-h-[100dvh] overflow-x-hidden">
     <PublicSiteHeader />
@@ -341,7 +545,6 @@ export default function RegistrationDetail() {
         transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
         className="max-w-2xl mx-auto space-y-6"
       >
-        {/* Back + enter room (room is a separate page from this ticket) */}
         <div className="flex flex-wrap items-center justify-between gap-2">
           <button
             type="button"
@@ -351,33 +554,9 @@ export default function RegistrationDetail() {
             <ArrowLeft className="w-4 h-4" />
             My Tickets
           </button>
-          {ticketValid && (
-            <Button asChild size="sm" className="rounded-full">
-              <Link to="/dashboard/rooms">
-                Event rooms
-              </Link>
-            </Button>
-          )}
         </div>
 
-        {ticketValid ? (
-          <div className="text-center space-y-2 pb-2">
-            <h1 className="font-display text-2xl font-semibold tracking-tight">Registration confirmed</h1>
-            <p className="text-sm text-muted-foreground">
-              Order <span className="font-mono font-semibold text-foreground">{padSerial(detail.id)}</span> is in your wallet
-              {user?.email ? (
-                <>
-                  . Details were sent to{" "}
-                  <span className="text-primary">{user.email}</span>
-                </>
-              ) : (
-                "."
-              )}
-            </p>
-          </div>
-        ) : (
-          <h1 className="font-display text-2xl font-semibold tracking-tight">Your registration</h1>
-        )}
+        <h1 className="font-display text-2xl font-semibold tracking-tight">Your registration</h1>
 
         <PurchasedTicketStub
           id="ticket-stub"
@@ -387,48 +566,18 @@ export default function RegistrationDetail() {
             location: eventLocation,
             startsAt: detail.event?.starts_at,
             ticketType: detail.ticket_type?.name,
-            qrToken: ticketValid && !isOnline ? detail.qr_token : null,
-            valid: ticketValid,
+            qrToken: null,
+            valid: false,
             statusLabel: meta.label,
+            statusBadgeClass: meta.cls,
           }}
         />
-
-        {ticketValid ? (
-          <div className="flex flex-wrap justify-center gap-2">
-            <Button className="rounded-full" onClick={() => void handleDownload()} disabled={downloading}>
-              {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-              Download ticket
-            </Button>
-            {calendarHref ? (
-              <Button variant="outline" className="rounded-full" asChild>
-                <a href={calendarHref} target="_blank" rel="noreferrer">
-                  <CalendarDays className="w-4 h-4" />
-                  Add to calendar
-                </a>
-              </Button>
-            ) : null}
-            <Button type="button" variant="outline" className="rounded-full" onClick={() => void handleShare()}>
-              <Share2 className="w-4 h-4" />
-              Share event
-            </Button>
-          </div>
-        ) : null}
 
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className={`inline-flex items-center gap-2 text-sm font-semibold px-3 py-1.5 rounded-full ${meta.cls}`}>
             {meta.icon}
             {meta.label}
           </div>
-          {showCheckStatus && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-8 text-xs gap-1.5"
-              onClick={load}
-            >
-              <RefreshCw className="w-3 h-3" /> Check status
-            </Button>
-          )}
         </div>
 
         {/* Cancelled explanation */}
@@ -449,39 +598,6 @@ export default function RegistrationDetail() {
               </Button>
             ) : null}
           </div>
-        )}
-
-        {/* ── Payment pending — resume Waafi payment ── */}
-        {isPaymentPending && !isCancelled && (
-          <ParticipantWaafiPayment
-            participationId={detail.id}
-            eventName={eventTitle}
-            ticketName={detail.ticket_type?.name ?? null}
-            amount={detail.ticket_type?.price ?? "0"}
-            currency="USD"
-            onSuccess={() => load()}
-            onFailure={(reason) => {
-              // Component already shows it inline; also toast so it's not missed while scrolling
-              toast.error(reason, { duration: 6000 });
-            }}
-            onCheckStatus={load}
-          />
-        )}
-
-        {/* ── Payment failed — show message + retry ── */}
-        {isPaymentFailed && !isCancelled && (
-          <ParticipantWaafiPayment
-            participationId={detail.id}
-            eventName={eventTitle}
-            ticketName={detail.ticket_type?.name ?? null}
-            amount={detail.ticket_type?.price ?? "0"}
-            currency="USD"
-            onSuccess={() => load()}
-            onFailure={(reason) => {
-              toast.error(reason, { duration: 6000 });
-            }}
-            onCheckStatus={load}
-          />
         )}
 
         {/* ── Payment refunded ── */}

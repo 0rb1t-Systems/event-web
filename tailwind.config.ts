@@ -13,6 +13,19 @@ export default {
       },
     },
     extend: {
+      fontSize: {
+        /* Industry baseline: 16px body, 15px secondary UI, 13px captions (12px floor for labels). */
+        "2xs": ["0.6875rem", { lineHeight: "1rem" }],
+        xs: ["0.8125rem", { lineHeight: "1.125rem" }],
+        sm: ["0.9375rem", { lineHeight: "1.375rem" }],
+        base: ["1rem", { lineHeight: "1.5rem" }],
+        lg: ["1.125rem", { lineHeight: "1.75rem" }],
+        xl: ["1.25rem", { lineHeight: "1.875rem" }],
+        "2xl": ["1.5rem", { lineHeight: "2rem" }],
+        "3xl": ["1.875rem", { lineHeight: "2.25rem" }],
+        "4xl": ["2.25rem", { lineHeight: "2.5rem" }],
+        "5xl": ["3rem", { lineHeight: "1.1" }],
+      },
       fontFamily: {
         sans: ['"Source Sans 3 Variable"', '"Source Sans 3"', "system-ui", "sans-serif"],
         display: ['"Outfit Variable"', "Outfit", "system-ui", "sans-serif"],
@@ -76,6 +89,7 @@ export default {
         },
         oc: {
           bg: "hsl(var(--oc-bg) / <alpha-value>)",
+          well: "hsl(var(--oc-well) / <alpha-value>)",
           surface: "hsl(var(--oc-surface) / <alpha-value>)",
           ink: "hsl(var(--oc-ink) / <alpha-value>)",
           muted: "hsl(var(--oc-muted) / <alpha-value>)",
@@ -88,6 +102,7 @@ export default {
           },
           accent: {
             DEFAULT: "hsl(var(--oc-accent) / <alpha-value>)",
+            strong: "hsl(var(--oc-accent-strong) / <alpha-value>)",
             soft: "hsl(var(--oc-accent-soft) / <alpha-value>)",
           },
           bad: {

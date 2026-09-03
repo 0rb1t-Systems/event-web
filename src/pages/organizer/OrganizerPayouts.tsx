@@ -38,8 +38,8 @@ function formatMoney(amount: number, currency = env.waafiCurrency) {
   }
 }
 
-const th = "text-left text-[10px] font-bold uppercase tracking-[1px] text-oc-faint pb-2";
-const td = "py-3 text-[13px] text-oc-ink align-middle";
+const th = "text-left text-xs font-bold uppercase tracking-[1px] text-oc-faint pb-2";
+const td = "py-3 text-sm text-oc-ink align-middle";
 
 export default function OrganizerPayouts() {
   const [events, setEvents] = useState<OrganizerEvent[]>([]);
@@ -104,41 +104,35 @@ export default function OrganizerPayouts() {
     <div className="flex flex-col gap-4">
       {/* Counters */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <OrgStatCard label="Requests" value={loadingAll ? "—" : String(requestStats.total)} icon={IconBanknotes} />
-        <OrgStatCard label="Awaiting review" value={loadingAll ? "—" : String(requestStats.requested)} icon={IconClock} tone="amber" />
-        <OrgStatCard label="Paid out" value={loadingAll ? "—" : String(requestStats.paid)} icon={IconWallet} />
+        <OrgStatCard label="Total" value={loadingAll ? "—" : String(requestStats.total)} icon={IconBanknotes} />
+        <OrgStatCard label="Pending" value={loadingAll ? "—" : String(requestStats.requested)} icon={IconClock} tone="amber" />
+        <OrgStatCard label="Paid" value={loadingAll ? "—" : String(requestStats.paid)} icon={IconWallet} />
         <OrgStatCard
-          label="Open requested"
+          label="Pending amount"
           value={loadingAll ? "—" : formatMoney(requestStats.requestedSum)}
           icon={IconBanknotes}
           tone="amber"
         />
       </div>
 
-      <div className="org-card p-5 flex flex-col lg:flex-row lg:items-end justify-between gap-4">
-        <div className="min-w-0">
-          <h2 className="font-head font-semibold text-[17px] text-oc-ink mb-1">Request a payout</h2>
-          <p className="text-[13px] text-oc-muted">
-            Select an event to view collected balance and request a payout.
-            {selected && (
-              <>
-                {" "}
-                <Link
-                  to={`/organizer/events/${selected.id}/finance`}
-                  className="text-oc-brand font-semibold hover:text-oc-brand-strong"
-                >
-                  Open in Event Studio
-                </Link>
-              </>
-            )}
-          </p>
+      <div className="org-card p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <h2 className="font-head font-semibold text-[17px] text-oc-ink shrink-0">Event</h2>
+          {selected && (
+            <Link
+              to={`/organizer/events/${selected.id}/finance`}
+              className="text-sm text-oc-brand font-semibold hover:text-oc-brand-strong truncate"
+            >
+              Studio →
+            </Link>
+          )}
         </div>
         <Select
           value={eventId || undefined}
           onValueChange={setEventId}
           disabled={loadingEvents || events.length === 0}
         >
-          <SelectTrigger className="w-full lg:w-80 rounded-[12px] bg-oc-bg border-0">
+          <SelectTrigger className="w-full lg:w-80 rounded-[12px] bg-oc-well border-0">
             <SelectValue
               placeholder={loadingEvents ? "Loading events…" : "Select an event"}
             />
@@ -160,12 +154,7 @@ export default function OrganizerPayouts() {
       ) : events.length === 0 ? (
         <div className="org-card px-6 py-16 text-center flex flex-col items-center gap-4">
           <IconWallet className="w-8 h-8 text-oc-faint" />
-          <div>
-            <p className="font-head font-semibold text-oc-ink">No events yet</p>
-            <p className="text-[13px] text-oc-muted mt-1">
-              Create an event to manage finance and payouts.
-            </p>
-          </div>
+          <p className="font-head font-semibold text-oc-ink">No events</p>
           <OrgButton asChild>
             <Link to="/organizer/events/new">Create event</Link>
           </OrgButton>
@@ -176,25 +165,21 @@ export default function OrganizerPayouts() {
             eventId={Number(eventId)}
             eventTitle={selected?.title}
             compact
+            hideRequestList
           />
         </div>
       ) : null}
 
       <div className="org-card p-5">
-        <h2 className="font-head font-semibold text-[17px] text-oc-ink mb-1">Payout requests</h2>
-        <p className="text-[13px] text-oc-muted mb-4">
-          Across every event. Each request is tied to a single event. There is no batch payout.
-        </p>
+        <h2 className="font-head font-semibold text-[17px] text-oc-ink mb-4">Requests</h2>
 
         {loadingAll ? (
           <div className="flex justify-center py-16">
             <Loader2 className="w-6 h-6 animate-spin text-oc-brand" />
           </div>
         ) : allRequests.length === 0 ? (
-          <div className="rounded-[12px] bg-oc-bg py-14 text-center">
-            <p className="text-[13px] text-oc-muted">
-              No payout requests yet. Choose an event above to request one.
-            </p>
+          <div className="rounded-[12px] bg-oc-well py-14 text-center">
+            <p className="text-sm text-oc-muted">None yet.</p>
           </div>
         ) : (
           <>
@@ -202,7 +187,7 @@ export default function OrganizerPayouts() {
               {allRequests.map((row) => {
                 const status = payoutStatus(row.status);
                 return (
-                  <li key={row.id} className="rounded-[12px] bg-oc-bg p-4 flex flex-col gap-3">
+                  <li key={row.id} className="rounded-[12px] bg-oc-well p-4 flex flex-col gap-3">
                     <div className="flex items-start justify-between gap-3">
                       <Link
                         to={`/organizer/events/${row.event_id}/finance`}

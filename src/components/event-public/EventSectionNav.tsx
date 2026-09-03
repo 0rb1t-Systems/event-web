@@ -16,7 +16,7 @@ export function EventSectionNav({ sections }: Props) {
   const [active, setActive] = useState(sections[0]?.id ?? "");
   const [show, setShow] = useState(false);
   const { scrollY } = useScroll();
-  useMotionValueEvent(scrollY, "change", (v) => setShow(v > 420));
+  useMotionValueEvent(scrollY, "change", (v) => setShow(v > 300));
 
   useEffect(() => {
     if (sections.length === 0) return;

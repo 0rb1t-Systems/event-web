@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 const cardTitle = "font-head text-[17px] font-semibold text-oc-ink";
 const cardNote = "text-xs text-oc-faint";
 const inputBox =
-  "flex items-center gap-2 rounded-[12px] bg-oc-bg px-3.5 py-[11px] transition-shadow focus-within:ring-2 focus-within:ring-oc-brand/40";
+  "flex items-center gap-2 rounded-[12px] bg-oc-well px-3.5 py-[11px] transition-shadow focus-within:ring-2 focus-within:ring-oc-brand/40";
 const inputEl = "w-full bg-transparent text-sm text-oc-ink placeholder:text-oc-faint outline-none";
 
 function toDatetimeLocal(iso: string | null | undefined): string {
@@ -110,10 +110,7 @@ export default function EventStudioSettings() {
   };
 
   return (
-    <StudioTabFrame
-      title="Event settings"
-      description="Capacity, deadlines and the door scan token for this event."
-    >
+    <StudioTabFrame title="Event settings">
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
         <div className="flex flex-col gap-4">
           {/* Capacity */}
@@ -170,7 +167,7 @@ export default function EventStudioSettings() {
                   aria-label="Registration deadline"
                   className={cn(
                     inputEl,
-                    "text-[13px] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer",
+                    "text-sm [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer",
                   )}
                   value={registrationDeadline}
                   onChange={(e) => {
@@ -249,7 +246,7 @@ export default function EventStudioSettings() {
               </>
             ) : (
               <div className="flex flex-col gap-2.5">
-                <p className="text-[13px] text-oc-muted">
+                <p className="text-sm text-oc-muted">
                   No token on this event yet. Generate one to unlock door check-in.
                 </p>
                 <OrgButton
@@ -269,7 +266,7 @@ export default function EventStudioSettings() {
           {/* Danger zone */}
           <div className="rounded-[16px] bg-oc-bad-soft p-5 flex flex-col gap-2.5">
             <h3 className="font-head text-[17px] font-semibold text-oc-bad">Danger zone</h3>
-            <p className="text-[13px] text-oc-ink leading-relaxed">
+            <p className="text-sm text-oc-ink leading-relaxed">
               Deleting this event removes it from your list. Registrations, tickets and finance history stay on the server.
             </p>
             <div>
@@ -277,7 +274,7 @@ export default function EventStudioSettings() {
                 type="button"
                 onClick={() => setDeleteOpen(true)}
                 data-testid="studio-delete-event"
-                className="inline-flex items-center gap-2 rounded-[12px] bg-oc-surface border border-oc-bad px-4 py-2.5 text-[13px] font-semibold text-oc-bad hover:bg-oc-bad hover:text-white transition-colors"
+                className="inline-flex items-center gap-2 rounded-[12px] bg-oc-surface border border-oc-bad px-4 py-2.5 text-sm font-semibold text-oc-bad hover:bg-oc-bad hover:text-white transition-colors"
               >
                 <IconTrash className="w-[15px] h-[15px]" />
                 Delete this event

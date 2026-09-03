@@ -6,7 +6,7 @@ export default function EventStudioLuckyWheel() {
   const { eventId, handleDenied } = useEventStudio();
 
   return (
-    <StudioTabFrame title="Lucky wheel" description="Draw winners at random from confirmed attendees — results are saved automatically.">
+    <StudioTabFrame title="Lucky wheel">
       <LuckyWheelPanel eventId={eventId} onDenied={handleDenied} />
     </StudioTabFrame>
   );

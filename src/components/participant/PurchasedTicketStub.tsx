@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import QRCode from "qrcode";
 import { cn } from "@/lib/utils";
+import { statusBadgeClass } from "@/lib/statusBadges";
 
 export type TicketStubModel = {
   id: number;
@@ -12,6 +13,7 @@ export type TicketStubModel = {
   qrToken?: string | null;
   valid: boolean;
   statusLabel?: string | null;
+  statusBadgeClass?: string | null;
 };
 
 function padId(id: number) {
@@ -38,7 +40,7 @@ function formatTime(iso: string | null | undefined) {
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl bg-muted px-3 py-2">
-      <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
+      <p className="font-mono text-xs uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
       <p className="mt-0.5 truncate font-mono text-sm font-medium text-foreground">{value}</p>
     </div>
   );
@@ -85,18 +87,23 @@ export function PurchasedTicketStub({
     >
       <div className="relative flex min-h-[9.5rem] flex-col sm:flex-row">
         <div className="flex h-10 shrink-0 items-center justify-between bg-primary px-4 sm:h-auto sm:w-11 sm:flex-col sm:justify-center sm:px-0 sm:py-5">
-          <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.32em] text-primary-foreground sm:[writing-mode:vertical-rl] sm:rotate-180">
+          <span className="font-mono text-xs font-semibold uppercase tracking-[0.32em] text-primary-foreground sm:[writing-mode:vertical-rl] sm:rotate-180">
             Admit one
           </span>
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col justify-between gap-3 px-4 py-4 sm:px-5">
           <div className="flex items-start justify-between gap-3">
-            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+            <p className="font-mono text-xs uppercase tracking-[0.22em] text-muted-foreground">
               EventHub pass · {serial}
             </p>
             {ticket.statusLabel ? (
-              <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.16em] text-primary">
+              <span
+                className={cn(
+                  "shrink-0 rounded-full border px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.14em]",
+                  ticket.statusBadgeClass ?? statusBadgeClass("primary"),
+                )}
+              >
                 {ticket.statusLabel}
               </span>
             ) : null}
@@ -127,7 +134,7 @@ export function PurchasedTicketStub({
             )}
           </div>
           <p
-            className="max-w-[9.5rem] text-center font-mono text-[11px] font-semibold tracking-[0.14em] text-muted-foreground"
+            className="max-w-[9.5rem] text-center font-mono text-xs font-semibold tracking-[0.14em] text-muted-foreground"
             title={ticket.valid && ticket.qrToken ? ticket.qrToken : undefined}
           >
             {ticket.valid && ticket.qrToken ? ticket.qrToken : "—"}
