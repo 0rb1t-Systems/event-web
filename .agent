@@ -1,6 +1,6 @@
 # EventHub Web App — Agent Context
 
-Last updated: 2026-09-03 — Form fields fully removed (Admin tab + DB table)
+Last updated: 2026-09-03 — Static EventHub ticket only (no invitation templates)
 Repository: D:\Orbit Systems\EventHub\event-web
 Git remote: https://github.com/Abdiaziiz-1717/event-web.git
 Default branch: main (GitHub HEAD; CI also listens to `master`)
@@ -327,7 +327,7 @@ Organizer chrome: desktop persistent `OrgTopbar` (underline nav + account menu; 
   - `/tickets` → ticket types + discount codes
   - `/form` → redirect → `/tickets` (legacy; registration form builder removed)
   - `/content` → speakers, sponsors, sessions (`/page` → here)
-  - `/branding` → invitation designer (`/invitation` → here)
+  - `/branding` and `/invitation` → redirect → overview (invitation designer removed; tickets are a static EventHub stub)
   - `/attendees` → registrations + announcements
   - `/lucky-wheel` → lucky wheel (`LuckyWheelPanel`; confirmed-seat participants only)
   - `/scanner` → QR check-in (`CheckInScanner` + `html5-qrcode`; lazy)
@@ -367,9 +367,9 @@ Guards:
 | Public event page + registration | PublicEventPage + cover-photo Hero (banner island + countdown + Register, no in-hero section pill) + overlapping black facts + row agenda + navy partner tiles + house `SiteFooter` | `GET /events/{id}` (publicApi); `POST /participant/events/{id}/discount-codes/validate`, `POST /participant/participations` (ticket + optional `discount_code` only — **no custom form fields**), `POST /participant/payments/charge`, `GET /participant/participations/{id}` (participantApi) | Yes | Registration UI: pick ticket (if any) → privacy consent → join or pay. Free events with no ticket types join directly. Paid: discount quote optional, then Waafi. No `GET /events/{id}/form-fields` on register. Cover fills a rounded island; type sits bottom-left over a light gradient so the photo shows. Industry type scale (hero ~24–34px). Pulse countdown + black facts bar kept. About is a stacked lead + body with a teal rule. Why attend is a mint lead band plus compact rows. Agenda is time/title/speaker rows with no section CTAs. Partners are real-color logos on white tiles over navy (no invert). Speakers are compact teal-field row-cards (not a full-page stage). `EventSectionNav` after scroll. Footer is shared `SiteFooter` (light-locked). No “Powered by” line. Sessions pass description/room/ends_at; speakers pass bio. Page chrome accent is Pulse teal `#2ECFC2`. Tickets with `sales_enabled=false` omitted; paid flow can validate + apply discount quote before join. |
 | Participant dashboard (home) | AttendeeHome as My Tickets (light perforated EventHub pass + QR) | `GET /participant/participations` via `useMyParticipations` | Yes | Lists purchased tickets, not event-room cards. QR from `qr_token` when the ticket is valid. |
 | Event rooms list | EventRooms at `/dashboard/rooms` | same participations list, filtered by `roomSwitcherList` | Yes | Next event lands here. User picks which room to open. |
-| Registration detail (ticket) | RegistrationDetail | `GET .../invitation`, `GET .../certificate` (participantApi) | Yes | `/registrations/:id`; My Tickets primary open target; invitation + in-person QR + PDF; **Open event room** CTA when ticket valid |
-| Event room | EventRoom + PublicSiteHeader | invitation + announcements/discussions via EventRoomExtras + feedback | Yes | `/registrations/:id/room`; room switcher when several eligible regs; separate from ticket |
-| Organizer event studio — invitation | Event Studio branding tab | invitation-system-templates + invitation-template CRUD + background | Yes | drag overlays / resize QR; mobile preview-only; no delete route |
+| Registration detail (ticket) | RegistrationDetail | `GET .../invitation` (ticket payload; `invitation` always null) | Yes | `/registrations/:id`; static EventHub pass stub + PDF print of that stub; **Open event room** CTA when ticket valid |
+| Event room | EventRoom + PublicSiteHeader | announcements/discussions via EventRoomExtras + feedback | Yes | `/registrations/:id/room`; room switcher when several eligible regs; separate from ticket |
+| Organizer event studio — invitation | removed | — | — | `/branding` and `/invitation` redirect to overview. No template picker, overlays, or custom background. |
 | Organizer events | grid: banner/gradient cards, status chips, search + All/Published/Draft/Ended pills (`?status=` URL) | `GET /organizer/events` via `useOrganizerEventList` | Yes | Published = catalog set (`isPublicCatalogStatus`); Ended = completed+cancelled; grouped pills fetch `per_page: 100` and filter in memory (Laravel `status` is exact). Draft still sends `status=draft`. |
 | Organizer event create | pen modal over dark scrim (title, category, mode segmented, dates, online URL) | `POST /organizer/events` | Yes | required title, category, `event_mode`, dates; `online_url` when online/hybrid; rest finished in studio |
 | Organizer event detail | EventDetail + Outlet + EventStudioProvider with sticky `OrgStudioNav` (12px items, 232px) + `OrgStudioHeader` | `GET/PATCH/DELETE` via `useOrganizerEvent` | Yes | Desktop: native page scroll; rail sticky. MANAGE (Finance, Settings) is in the rail — do not clip it with viewport lock. 403/404: "You don't have access to this event." Mutations invalidate event, list, dashboard. |
@@ -646,7 +646,7 @@ Documented paths (all under OrganizerLayout):
 - `/organizer/events/:id/tickets`
 - `/organizer/events/:id/form`
 - `/organizer/events/:id/content`
-- `/organizer/events/:id/branding` (invitation designer; `/invitation` redirects here)
+- `/organizer/events/:id/branding` and `/invitation` → overview (invitation designer removed)
 - `/organizer/events/:id/attendees` (registrations + announcements)
 - `/organizer/events/:id/lucky-wheel` (random winner picker + spin history)
 - `/organizer/events/:id/scanner` (QR check-in; `/checkin` redirects here)
@@ -654,9 +654,9 @@ Documented paths (all under OrganizerLayout):
 - `/organizer/events/:id/settings` (capacity / deadline / delete)
 - `/organizer/events/:id/promotion` → redirects to overview (permanently removed)
 
-Studio **section** sidebar groups (`OrgStudioNav`): EVENT (Overview, Tickets, Registration, Program, Invitation), PEOPLE (Attendees, Check-in, Lucky wheel), MANAGE (Finance, Settings). Branding nav label is **Invitation**. Analytics stays routed, not in the rail. No Promotion item. This rail is not app nav. Desktop rail is `sticky top-16` with 12px items; the page scrolls natively.
+Studio **section** sidebar groups (`OrgStudioNav`): EVENT (Overview, Tickets, Program), PEOPLE (Attendees, Check-in, Lucky wheel), MANAGE (Finance, Settings). Analytics stays routed, not in the rail. No Invitation/branding item. This rail is not app nav. Desktop rail is `sticky top-16` with 12px items; the page scrolls natively.
 
-Reusable UI lives in `src/components/event-studio/` (`TicketTypeCard`, `TicketTypeForm`, `DiscountCodeForm`, `SpeakerCard`, `SpeakerForm`, `SponsorCard`, `SponsorForm`, `SessionTimeline`, `SessionForm`, `InvitationDesigner`, `EventRegistrationsPanel`, `AnnouncementsPanel`, `LuckyWheelPanel`, `EventFinancePanel`, `SubscriptionQuotaPanel`). Scanner UI: `src/components/event-detail/CheckInScanner.tsx` via `EventStudioScanner`. Lucky wheel UI: `LuckyWheelPanel.tsx` via `EventStudioLuckyWheel`. Shared ticket canvas: `src/components/invitation/InvitationCanvasPreview.tsx`. Overlay drag layer: `InvitationOverlayEditor.tsx`. Coordinate helpers: `src/lib/invitationCanvas.ts`.
+Reusable UI lives in `src/components/event-studio/` (`TicketTypeCard`, `TicketTypeForm`, `DiscountCodeForm`, `SpeakerCard`, `SpeakerForm`, `SponsorCard`, `SponsorForm`, `SessionTimeline`, `SessionForm`, `EventRegistrationsPanel`, `AnnouncementsPanel`, `LuckyWheelPanel`, `EventFinancePanel`, `SubscriptionQuotaPanel`). Scanner UI: `src/components/event-detail/CheckInScanner.tsx` via `EventStudioScanner`. Lucky wheel UI: `LuckyWheelPanel.tsx` via `EventStudioLuckyWheel`. Ticket UI is the static stub `PurchasedTicketStub` (screen + PDF print).
 
 Organizer chrome (`OrganizerLayout`): top bar with Dashboard, Events, Check-in, Finance. Settings in the avatar menu only. Org Attendees/Analytics URLs redirect into Events / studio analytics.
 
@@ -787,6 +787,12 @@ Event `scan_token` is generated on create; organizer show/update/banner/transiti
 - Public `online_url` is hidden; registered participants see it on invitation/event room
 
 ## Change Log
+
+### 2026-09-03 — Static ticket only (remove invitation templates)
+
+All attendees get the same EventHub pass stub (`PurchasedTicketStub`). Download PDF prints that stub. Organizer Invitation designer tab removed (`/branding` and `/invitation` redirect to overview). Laravel dropped `event_invitation_templates` + `invitation_system_templates`; organizer/admin template APIs gone. `GET /participant/participations/{id}/invitation` still returns ticket payload with `invitation: null` and `qr_token` for in-person door scan.
+
+Files (web): `RegistrationDetail.tsx`, `PurchasedTicketStub.tsx`, `App.tsx`, `OrgStudioNav.tsx`, `organizerStudioRoutes.ts`, deleted `InvitationDesigner`, `InvitationCanvasPreview`, `InvitationOverlayEditor`, `organizerInvitations.ts`, `invitationCanvas.ts`, `EventStudioBranding.tsx`.
 
 ### 2026-09-03 — Admin Form Fields tab + `event_form_fields` table gone
 

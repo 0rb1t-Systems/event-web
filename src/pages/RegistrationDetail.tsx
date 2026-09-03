@@ -1,16 +1,14 @@
 /**
  * /registrations/:registrationId
  *
- * Full participant registration detail:
- *  - Participation status + payment status
- *  - Digital invitation canvas (template/custom/default)
- *  - QR code (from qr_token)
- *  - PDF/image download via browser print
+ * Participant registration / ticket detail:
+ *  - Status + payment
+ *  - Static EventHub ticket stub (QR when valid)
+ *  - PDF via browser print of that stub
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import QRCode from "qrcode";
 import {
   ArrowLeft, Award, ExternalLink, CheckCircle2, Clock,
   AlertTriangle, Download, Loader2, CalendarDays, Share2,
@@ -30,13 +28,9 @@ import { getApiErrorMessage } from "@/lib/apiError";
 import { getMediaUrl } from "@/lib/mediaUrl";
 import { toast } from "sonner";
 import { ParticipantWaafiPayment } from "@/components/participant/ParticipantWaafiPayment";
-import InvitationCanvasPreview, { InvitationScaled } from "@/components/invitation/InvitationCanvasPreview";
-import { INVITATION_BRAND } from "@/lib/invitationCanvas";
 import { asEventMode } from "@/lib/eventMode";
 import { PublicSiteHeader } from "@/components/layout/PublicSiteHeader";
 import { PurchasedTicketStub } from "@/components/participant/PurchasedTicketStub";
-
-const BRAND = INVITATION_BRAND;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -152,9 +146,7 @@ const CertificatePanel = ({
 
 
 // ─── Print styles injected once ───────────────────────────────────────────────
-// Invitation is a fixed 800×1100 canvas. Default Letter margins clip the bottom
-// (QR lives near y≈820). Match page size to the canvas, scale to fit as fallback,
-// and force backgrounds/images to paint.
+// Print the on-screen static ticket stub (not the old 800×1100 invitation canvas).
 
 let printStylesInjected = false;
 function ensurePrintStyles() {
@@ -164,14 +156,12 @@ function ensurePrintStyles() {
   style.textContent = `
 @media print {
   @page {
-    size: 8.333in 11.458in;
-    margin: 0;
+    size: auto;
+    margin: 12mm;
   }
   html, body {
     margin: 0 !important;
     padding: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
     background: white !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
@@ -197,17 +187,12 @@ function ensurePrintStyles() {
     overflow: hidden !important;
     z-index: 9999 !important;
   }
-  #print-root .invitation-print-sheet {
+  #print-root .ticket-print-sheet {
     position: relative !important;
-    width: 800px !important;
-    height: 1100px !important;
-    max-width: none !important;
+    width: 720px !important;
+    max-width: 100% !important;
     margin: 0 !important;
-    overflow: hidden !important;
     box-shadow: none !important;
-    border-radius: 0 !important;
-    transform: scale(min(100vw / 800px, 100vh / 1100px)) !important;
-    transform-origin: center center !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
@@ -229,10 +214,8 @@ export default function RegistrationDetail() {
   const [detail, setDetail] = useState<ApiInvitationDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [qrDataUrl, setQrDataUrl] = useState("");
   const [certificate, setCertificate] = useState<ApiCertificateResult | null>(null);
 
-  const printRef = useRef<HTMLDivElement>(null!);
   const printRootRef = useRef<HTMLDivElement>(null);
 
   const numericId = Number(registrationId);
@@ -285,42 +268,18 @@ export default function RegistrationDetail() {
     load();
   }, [load]);
 
-  // Generate QR for in-person door check-in only
-  useEffect(() => {
-    const token = detail?.qr_token;
-    const mode = asEventMode(detail?.event?.event_mode);
-    if (!token || mode === "online") {
-      setQrDataUrl("");
-      return;
-    }
-    QRCode.toDataURL(token, {
-      width: 600,
-      margin: 2,
-      color: { dark: "#000000", light: "#ffffff" },
-    })
-      .then(setQrDataUrl)
-      .catch(() => setQrDataUrl(""));
-  }, [detail]);
-
   // Inject print styles once
   useEffect(() => { ensurePrintStyles(); }, []);
 
   const handleDownload = () => {
     if (!detail || !hasValidTicket(detail.status, detail.payment_status)) return;
 
-    const canvas = document.getElementById("invitation-canvas");
-    if (!canvas) {
-      toast.error("Invitation is not ready to print yet.");
-      return;
-    }
-    if (detail.qr_token && !qrDataUrl) {
-      toast.error("QR code is still loading. Try again in a moment.");
+    const ticket = document.getElementById("ticket-stub");
+    if (!ticket) {
+      toast.error("Ticket is not ready to print yet.");
       return;
     }
 
-    // Clone into a dedicated print root so we never yank the live (scaled) canvas.
-    // Restoring the live node while Chrome's print dialog is open was clipping the
-    // bottom of the 800×1100 sheet (QR) and breaking layout in Save as PDF.
     let root = document.getElementById("print-root");
     if (!root) {
       root = document.createElement("div");
@@ -331,9 +290,9 @@ export default function RegistrationDetail() {
     }
 
     root.replaceChildren();
-    const sheet = canvas.cloneNode(true) as HTMLElement;
+    const sheet = ticket.cloneNode(true) as HTMLElement;
     sheet.removeAttribute("id");
-    sheet.classList.add("invitation-print-sheet");
+    sheet.classList.add("ticket-print-sheet");
     root.appendChild(sheet);
 
     let cleaned = false;
@@ -345,7 +304,6 @@ export default function RegistrationDetail() {
     };
 
     window.addEventListener("afterprint", cleanup);
-    // Defer so the clone is laid out before Chrome snapshots the page.
     requestAnimationFrame(() => {
       window.print();
     });
@@ -428,7 +386,6 @@ export default function RegistrationDetail() {
   const ticketValid = hasValidTicket(detail.status, detail.payment_status);
   const eventMode = asEventMode(detail.event?.event_mode);
   const isOnline = eventMode === "online";
-  const showDoorQr = ticketValid && !!detail.qr_token && !isOnline;
   const eventEnded =
     detail.event?.status === "completed" ||
     (!!detail.event?.ends_at && new Date(detail.event.ends_at).getTime() < Date.now());
@@ -436,7 +393,6 @@ export default function RegistrationDetail() {
   const showCheckStatus = isPaymentPending && !isCancelled;
   const eventTitle = detail.event?.title ?? "Event";
   const eventId = detail.event?.id;
-  const invitation = detail.invitation;
   const showFeedbackHint = eventEnded && detail.status !== "cancelled";
   const eventLocation = [detail.event?.address, detail.event?.city].filter(Boolean).join(", ") || null;
   const calendarHref = googleCalendarUrl(eventTitle, detail.event?.starts_at, eventLocation);
@@ -504,13 +460,14 @@ export default function RegistrationDetail() {
         )}
 
         <PurchasedTicketStub
+          id="ticket-stub"
           ticket={{
             id: detail.id,
             title: eventTitle,
             location: eventLocation,
             startsAt: detail.event?.starts_at,
             ticketType: detail.ticket_type?.name,
-            qrToken: detail.qr_token,
+            qrToken: ticketValid && !isOnline ? detail.qr_token : null,
             valid: ticketValid,
             statusLabel: meta.label,
           }}
@@ -616,58 +573,6 @@ export default function RegistrationDetail() {
             <p className="text-sm text-muted-foreground leading-relaxed">
               The payment for this registration has been refunded. Your ticket is no longer valid.
               If you believe this is an error, please contact the event organizer.
-            </p>
-          </div>
-        )}
-
-        {/* ── Invitation canvas — only when ticket is valid ── */}
-        {ticketValid && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="font-display font-semibold text-lg tracking-[-0.01em]">Your invitation</h2>
-              <Button
-                size="sm"
-                className="rounded-full h-9 text-sm gap-1.5"
-                onClick={handleDownload}
-                style={{ background: BRAND }}
-              >
-                <Download className="w-3.5 h-3.5" />
-                Download PDF
-              </Button>
-            </div>
-
-            <InvitationScaled>
-              <InvitationCanvasPreview
-                printRef={printRef}
-                model={{
-                  eventTitle: detail.event?.title ?? "Event",
-                  startsAt: detail.event?.starts_at,
-                  venue: detail.event?.address ?? detail.event?.city,
-                  ticketName: detail.ticket_type?.name,
-                  attendeeName: user?.name ?? "Guest",
-                  invitation,
-                  qrDataUrl,
-                }}
-              />
-            </InvitationScaled>
-          </div>
-        )}
-
-        {/* QR standalone — in-person only */}
-        {showDoorQr && (
-          <div className="bg-card rounded-3xl border border-border p-6 flex flex-col items-center gap-4 house-card">
-            <p className="text-xs uppercase tracking-[0.18em] font-semibold text-muted-foreground">Scan at the door</p>
-            <div className="bg-white rounded-2xl p-4 shadow-inner">
-              {qrDataUrl ? (
-                <img src={qrDataUrl} alt="QR code" className="w-48 h-48 sm:w-56 sm:h-56" />
-              ) : (
-                <div className="w-48 h-48 flex items-center justify-center">
-                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                </div>
-              )}
-            </div>
-            <p className="text-[11px] text-muted-foreground text-center">
-              Show this QR code at the event entrance.
             </p>
           </div>
         )}

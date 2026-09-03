@@ -12,7 +12,6 @@ import {
   IconCalendar,
   IconDashboard,
   IconMic,
-  IconPhoto,
   IconQr,
   IconSettings,
   IconTicket,
@@ -34,7 +33,6 @@ const STUDIO_GROUPS: Array<{ label: string; items: StudioNavItem[] }> = [
       { key: "overview", label: "Overview", icon: IconDashboard },
       { key: "tickets", label: "Tickets", icon: IconTicket },
       { key: "content", label: "Program", icon: IconMic },
-      { key: "branding", label: "Invitation", icon: IconPhoto },
     ],
   },
   {

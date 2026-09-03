@@ -48,10 +48,12 @@ export function PurchasedTicketStub({
   ticket,
   href,
   className,
+  id,
 }: {
   ticket: TicketStubModel;
   href?: string;
   className?: string;
+  id?: string;
 }) {
   const [qr, setQr] = useState("");
 
@@ -75,6 +77,7 @@ export function PurchasedTicketStub({
 
   const body = (
     <article
+      id={id}
       className={cn(
         "house-card relative overflow-hidden rounded-2xl border border-border bg-card text-foreground",
         className,

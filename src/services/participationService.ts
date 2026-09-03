@@ -6,7 +6,6 @@
  */
 
 import { participantApi } from "@/lib/api";
-import { normalizeInvitationConfig } from "@/lib/invitationCanvas";
 import type { WrappedSuccess } from "@/lib/publicEventsAdapters";
 
 // ─── Response types ───────────────────────────────────────────────────────────
@@ -90,36 +89,7 @@ export type ParticipationListResponse = WrappedSuccess<{
   pagination: ParticipationListMeta;
 }>;
 
-// ─── Invitation ───────────────────────────────────────────────────────────────
-
-export type OverlayPositions = Record<
-  string,
-  { x?: number; y?: number; width?: number; height?: number; font_size?: number; font_color?: string }
->;
-
-export type Customizations = {
-  primary_color?: string;
-  secondary_color?: string;
-  font_family?: string;
-  header_text?: string;
-  [key: string]: unknown;
-};
-
-export type SystemTemplate = {
-  id: number;
-  name: string;
-  preview_image_path?: string | null;
-  overlay_positions?: OverlayPositions | null;
-  customizations?: Customizations | null;
-};
-
-export type InvitationConfig = {
-  mode: "template" | "custom" | null;
-  system_template?: SystemTemplate | null;
-  background_image_path?: string | null;
-  customizations?: Customizations | null;
-  overlay_positions?: OverlayPositions | null;
-} | null;
+// ─── Ticket / registration detail (legacy path name: invitation) ──────────────
 
 export type ApiInvitationDetail = {
   id: number;
@@ -129,8 +99,8 @@ export type ApiInvitationDetail = {
   created_at: string;
   event: ApiParticipation["event"];
   ticket_type: ApiParticipation["ticket_type"];
-  invitation: InvitationConfig;
-  canvas: { width: number; height: number };
+  /** Always null — custom invitation templates removed; UI uses static ticket stub. */
+  invitation: null;
 };
 
 type InvitationDetailResponse = WrappedSuccess<ApiInvitationDetail>;
@@ -200,13 +170,12 @@ export async function listParticipations(params?: {
   return resp.data.data;
 }
 
-/** GET /participant/participations/{id}/invitation */
+/** GET /participant/participations/{id}/invitation — ticket detail (static stub; no template config). */
 export async function getParticipationInvitation(id: number): Promise<ApiInvitationDetail> {
   const resp = await participantApi.get<InvitationDetailResponse>(
     `/participant/participations/${id}/invitation`,
   );
-  const detail = resp.data.data;
-  return { ...detail, invitation: normalizeInvitationConfig(detail.invitation) };
+  return { ...resp.data.data, invitation: null };
 }
 
 /** GET /participant/participations/{id}/feedback — returns null if not yet submitted */

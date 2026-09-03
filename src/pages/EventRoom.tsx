@@ -1,7 +1,7 @@
 /**
  * /registrations/:registrationId/room
  *
- * Dedicated participant event room (not the ticket/invitation canvas):
+ * Dedicated participant event room (not the ticket pass):
  * join link, announcements, ask-a-speaker, feedback after the event ends.
  */
 

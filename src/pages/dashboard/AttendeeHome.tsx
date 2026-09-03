@@ -31,7 +31,7 @@ export default function AttendeeHome() {
           <p className="text-sm text-muted-foreground">Home / My Tickets</p>
           <h1 className="mt-1.5 font-display text-2xl font-semibold tracking-tight">My Tickets</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Every ticket you purchased. Open one for the invitation and details.
+            Every ticket you purchased. Open one for the pass and details.
           </p>
         </div>
         <span className="inline-flex h-8 items-center rounded-full bg-primary/10 px-3 text-sm font-semibold text-primary">

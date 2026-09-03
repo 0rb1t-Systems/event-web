@@ -120,7 +120,7 @@ export default function OrganizerEventCreate() {
               Create event
             </h1>
             <p className="text-[13px] text-oc-muted mt-1">
-              Start with the basics — add tickets, program and branding later.
+              Start with the basics — add tickets and program later.
             </p>
           </div>
           <button
