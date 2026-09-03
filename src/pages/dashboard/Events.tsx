@@ -14,7 +14,7 @@ import {
 } from "@/components/organizer-console/orgIcons";
 import { OrgButton } from "@/components/organizer-console/OrgButton";
 import { OrgChip } from "@/components/organizer-console/OrgChip";
-import { orgEventStatusTone, orgThumbClass } from "@/components/organizer-console/orgTheme";
+import { orgEventStatusTone, orgFilterOffClass, orgFilterOnClass, orgThumbClass } from "@/components/organizer-console/orgTheme";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { EVENT_STATUS_LABELS, isPublicCatalogStatus } from "@/lib/organizerEventAdapters";
@@ -56,7 +56,6 @@ function OrgEventCard({ event }: { event: OrganizerEvent }) {
   const ModeIcon = modeIcon(event.event_mode);
   const startsAt = event.starts_at;
   const tone = orgEventStatusTone(status);
-  const chipOnCover = tone === "brand" ? "brand" : "plain";
   const categoryName = event.category?.name;
 
   return (
@@ -77,21 +76,16 @@ function OrgEventCard({ event }: { event: OrganizerEvent }) {
           />
         )}
         <div className="relative flex items-start justify-between">
-          {tone === "brand" ? (
-            <OrgChip label={EVENT_STATUS_LABELS[status] ?? status} tone={chipOnCover} size="sm" />
-          ) : (
-            <span className="inline-flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-[3px]">
-              <span className={cn("w-[5px] h-[5px] rounded-full", tone === "faint" ? "bg-oc-faint" : tone === "bad" ? "bg-oc-bad" : "bg-oc-muted")} />
-              <span className={cn("text-[11px] font-semibold", tone === "faint" ? "text-oc-faint" : tone === "bad" ? "text-oc-bad" : "text-oc-muted")}>
-                {EVENT_STATUS_LABELS[status] ?? status}
-              </span>
-            </span>
-          )}
+          <OrgChip
+            label={EVENT_STATUS_LABELS[status] ?? status}
+            tone={tone}
+            size="sm"
+          />
           <span className="w-7 h-7 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center">
             <ModeIcon className="w-3.5 h-3.5 text-white" />
           </span>
         </div>
-        <p className="relative text-[11px] font-bold tracking-[1.2px] text-white/70 uppercase">
+        <p className="relative text-xs font-bold tracking-[1.2px] text-white/70 uppercase">
           {categoryName ?? "Event"}
         </p>
       </div>
@@ -169,7 +163,7 @@ const Events = () => {
       <div className="flex items-end justify-between gap-4 px-2 pt-1 lg:pt-0">
         <div>
           <h1 className="font-head font-semibold text-[22px] lg:text-2xl leading-tight text-oc-ink">Events</h1>
-          <p className="text-[13px] lg:text-sm text-oc-muted mt-1">
+          <p className="text-sm lg:text-sm text-oc-muted mt-1">
             {isLoading ? "Loading…" : `${total.toLocaleString()} event${total === 1 ? "" : "s"}`}
           </p>
         </div>
@@ -183,7 +177,7 @@ const Events = () => {
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <div className="w-full sm:w-[280px] flex items-center gap-2 rounded-full bg-oc-surface px-3.5 py-[9px]">
+        <div className="w-full sm:w-[280px] flex items-center gap-2 rounded-full bg-oc-well px-3.5 py-[9px]">
           <IconSearch className="w-[15px] h-[15px] text-oc-faint shrink-0" />
           <label htmlFor="org-events-search" className="sr-only">Search events</label>
           <input
@@ -191,7 +185,7 @@ const Events = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search events…"
-            className="w-full bg-transparent text-[13px] text-oc-ink placeholder:text-oc-faint outline-none"
+            className="w-full bg-transparent text-sm text-oc-ink placeholder:text-oc-faint outline-none"
           />
         </div>
         <div className="flex-1 hidden sm:block" />
@@ -203,10 +197,8 @@ const Events = () => {
               onClick={() => setFilter(pill.key)}
               aria-pressed={filter === pill.key}
               className={cn(
-                "rounded-full px-4 py-2 text-[13px] font-medium transition-colors",
-                filter === pill.key
-                  ? "bg-oc-ink text-white"
-                  : "bg-oc-surface border border-oc-line text-oc-muted hover:text-oc-ink",
+                "rounded-full px-4 py-2 text-sm font-medium transition-colors",
+                filter === pill.key ? orgFilterOnClass : orgFilterOffClass,
               )}
             >
               {pill.label}
@@ -240,7 +232,7 @@ const Events = () => {
               <OrgButton variant="ghost" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
                 Previous
               </OrgButton>
-              <span className="text-[13px] text-oc-muted tabular-nums">Page {page} of {lastPage}</span>
+              <span className="text-sm text-oc-muted tabular-nums">Page {page} of {lastPage}</span>
               <OrgButton variant="ghost" size="sm" disabled={page >= lastPage} onClick={() => setPage((p) => p + 1)}>
                 Next
               </OrgButton>

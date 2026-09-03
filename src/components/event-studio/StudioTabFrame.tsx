@@ -13,7 +13,7 @@ export function StudioTabFrame({ title, description, children }: Props) {
       <div className="px-2 lg:px-0">
         <h2 className="font-head text-[15px] font-semibold text-oc-ink tracking-tight">{title}</h2>
         {description ? (
-          <p className="mt-1 text-[12px] text-oc-muted max-w-[60ch] text-pretty">{description}</p>
+          <p className="mt-1 text-xs text-oc-muted max-w-[60ch] text-pretty">{description}</p>
         ) : null}
       </div>
       {children}

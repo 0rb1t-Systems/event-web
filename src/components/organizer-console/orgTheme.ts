@@ -5,6 +5,24 @@
 
 export type OrgChipTone = "brand" | "plain" | "faint" | "amber" | "bad";
 
+/** Active filter / tab pills. `text-white` on `bg-oc-ink` disappears in dark (ink is light). */
+export const orgFilterOnClass = "bg-oc-ink text-oc-surface";
+export const orgFilterOffClass =
+  "bg-oc-surface border border-oc-line text-oc-muted hover:text-oc-ink";
+
+/** White pill on dark scanner / result panels — never use `text-oc-ink` (flips light in dark mode). */
+export const orgOnWhiteBtnClass =
+  "bg-white text-[hsl(156_28%_7%)] hover:bg-white/90 disabled:opacity-60";
+
+/** Soft-outline status chip: pale tint, mid-opacity stroke, tone-colored label. */
+export const orgChipToneClass: Record<OrgChipTone, string> = {
+  brand: "bg-oc-brand-soft border-oc-brand/40 text-oc-brand-strong",
+  plain: "bg-oc-well border-oc-line text-oc-muted",
+  faint: "bg-oc-well border-oc-faint/35 text-oc-faint",
+  amber: "bg-oc-accent-soft border-oc-accent/45 text-oc-accent-strong",
+  bad: "bg-oc-bad-soft border-oc-bad/40 text-oc-bad",
+};
+
 /** Deterministic cover-thumb gradient per event (teal/amber/slate rotation). */
 const THUMB_CLASSES = [
   "org-thumb-teal",
@@ -41,7 +59,7 @@ export function orgEventStatusTone(status: string | null | undefined): OrgChipTo
   }
 }
 
-/** Chip tone for a participation/payment status. */
+/** Chip tone for a participation status. */
 export function orgParticipationTone(status: string | null | undefined): OrgChipTone {
   switch (status) {
     case "paid":
@@ -49,12 +67,26 @@ export function orgParticipationTone(status: string | null | undefined): OrgChip
     case "joined":
       return "brand";
     case "waitlisted":
-    case "pending":
       return "amber";
     case "cancelled":
-    case "failed":
-    case "refunded":
       return "bad";
+    default:
+      return "plain";
+  }
+}
+
+/** Chip tone for a payment status. */
+export function orgPaymentTone(status: string | null | undefined): OrgChipTone {
+  switch (status) {
+    case "paid":
+      return "brand";
+    case "pending":
+      return "amber";
+    case "failed":
+      return "bad";
+    case "refunded":
+    case "not_required":
+      return "plain";
     default:
       return "plain";
   }

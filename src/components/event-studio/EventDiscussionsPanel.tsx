@@ -118,11 +118,11 @@ export default function EventDiscussionsPanel({ eventId, onDenied }: Props) {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-medium">{row.user?.name ?? "Participant"}</p>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     {row.speaker?.name ? `To ${row.speaker.name}` : "General"} · {row.status}
                   </p>
                 </div>
-                <Badge variant="secondary" className="rounded-full capitalize">
+                <Badge variant="outline" className="rounded-full capitalize bg-oc-well border-oc-line text-oc-muted">
                   {row.status}
                 </Badge>
               </div>

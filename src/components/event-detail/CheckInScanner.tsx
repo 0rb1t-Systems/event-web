@@ -15,6 +15,7 @@ import {
 } from "@/components/organizer-console/orgIcons";
 import { getApiErrorMessage, isOrganizerEventAccessError } from "@/lib/apiError";
 import { cn } from "@/lib/utils";
+import { orgOnWhiteBtnClass } from "@/components/organizer-console/orgTheme";
 import {
   getOrganizerEventQrScanLogs,
   isQrNetworkError,
@@ -345,12 +346,12 @@ export default function CheckInScanner({ eventId, eventTitle, onDenied, scanToke
       <div className="flex items-center gap-2.5 px-4 pt-4 pb-3">
         <div className="min-w-0 flex-1">
           <p className="font-head font-semibold text-[17px] text-white leading-tight truncate">Door check-in</p>
-          <p className="text-[11px] text-[#A3A39D] truncate">{eventTitle}</p>
+          <p className="text-xs text-[#A3A39D] truncate">{eventTitle}</p>
         </div>
         {scanning && (
           <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1">
             <span className="w-1.5 h-1.5 rounded-full bg-[#E5484D] animate-pulse" />
-            <span className="text-[10px] font-bold tracking-[1px] text-white">LIVE</span>
+            <span className="text-xs font-bold tracking-[1px] text-white">LIVE</span>
           </span>
         )}
       </div>
@@ -365,7 +366,7 @@ export default function CheckInScanner({ eventId, eventTitle, onDenied, scanToke
             <p className="font-head text-xl font-bold text-white tabular-nums leading-tight">
               {statsLoading && !stats ? "…" : c.value}
             </p>
-            <p className="text-[10px] text-[#A3A39D]">{c.label}</p>
+            <p className="text-xs text-[#A3A39D]">{c.label}</p>
           </div>
         ))}
       </div>
@@ -423,7 +424,10 @@ export default function CheckInScanner({ eventId, eventTitle, onDenied, scanToke
             type="button"
             onClick={() => void startCamera()}
             disabled={starting}
-            className="inline-flex items-center justify-center gap-2 rounded-full h-11 min-w-[140px] px-6 bg-white text-oc-ink text-sm font-semibold hover:bg-white/90 transition-colors disabled:opacity-60"
+            className={cn(
+              "inline-flex items-center justify-center gap-2 rounded-full h-11 min-w-[140px] px-6 text-sm font-semibold transition-colors",
+              orgOnWhiteBtnClass,
+            )}
           >
             <IconCamera className="w-4 h-4" />
             {starting ? "Starting…" : "Start camera"}
@@ -539,7 +543,7 @@ export default function CheckInScanner({ eventId, eventTitle, onDenied, scanToke
                 <>
                   <button
                     type="button"
-                    className="rounded-full h-11 px-6 bg-white text-oc-ink text-sm font-semibold hover:bg-white/90 transition-colors"
+                    className={cn("rounded-full h-11 px-6 text-sm font-semibold transition-colors", orgOnWhiteBtnClass)}
                     onClick={retryNetwork}
                   >
                     Retry
@@ -559,7 +563,7 @@ export default function CheckInScanner({ eventId, eventTitle, onDenied, scanToke
                     "rounded-full h-11 px-8 text-sm font-semibold transition-colors",
                     result.kind === "already_used"
                       ? "bg-oc-dark text-white hover:bg-oc-dark-soft"
-                      : "bg-white text-oc-ink hover:bg-white/90",
+                      : orgOnWhiteBtnClass,
                   )}
                   onClick={resumeScanning}
                 >
@@ -585,12 +589,12 @@ export default function CheckInScanner({ eventId, eventTitle, onDenied, scanToke
                     key={log.id}
                     className="flex items-center justify-between gap-2 text-sm py-2 border-b border-white/5 last:border-0"
                   >
-                    <span className="truncate font-medium text-white/90 text-[13px]">
+                    <span className="truncate font-medium text-white/90 text-sm">
                       {log.participation?.user?.name ?? "—"}
                     </span>
                     <span
                       className={cn(
-                        "text-[10px] font-bold uppercase shrink-0",
+                        "text-xs font-bold uppercase shrink-0",
                         r === "valid" && "text-[#7BC4AE]",
                         r === "already_used" && "text-oc-accent",
                         r === "invalid" && "text-[#E5484D]",
@@ -637,11 +641,11 @@ function LastScanCard({ log }: { log: OrganizerQrScanLog }) {
         <p className="text-[15px] font-semibold text-white truncate">
           {log.participation?.user?.name ?? "—"}
         </p>
-        <p className="text-[11px] text-[#A3A39D] truncate">
+        <p className="text-xs text-[#A3A39D] truncate">
           {log.participation ? participationTicketName(log.participation) ?? "Ticket" : "Unknown ticket"}
         </p>
       </div>
-      <span className="font-data text-[13px] font-semibold text-[#7BC4AE] shrink-0">
+      <span className="font-data text-sm font-semibold text-[#7BC4AE] shrink-0">
         {log.created_at ? format(new Date(log.created_at), "HH:mm") : ""}
       </span>
     </div>

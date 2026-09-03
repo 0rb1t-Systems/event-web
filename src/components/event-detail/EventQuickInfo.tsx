@@ -180,7 +180,7 @@ export default function EventQuickInfo({ event, onUpdate, categories = [], onUpl
   };
 
   const fieldError = (key: string) =>
-    fieldErrors[key] ? <p className="text-[11px] text-destructive mt-1">{fieldErrors[key]}</p> : null;
+    fieldErrors[key] ? <p className="text-xs text-destructive mt-1">{fieldErrors[key]}</p> : null;
 
   return (
     <div className="org-card p-4 sm:p-5 space-y-4 min-w-0">
@@ -200,7 +200,7 @@ export default function EventQuickInfo({ event, onUpdate, categories = [], onUpl
             emptyLabel="Drop or click to upload the event cover"
             onUploadFile={onUploadCover}
           />
-          <p className="text-[10px] text-oc-faint">
+          <p className="text-xs text-oc-faint">
             Cover upload saves immediately. Other fields save only when you click Save changes.
           </p>
         </div>
@@ -372,7 +372,7 @@ export default function EventQuickInfo({ event, onUpdate, categories = [], onUpl
               value={draft.registration_deadline}
               onChange={(e) => patchDraft({ registration_deadline: e.target.value })}
             />
-            <p className="text-[10px] text-oc-faint">Blank = no deadline</p>
+            <p className="text-xs text-oc-faint">Blank = no deadline</p>
             {fieldError("registration_deadline")}
           </div>
         </div>

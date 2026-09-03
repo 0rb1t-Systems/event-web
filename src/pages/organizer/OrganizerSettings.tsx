@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 
 const fieldLabel = "block text-xs font-semibold text-oc-ink mb-1.5";
 const inputBox =
-  "flex items-center gap-2 rounded-[12px] bg-oc-bg px-3.5 py-3 transition-shadow focus-within:ring-2 focus-within:ring-oc-brand/40";
+  "flex items-center gap-2 rounded-[12px] bg-oc-well px-3.5 py-3 transition-shadow focus-within:ring-2 focus-within:ring-oc-brand/40";
 const inputEl = "w-full bg-transparent text-sm text-oc-ink placeholder:text-oc-faint outline-none";
 
 function Field({
@@ -99,7 +99,6 @@ export default function OrganizerSettings() {
     <div className="flex flex-col gap-4 max-w-3xl" data-testid="page-account">
       <div className="px-2 pt-1 lg:pt-0">
         <h1 className="font-head text-[22px] lg:text-2xl font-semibold text-oc-ink tracking-tight">Account</h1>
-        <p className="mt-1 text-[13px] text-oc-muted">Your organizer profile and workspace preferences.</p>
       </div>
 
       {/* Organizer profile */}
@@ -143,9 +142,8 @@ export default function OrganizerSettings() {
       <div className="org-card p-5 flex flex-col gap-4">
         <div>
           <h2 className="font-head text-[17px] font-semibold text-oc-ink">Appearance</h2>
-          <p className="text-[13px] text-oc-muted mt-0.5">Light, dark, or match the device. Public event pages stay on their cover design.</p>
         </div>
-        <div className="flex gap-1 rounded-full bg-oc-bg p-1 w-fit">
+        <div className="flex gap-1 rounded-full bg-oc-well p-1 w-fit">
           {([
             { value: "light", label: "Light", icon: IconSun },
             { value: "dark", label: "Dark", icon: IconMoon },
@@ -159,7 +157,7 @@ export default function OrganizerSettings() {
                 aria-pressed={active}
                 onClick={() => { setTheme(opt.value); toast.success(`Theme set to ${opt.label}`); }}
                 className={cn(
-                  "flex items-center gap-2 rounded-full px-4 py-2 text-[13px] transition-colors",
+                  "flex items-center gap-2 rounded-full px-4 py-2 text-sm transition-colors",
                   active
                     ? "bg-oc-surface text-oc-ink font-semibold ring-1 ring-oc-line"
                     : "text-oc-muted font-medium hover:text-oc-ink",
@@ -180,7 +178,7 @@ export default function OrganizerSettings() {
       <div className="org-card p-5 flex flex-col gap-4">
         <div>
           <h2 className="font-head text-[17px] font-semibold text-oc-ink">Password</h2>
-          <p className="text-[13px] text-oc-muted mt-0.5">Use a password at least 8 characters long.</p>
+          <p className="text-sm text-oc-muted mt-0.5">Use a password at least 8 characters long.</p>
         </div>
         <Field id="acct-pass-current" label="Current password">
           <div className={inputBox}>

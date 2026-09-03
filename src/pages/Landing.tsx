@@ -55,40 +55,40 @@ export default function Landing() {
   };
 
   return (
-    <div className="house-page flex min-h-[100dvh] min-w-0 flex-col">
+    <div className="house-page landing-page flex min-h-[100dvh] min-w-0 flex-col">
       <PublicSiteHeader />
 
       {user && next?.event ? (
-        <div className="border-b border-border bg-[#F4F6F8]">
+        <div className="border-b border-border bg-background">
           <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-5 py-3 sm:px-8">
             <p className="text-sm text-muted-foreground">
               Next up: <span className="font-medium text-foreground">{next.event.title}</span>
             </p>
             <Button size="sm" className="rounded-full" asChild>
-              <Link to="/dashboard/rooms">Next event</Link>
+              <Link to="/dashboard/rooms">Rooms</Link>
             </Button>
           </div>
         </div>
       ) : null}
 
-      <section className="bg-background px-5 pt-5 sm:px-8 sm:pt-6">
+      <section className="bg-background px-5 pt-6 sm:px-8 sm:pt-8">
         <div className="relative mx-auto w-full max-w-7xl">
-          <div className="relative isolate min-h-[13.5rem] overflow-hidden rounded-xl sm:min-h-[15rem] lg:min-h-[16.5rem]">
+          <div className="relative isolate min-h-[22rem] overflow-hidden rounded-2xl sm:min-h-[28rem] lg:min-h-[34rem]">
             <img src={heroBg} alt="" className="absolute inset-0 h-full w-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/90 via-zinc-950/62 to-zinc-950/28" />
             <motion.div
               initial={reduce ? false : { opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-              className="relative flex min-h-[13.5rem] max-w-xl flex-col justify-end px-5 pb-12 pt-6 sm:min-h-[15rem] sm:px-7 sm:pb-14 lg:min-h-[16.5rem] lg:px-8"
+              className="relative flex min-h-[22rem] max-w-2xl flex-col justify-end px-6 pb-14 pt-8 sm:min-h-[28rem] sm:px-8 sm:pb-16 lg:min-h-[34rem] lg:px-10 lg:pb-20"
             >
               {user ? (
-                <p className="text-xs text-white/70">Welcome back, {firstName}</p>
+                <p className="text-sm text-white/70">Welcome back, {firstName}</p>
               ) : null}
-              <h1 className="font-display text-[1.5rem] font-semibold leading-[1.2] tracking-tight text-white sm:text-[1.75rem] lg:text-[2rem]">
+              <h1 className="font-display text-[2rem] font-semibold leading-[1.12] tracking-tight text-white sm:text-[2.5rem] lg:text-[3rem]">
                 Find events worth showing up for.
               </h1>
-              <p className="mt-2 max-w-[40ch] text-sm leading-relaxed text-white/80">
+              <p className="mt-3 max-w-[42ch] text-base leading-relaxed text-white/80 sm:text-lg">
                 Search the catalog, register on the event page, and keep the pass in My Tickets.
               </p>
             </motion.div>
@@ -96,7 +96,7 @@ export default function Landing() {
 
           <form
             onSubmit={onSearch}
-            className="house-card relative z-10 mx-auto -mt-7 flex max-w-7xl flex-col gap-2 rounded-2xl border border-border bg-card p-2 sm:-mt-8 sm:flex-row sm:items-center"
+            className="house-card relative z-10 mx-auto -mt-8 flex max-w-7xl flex-col gap-2.5 rounded-2xl border border-border bg-card p-2.5 sm:-mt-10 sm:flex-row sm:items-center sm:p-3"
           >
             <label className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2">
               <Search className="h-4 w-4 shrink-0 text-primary" />
@@ -105,7 +105,7 @@ export default function Landing() {
                 value={what}
                 onChange={(e) => setWhat(e.target.value)}
                 placeholder="Event name"
-                className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                className="w-full bg-transparent text-base outline-none placeholder:text-muted-foreground"
               />
             </label>
             <div className="hidden h-7 w-px bg-border sm:block" />
@@ -116,10 +116,10 @@ export default function Landing() {
                 value={where}
                 onChange={(e) => setWhere(e.target.value)}
                 placeholder="Location"
-                className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                className="w-full bg-transparent text-base outline-none placeholder:text-muted-foreground"
               />
             </label>
-            <Button type="submit" className="h-10 rounded-full sm:min-w-[7.5rem]">
+            <Button type="submit" className="h-11 rounded-full sm:min-w-[8rem]">
               <Search className="h-4 w-4" />
               Search
             </Button>
@@ -128,9 +128,9 @@ export default function Landing() {
       </section>
 
       <section id="events" className="scroll-mt-20 bg-background">
-        <div className="mx-auto w-full max-w-7xl px-5 pb-10 pt-8 sm:px-8 sm:pb-12 sm:pt-9">
+        <div className="mx-auto w-full max-w-7xl px-5 pb-12 pt-10 sm:px-8 sm:pb-14 sm:pt-11">
           <div className="flex flex-wrap items-baseline justify-between gap-3">
-            <h2 className="font-display text-lg font-semibold tracking-tight sm:text-xl">What&apos;s on</h2>
+            <h2 className="font-display text-xl font-semibold tracking-tight sm:text-2xl">What&apos;s on</h2>
             <Link
               to={browseHref}
               className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
@@ -152,7 +152,7 @@ export default function Landing() {
                 type="button"
                 onClick={() => setCategoryId("")}
                 className={cn(
-                  "h-8 cursor-pointer rounded-full border px-3 text-sm transition-colors",
+                  "h-9 cursor-pointer rounded-full border px-3.5 text-sm transition-colors",
                   categoryId === ""
                     ? "border-primary bg-primary text-primary-foreground"
                     : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground",
@@ -166,7 +166,7 @@ export default function Landing() {
                   key={c.id}
                   onClick={() => setCategoryId(c.id)}
                   className={cn(
-                    "h-8 cursor-pointer rounded-full border px-3 text-sm transition-colors",
+                    "h-9 cursor-pointer rounded-full border px-3.5 text-sm transition-colors",
                     categoryId === c.id
                       ? "border-primary bg-primary text-primary-foreground"
                       : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground",
@@ -180,8 +180,8 @@ export default function Landing() {
 
           <div className="mt-5">
             {catalog.isLoading ? (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
                   <Skeleton key={i} className="aspect-[16/9] rounded-xl" />
                 ))}
               </div>
@@ -190,7 +190,7 @@ export default function Landing() {
             ) : events.length === 0 ? (
               <p className="text-sm text-muted-foreground">No events match those filters.</p>
             ) : (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {events.map((event, i) => (
                   <motion.div
                     key={event.id}

@@ -61,7 +61,6 @@ export default function OrganizerDashboard() {
   const load = () => void dash.refetch();
 
   const greetingName = organizer?.contact_name || organizer?.business_name || "Organizer";
-  const businessName = organizer?.business_name || "your workspace";
 
   if (loading) {
     return (
@@ -117,13 +116,10 @@ export default function OrganizerDashboard() {
 
   return (
     <div className="space-y-4">
-      <header className="px-2 pt-1 lg:pt-0">
-        <h1 className="font-head font-semibold text-[22px] lg:text-2xl leading-tight text-oc-ink">
+      <header className="px-2 pt-3 pb-2 lg:pt-2 lg:pb-4">
+        <h1 className="font-head font-semibold text-[32px] lg:text-[40px] leading-[1.15] tracking-tight text-oc-ink">
           {orgGreeting()}, {greetingName}
         </h1>
-        <p className="text-[13px] lg:text-sm text-oc-muted mt-1">
-          Here's what's happening across {businessName} today.
-        </p>
       </header>
 
       {needsPlan && (
@@ -163,16 +159,16 @@ export default function OrganizerDashboard() {
           </p>
           <p className="text-xs text-oc-faint -mt-1">available to request</p>
           <div className="flex items-center justify-between pt-1">
-            <span className="text-[13px] text-oc-muted">Awaiting review</span>
+            <span className="text-sm text-oc-muted">Awaiting review</span>
             {data.pending_payout > 0 ? (
               <OrgChip tone="amber" label={formatOrgMoney(data.pending_payout)} />
             ) : (
-              <span className="text-[13px] text-oc-faint">None</span>
+              <span className="text-sm text-oc-faint">None</span>
             )}
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-[13px] text-oc-muted">Collected all time</span>
-            <span className="font-data text-[13px] font-semibold text-oc-ink tabular-nums">
+            <span className="text-sm text-oc-muted">Collected all time</span>
+            <span className="font-data text-sm font-semibold text-oc-ink tabular-nums">
               {formatOrgMoney(data.total_revenue)}
             </span>
           </div>
@@ -187,14 +183,14 @@ export default function OrganizerDashboard() {
               <OrgChip tone="plain" label="No plan" />
             )}
           </div>
-          <p className="text-[13px] text-oc-muted">
+          <p className="text-sm text-oc-muted">
             {quota
               ? quota.unlimited
                 ? `${quota.events_created} events created · unlimited quota`
                 : `${quota.events_created} of ${quotaTotal ?? "—"} events used`
               : "No active package on this account. Choose a plan to start creating events."}
           </p>
-          <div className="h-2 rounded-full bg-oc-bg overflow-hidden" role="progressbar" aria-label="Event quota used" aria-valuenow={quotaPct} aria-valuemin={0} aria-valuemax={100}>
+          <div className="h-2 rounded-full bg-oc-well overflow-hidden" role="progressbar" aria-label="Event quota used" aria-valuenow={quotaPct} aria-valuemin={0} aria-valuemax={100}>
             <div className="h-full rounded-full bg-oc-brand transition-[width]" style={{ width: `${quotaPct}%` }} />
           </div>
           <div className="flex items-center justify-between pt-1 mt-auto">
@@ -209,14 +205,14 @@ export default function OrganizerDashboard() {
       <section>
         <div className="flex items-baseline justify-between gap-3 px-1 pb-3">
           <h2 className="font-head font-semibold text-[15px] text-oc-ink">Recent events</h2>
-          <Link to="/organizer/events" className="text-[12px] font-semibold text-oc-brand hover:text-oc-brand-strong">
+          <Link to="/organizer/events" className="text-xs font-semibold text-oc-brand hover:text-oc-brand-strong">
             All events
           </Link>
         </div>
 
         {recent.length === 0 ? (
           <div className="border border-dashed border-oc-line rounded-[12px] px-5 py-10 text-center">
-            <p className="text-[13px] text-oc-muted mb-4">No events yet.</p>
+            <p className="text-sm text-oc-muted mb-4">No events yet.</p>
             <OrgButton asChild size="sm">
               <Link to="/organizer/events/new">
                 New event <IconPlus />
@@ -233,8 +229,8 @@ export default function OrganizerDashboard() {
                     className="flex items-start justify-between gap-3 py-3"
                   >
                     <span className="min-w-0">
-                      <span className="block text-[13px] font-semibold text-oc-ink truncate">{eventTitle(event)}</span>
-                      <span className="block font-data text-[11px] text-oc-faint mt-0.5">{eventMeta(event)}</span>
+                      <span className="block text-sm font-semibold text-oc-ink truncate">{eventTitle(event)}</span>
+                      <span className="block font-data text-xs text-oc-faint mt-0.5">{eventMeta(event)}</span>
                     </span>
                     <OrgChip
                       size="sm"
@@ -250,10 +246,10 @@ export default function OrganizerDashboard() {
               <table className="w-full min-w-[520px]">
                 <thead>
                   <tr className="border-b border-oc-line text-left">
-                    <th className="pb-2.5 pr-4 text-[11px] font-semibold text-oc-faint">Event</th>
-                    <th className="pb-2.5 pr-4 text-[11px] font-semibold text-oc-faint">When</th>
-                    <th className="pb-2.5 pr-4 text-[11px] font-semibold text-oc-faint text-right">Registered</th>
-                    <th className="pb-2.5 text-[11px] font-semibold text-oc-faint text-right">Status</th>
+                    <th className="pb-2.5 pr-4 text-xs font-semibold text-oc-faint">Event</th>
+                    <th className="pb-2.5 pr-4 text-xs font-semibold text-oc-faint">When</th>
+                    <th className="pb-2.5 pr-4 text-xs font-semibold text-oc-faint text-right">Registered</th>
+                    <th className="pb-2.5 text-xs font-semibold text-oc-faint text-right">Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -262,15 +258,15 @@ export default function OrganizerDashboard() {
                       <td className="py-3.5 pr-4">
                         <Link
                           to={`/organizer/events/${event.id}`}
-                          className="text-[13px] font-medium text-oc-ink group-hover:text-oc-brand"
+                          className="text-sm font-medium text-oc-ink group-hover:text-oc-brand"
                         >
                           {eventTitle(event)}
                         </Link>
                       </td>
-                      <td className="py-3.5 pr-4 font-data text-[12px] text-oc-muted whitespace-nowrap">
+                      <td className="py-3.5 pr-4 font-data text-xs text-oc-muted whitespace-nowrap">
                         {eventMeta(event)}
                       </td>
-                      <td className="py-3.5 pr-4 font-data text-[12px] font-semibold text-oc-ink tabular-nums text-right">
+                      <td className="py-3.5 pr-4 font-data text-xs font-semibold text-oc-ink tabular-nums text-right">
                         {typeof event.registrations_count === "number" ? event.registrations_count.toLocaleString() : "—"}
                       </td>
                       <td className="py-3.5 text-right">

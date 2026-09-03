@@ -4,25 +4,12 @@ import { Button } from "@/components/ui/button";
 import { RefreshCw, Ticket } from "lucide-react";
 import { useMyParticipations } from "@/hooks/queries/useParticipations";
 import { PurchasedTicketStub } from "@/components/participant/PurchasedTicketStub";
-import type { ApiParticipation } from "@/services/participationService";
-
-function isTicketValid(p: ApiParticipation) {
-  if (p.status === "cancelled") return false;
-  return p.payment_status === "paid" || p.payment_status === "not_required";
-}
-
-function statusLabel(p: ApiParticipation) {
-  if (p.status === "cancelled") return "Cancelled";
-  if (p.payment_status === "pending") return "Awaiting payment";
-  if (p.payment_status === "failed") return "Payment failed";
-  if (p.payment_status === "refunded") return "Refunded";
-  if (p.status === "checked_in") return "Checked in";
-  return null;
-}
+import { attendeeTicketStatusBadge } from "@/lib/statusBadges";
+import { purchasedParticipations } from "@/lib/nextEvent";
 
 export default function AttendeeHome() {
   const { data, isLoading, isError, refetch, error } = useMyParticipations();
-  const tickets = data?.items ?? [];
+  const tickets = purchasedParticipations(data?.items ?? []);
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-8">
@@ -64,23 +51,27 @@ export default function AttendeeHome() {
         </div>
       ) : (
         <ul className="space-y-5">
-          {tickets.map((p) => (
-            <li key={p.id}>
-              <PurchasedTicketStub
-                href={`/registrations/${p.id}`}
-                ticket={{
-                  id: p.id,
-                  title: p.event?.title ?? "Event",
-                  location: [p.event?.address, p.event?.city].filter(Boolean).join(", ") || null,
-                  startsAt: p.event?.starts_at,
-                  ticketType: p.ticket_type?.name,
-                  qrToken: p.qr_token,
-                  valid: isTicketValid(p),
-                  statusLabel: statusLabel(p),
-                }}
-              />
-            </li>
-          ))}
+          {tickets.map((p) => {
+            const badge = attendeeTicketStatusBadge(p);
+            return (
+              <li key={p.id}>
+                <PurchasedTicketStub
+                  href={`/registrations/${p.id}`}
+                  ticket={{
+                    id: p.id,
+                    title: p.event?.title ?? "Event",
+                    location: [p.event?.address, p.event?.city].filter(Boolean).join(", ") || null,
+                    startsAt: p.event?.starts_at,
+                    ticketType: p.ticket_type?.name,
+                    qrToken: p.qr_token,
+                    valid: true,
+                    statusLabel: badge?.label ?? null,
+                    statusBadgeClass: badge?.badgeClass,
+                  }}
+                />
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

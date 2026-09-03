@@ -97,7 +97,7 @@ export default function SubscriptionQuotaPanel() {
               <p className="text-xl font-display font-bold">
                 {active?.package?.name ?? quota?.package?.name}
               </p>
-              <Badge className="capitalize border-0 bg-muted text-muted-foreground">
+              <Badge variant="outline" className="capitalize bg-oc-brand-soft border-oc-brand/40 text-oc-brand-strong">
                 {typeof active?.status === "string" ? active.status : "active"}
               </Badge>
               {active?.started_at && (

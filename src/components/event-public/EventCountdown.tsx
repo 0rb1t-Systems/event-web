@@ -76,7 +76,7 @@ export function EventCountdown({ targetIso, className, tone = "dark", size = "md
           <span
             className={cn(
               "ml-0.5 font-medium",
-              compact ? "text-[10px] sm:text-xs" : "text-xs sm:text-sm",
+              compact ? "text-xs sm:text-xs" : "text-xs sm:text-sm",
               dark ? "text-white/75" : "text-slate-500",
             )}
           >

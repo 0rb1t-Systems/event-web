@@ -47,7 +47,7 @@ export default function OrganizerScannerPage() {
         <div className="flex items-end justify-between gap-3 px-2 pt-1 lg:pt-0">
           <div className="min-w-0">
             <h1 className="font-head font-semibold text-[22px] lg:text-2xl leading-tight text-oc-ink">Check-in</h1>
-            <p className="text-[13px] text-oc-muted mt-1 truncate">{unlocked.title}</p>
+            <p className="text-sm text-oc-muted mt-1 truncate">{unlocked.title}</p>
           </div>
           <OrgButton
             variant="ghost"
@@ -69,12 +69,12 @@ export default function OrganizerScannerPage() {
     <div className="flex min-h-[calc(100dvh-11rem)] lg:min-h-[calc(100dvh-8rem)] items-center justify-center px-2">
       <div className="w-full max-w-md flex flex-col items-center text-center">
         <h1 className="font-head font-semibold text-[22px] lg:text-2xl leading-tight text-oc-ink">Check-in</h1>
-        <p className="text-[13px] text-oc-muted mt-1.5 mb-5 max-w-[42ch]">
+        <p className="text-sm text-oc-muted mt-1.5 mb-5 max-w-[42ch]">
           Paste the scan token from Event Studio → Settings. The token links this device to one event.
         </p>
 
         <form onSubmit={(e) => void handleUnlock(e)} className="org-card p-5 w-full flex flex-col gap-3 text-left">
-          <div className="flex items-center gap-2.5 rounded-[12px] bg-oc-bg px-3.5 py-2.5 focus-within:ring-2 focus-within:ring-oc-brand/40">
+          <div className="flex items-center gap-2.5 rounded-[12px] bg-oc-well px-3.5 py-2.5 focus-within:ring-2 focus-within:ring-oc-brand/40">
             <IconKey className="w-4 h-4 text-oc-faint shrink-0" />
             <input
               id="scan-token"
@@ -82,7 +82,7 @@ export default function OrganizerScannerPage() {
               onChange={(e) => setToken(e.target.value)}
               placeholder="MTS26-8KD3-XQ9P"
               aria-label="Event scan token"
-              className="w-full bg-transparent font-data font-semibold text-[13px] tracking-[1.2px] text-oc-ink placeholder:text-oc-faint placeholder:font-normal placeholder:tracking-normal outline-none"
+              className="w-full bg-transparent font-data font-semibold text-sm tracking-[1.2px] text-oc-ink placeholder:text-oc-faint placeholder:font-normal placeholder:tracking-normal outline-none"
               autoComplete="off"
               autoFocus
             />

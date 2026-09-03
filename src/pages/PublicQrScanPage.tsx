@@ -54,7 +54,7 @@ export default function PublicQrScanPage() {
             <div className="flex items-end justify-between gap-3 px-1">
               <div className="min-w-0">
                 <h1 className="font-head text-[22px] font-semibold leading-tight sm:text-2xl">Check-in</h1>
-                <p className="mt-1 truncate text-[13px] text-oc-muted">{unlocked.title}</p>
+                <p className="mt-1 truncate text-sm text-oc-muted">{unlocked.title}</p>
               </div>
               <OrgButton
                 variant="ghost"
@@ -77,7 +77,7 @@ export default function PublicQrScanPage() {
           <div className="flex flex-1 items-center justify-center">
             <div className="flex w-full max-w-md flex-col items-center text-center">
               <h1 className="font-head text-[22px] font-semibold leading-tight sm:text-2xl">Event check-in</h1>
-              <p className="mb-5 mt-1.5 max-w-[42ch] text-[13px] text-oc-muted">
+              <p className="mb-5 mt-1.5 max-w-[42ch] text-sm text-oc-muted">
                 Enter the scan token from the event organizer. This page is not listed on the public site — only
                 people with this link and token can scan tickets.
               </p>
@@ -94,7 +94,7 @@ export default function PublicQrScanPage() {
                     onChange={(e) => setToken(e.target.value)}
                     placeholder="MTS26-8KD3-XQ9P"
                     aria-label="Event scan token"
-                    className="w-full bg-transparent font-data text-[13px] font-semibold tracking-[1.2px] text-oc-ink outline-none placeholder:font-normal placeholder:tracking-normal placeholder:text-oc-faint"
+                    className="w-full bg-transparent font-data text-sm font-semibold tracking-[1.2px] text-oc-ink outline-none placeholder:font-normal placeholder:tracking-normal placeholder:text-oc-faint"
                     autoComplete="off"
                     autoFocus
                   />

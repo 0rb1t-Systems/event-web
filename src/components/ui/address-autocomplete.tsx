@@ -139,7 +139,7 @@ export function AddressAutocomplete({ value, onChange, placeholder, className }:
               </li>
             ))}
           </ul>
-          <div className="border-t border-border bg-muted/40 px-3 py-1.5 text-[10px] text-muted-foreground">
+          <div className="border-t border-border bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground">
             Suggestions by OpenStreetMap
           </div>
         </div>

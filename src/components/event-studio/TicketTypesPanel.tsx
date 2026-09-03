@@ -33,7 +33,6 @@ type Props = {
 
 export default function TicketTypesPanel({ eventId, onDenied }: Props) {
   const [tickets, setTickets] = useState<OrganizerTicketType[]>([]);
-  const [monetized, setMonetized] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<TicketTypeFormValue | null>(null);
@@ -45,7 +44,6 @@ export default function TicketTypesPanel({ eventId, onDenied }: Props) {
     try {
       const data = await listOrganizerTicketTypes(eventId);
       setTickets(data.ticket_types);
-      setMonetized(data.monetized);
     } catch (err) {
       if (isOrganizerEventAccessError(err)) {
         onDenied();
@@ -138,9 +136,6 @@ export default function TicketTypesPanel({ eventId, onDenied }: Props) {
       <div className="flex items-start justify-between gap-2 min-w-0">
         <div className="min-w-0">
           <h3 className="font-display font-semibold">Tickets</h3>
-          <p className="text-xs text-muted-foreground mt-0.5 text-pretty">
-            Event monetization: {monetized ? "paid" : "free"} (derived from paid ticket types).
-          </p>
         </div>
         <Button size="sm" onClick={openNew} className="rounded-full gap-1.5 shrink-0">
           <IconPlus className="w-3.5 h-3.5" />

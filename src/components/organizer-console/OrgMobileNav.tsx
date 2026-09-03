@@ -41,7 +41,7 @@ export function OrgAppBar() {
               aria-label="Organizer menu"
               className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-oc-brand"
             >
-              <span className="w-[30px] h-[30px] rounded-full bg-oc-accent-soft text-oc-accent flex items-center justify-center text-[11px] font-bold">
+              <span className="w-[30px] h-[30px] rounded-full bg-oc-accent-soft text-oc-accent flex items-center justify-center text-xs font-bold">
                 {orgInitials(contactName)}
               </span>
             </button>
@@ -87,7 +87,7 @@ export function OrgBottomNav() {
           {({ isActive }) => (
             <>
               <item.icon className="w-5 h-5" />
-              <span className={cn("text-[11px]", isActive ? "font-bold" : "font-medium")}>
+              <span className={cn("text-xs", isActive ? "font-bold" : "font-medium")}>
                 {item.title}
               </span>
             </>

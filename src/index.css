@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    --background: 240 5% 96%;
+    --background: 0 0% 100%;
     --foreground: 240 6% 10%;
 
     --card: 0 0% 100%;
@@ -16,10 +16,10 @@
     --primary: 160 72% 34%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 5% 94%;
+    --secondary: 240 5% 96%;
     --secondary-foreground: 240 6% 10%;
 
-    --muted: 240 5% 94%;
+    --muted: 240 5% 96%;
     --muted-foreground: 240 4% 42%;
 
     --accent: 160 40% 94%;
@@ -33,6 +33,7 @@
     --ring: 160 72% 34%;
 
     --radius: 0.75rem;
+    --oc-well: 240 5% 96%;
 
     --success: 160 60% 32%;
     --success-foreground: 0 0% 100%;
@@ -77,6 +78,7 @@
     --border: 240 5% 18%;
     --input: 240 5% 18%;
     --ring: 160 64% 45%;
+    --oc-well: 240 5% 14%;
 
     --success: 160 50% 42%;
     --success-foreground: 240 6% 6%;
@@ -102,6 +104,9 @@
   html {
     overflow-x: clip;
     max-width: 100%;
+    font-size: 100%;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   body,
@@ -111,7 +116,7 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background text-base leading-normal text-foreground antialiased;
     font-family: "Source Sans 3 Variable", "Source Sans 3", system-ui, sans-serif;
   }
 
@@ -197,29 +202,56 @@
     --input: 220 12% 18%;
     --ring: 160 58% 42%;
   }
-  /* Event detail is light-locked; house footer at the bottom stays the light house tokens. */
-  .pulse-event .house-page {
+  .pulse-event {
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: clip;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
     color-scheme: light;
     --background: 0 0% 100%;
-    --foreground: 221 39% 11%;
+    --foreground: 222 47% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 221 39% 11%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 221 39% 11%;
-    --primary: 160 72% 34%;
+    --popover-foreground: 222 47% 11%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 215 16% 40%;
+    --border: 214 20% 90%;
+    --input: 214 20% 90%;
+    --primary: 174 65% 48%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 16% 96%;
-    --secondary-foreground: 221 39% 11%;
-    --muted: 210 16% 96%;
-    --muted-foreground: 215 10% 40%;
-    --accent: 160 40% 94%;
-    --accent-foreground: 160 72% 24%;
-    --border: 214 16% 90%;
-    --input: 214 16% 90%;
-    --ring: 160 72% 34%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --ring: 174 65% 48%;
+    --accent: 174 40% 94%;
+    --accent-foreground: 174 70% 24%;
+  }
+  .dark .pulse-event {
+    color-scheme: dark;
+    --background: 222 47% 6%;
+    --foreground: 210 20% 96%;
+    --card: 222 40% 10%;
+    --card-foreground: 210 20% 96%;
+    --popover: 222 40% 10%;
+    --popover-foreground: 210 20% 96%;
+    --muted: 220 12% 14%;
+    --muted-foreground: 215 10% 68%;
+    --border: 220 12% 18%;
+    --input: 220 12% 18%;
+    --primary: 174 65% 48%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 12% 14%;
+    --secondary-foreground: 210 20% 96%;
+    --ring: 174 65% 48%;
+    --accent: 174 22% 14%;
+    --accent-foreground: 174 50% 72%;
   }
   .house-card {
     box-shadow: 0 10px 28px -18px rgb(17 24 39 / 0.22);
+  }
+  .landing-page {
+    font-size: 1.0625rem;
   }
   .dark .house-card {
     box-shadow: 0 12px 32px -16px rgb(0 0 0 / 0.55);
@@ -231,50 +263,33 @@
     background-position: left center, right center;
     background-repeat: repeat-y;
   }
-  .pulse-event {
-    color-scheme: light;
-    min-width: 0;
-    max-width: 100%;
-    overflow-x: clip;
-    --background: 36 33% 94%;
-    --foreground: 222 47% 11%;
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
-    --muted: 220 14% 96%;
-    --muted-foreground: 215 16% 40%;
-    --border: 214 20% 90%;
-    --input: 214 20% 90%;
-    --primary: 174 65% 48%;
-    --primary-foreground: 0 0% 100%;
-    --ring: 174 65% 48%;
-    --accent: 174 40% 94%;
-    --accent-foreground: 174 70% 24%;
-  }
 
-  /* Organizer console — design/design-system.pen. Warm paper canvas, teal brand.
+  /* Organizer console — white canvas, teal brand.
      Funnel Sans display / Inter body / IBM Plex Mono data. Follows html.dark. */
   .org-console {
     color-scheme: light;
     min-width: 0;
     max-width: 100%;
     overflow-x: clip;
-    --oc-bg: 36 45% 98%;
+    --oc-bg: 0 0% 100%;
+    --oc-well: 220 14% 96%;
     --oc-surface: 0 0% 100%;
     --oc-ink: 146 15% 9%;
     --oc-muted: 148 7% 43%;
     --oc-faint: 150 4% 63%;
-    --oc-line: 42 24% 89%;
+    --oc-line: 220 13% 90%;
     --oc-brand: 165 76% 25%;
     --oc-brand-strong: 166 78% 18%;
     --oc-brand-soft: 158 26% 92%;
     --oc-accent: 36 79% 57%;
+    --oc-accent-strong: 32 72% 32%;
     --oc-accent-soft: 39 74% 92%;
     --oc-bad: 10 62% 47%;
     --oc-bad-soft: 13 70% 94%;
     --oc-dark: 156 28% 7%;
     --oc-dark-soft: 154 23% 14%;
 
-    --background: var(--oc-bg);
+    --background: 0 0% 100%;
     --foreground: var(--oc-ink);
     --card: var(--oc-surface);
     --card-foreground: var(--oc-ink);
@@ -282,9 +297,9 @@
     --popover-foreground: var(--oc-ink);
     --primary: var(--oc-brand);
     --primary-foreground: 0 0% 100%;
-    --secondary: var(--oc-bg);
+    --secondary: var(--oc-well);
     --secondary-foreground: var(--oc-ink);
-    --muted: var(--oc-bg);
+    --muted: var(--oc-well);
     --muted-foreground: var(--oc-muted);
     --accent: var(--oc-brand-soft);
     --accent-foreground: var(--oc-brand-strong);
@@ -299,24 +314,31 @@
     background-color: hsl(var(--oc-bg));
     color: hsl(var(--oc-ink));
     font-family: "Inter Variable", "Inter", system-ui, sans-serif;
+    font-size: 1rem;
+    line-height: 1.5;
   }
   .dark .org-console {
     color-scheme: dark;
     --oc-bg: 150 16% 7%;
+    --oc-well: 150 10% 14%;
     --oc-surface: 150 12% 11%;
     --oc-ink: 40 18% 96%;
     --oc-muted: 150 8% 64%;
     --oc-faint: 150 6% 48%;
     --oc-line: 150 10% 18%;
     --oc-brand: 165 52% 46%;
-    --oc-brand-strong: 158 42% 74%;
-    --oc-brand-soft: 165 28% 14%;
+    --oc-brand-strong: 158 55% 78%;
+    --oc-brand-soft: 165 32% 20%;
     --oc-accent: 36 79% 57%;
+    --oc-accent-strong: 39 75% 72%;
     --oc-accent-soft: 36 35% 16%;
     --oc-bad: 10 62% 58%;
     --oc-bad-soft: 10 40% 16%;
     --oc-dark: 156 28% 6%;
     --oc-dark-soft: 154 20% 16%;
+    --background: var(--oc-bg);
+    --secondary: var(--oc-well);
+    --muted: var(--oc-well);
     --primary-foreground: 0 0% 100%;
   }
   .org-console h1,
@@ -330,6 +352,7 @@
   }
   .org-card {
     background-color: hsl(var(--oc-surface));
+    border: 1px solid hsl(var(--oc-line));
     border-radius: 16px;
   }
   /* Console radii: cards 16px, controls 12px (design-system.pen). */
@@ -340,7 +363,7 @@
     border-radius: 12px;
   }
   .org-input {
-    background-color: hsl(var(--oc-bg));
+    background-color: hsl(var(--oc-well));
     border-radius: 12px;
   }
   .org-thumb-teal {
@@ -415,7 +438,7 @@
   background: transparent;
   border: 0;
   outline: none;
-  font-size: 0.875rem;
+  font-size: 1rem;
   color: hsl(var(--foreground));
   height: 100%;
 }

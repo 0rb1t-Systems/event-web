@@ -108,7 +108,7 @@ export default function EventStudioContent() {
   }
 
   return (
-    <StudioTabFrame title="Program" description="Speakers, sponsors and agenda — published on your public event page.">
+    <StudioTabFrame title="Program">
       <SectionCard
         id="studio-speakers"
         title="Speakers"

@@ -8,7 +8,7 @@ import {
   IconDownload,
   IconSearch,
 } from "@/components/organizer-console/orgIcons";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { getApiErrorMessage, isOrganizerEventAccessError } from "@/lib/apiError";
 import { cn } from "@/lib/utils";
+import { orgParticipationTone, orgPaymentTone } from "@/components/organizer-console/orgTheme";
 import {
   cancelOrganizerParticipation,
   getOrganizerParticipation,
@@ -56,22 +57,6 @@ import {
   type CapacitySnapshot,
   type OrganizerParticipation,
 } from "@/services/organizerParticipations";
-
-const STATUS_STYLE: Record<string, string> = {
-  joined: "bg-primary/10 text-primary border-0",
-  paid: "bg-success/10 text-success border-0",
-  checked_in: "bg-success/10 text-success border-0",
-  waitlisted: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-0",
-  cancelled: "bg-destructive/10 text-destructive border-0",
-};
-
-const PAYMENT_STYLE: Record<string, string> = {
-  not_required: "bg-muted text-muted-foreground border-0",
-  pending: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-0",
-  paid: "bg-success/10 text-success border-0",
-  refunded: "bg-muted text-muted-foreground border-0",
-  failed: "bg-destructive/10 text-destructive border-0",
-};
 
 const STATUS_FILTERS = [
   { value: "all", label: "All statuses" },
@@ -231,7 +216,6 @@ export default function EventRegistrationsPanel({ eventId, onDenied, compact }: 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h3 className="font-display font-semibold text-lg">Registrations</h3>
-            <p className="text-sm text-muted-foreground">Manage participants for this event.</p>
           </div>
         </div>
       )}
@@ -296,7 +280,7 @@ export default function EventRegistrationsPanel({ eventId, onDenied, compact }: 
           Export this page
         </Button>
       </div>
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         Status filter uses the API. Search runs on the current page only. CSV exports the current
         page ({visible.length} row{visible.length === 1 ? "" : "s"}), not all {total} results.
       </p>
@@ -331,9 +315,12 @@ export default function EventRegistrationsPanel({ eventId, onDenied, compact }: 
                           {row.user?.email ?? ticket?.name ?? "—"}
                         </p>
                       </div>
-                      <Badge className={cn("capitalize text-xs shrink-0", STATUS_STYLE[status])}>
-                        {labelStatus(status)}
-                      </Badge>
+                      <StatusBadge
+                        label={labelStatus(status)}
+                        orgTone={orgParticipationTone(status)}
+                        size="sm"
+                        className="shrink-0"
+                      />
                     </div>
                   </button>
                 </li>
@@ -381,14 +368,18 @@ export default function EventRegistrationsPanel({ eventId, onDenied, compact }: 
                       </TableCell>
                       <TableCell className="hidden md:table-cell">{ticket?.name ?? "—"}</TableCell>
                       <TableCell>
-                        <Badge className={cn("capitalize text-xs", STATUS_STYLE[status])}>
-                          {labelStatus(status)}
-                        </Badge>
+                        <StatusBadge
+                          label={labelStatus(status)}
+                          orgTone={orgParticipationTone(status)}
+                          size="sm"
+                        />
                       </TableCell>
                       <TableCell className="hidden lg:table-cell">
-                        <Badge className={cn("capitalize text-xs", PAYMENT_STYLE[payment])}>
-                          {labelStatus(payment)}
-                        </Badge>
+                        <StatusBadge
+                          label={labelStatus(payment)}
+                          orgTone={orgPaymentTone(payment)}
+                          size="sm"
+                        />
                       </TableCell>
                       <TableCell className="text-muted-foreground text-sm hidden lg:table-cell">
                         {format(new Date(row.created_at), "MMM d, yyyy")}
@@ -456,15 +447,21 @@ export default function EventRegistrationsPanel({ eventId, onDenied, compact }: 
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Status</p>
-                  <Badge className={cn("capitalize text-xs mt-0.5", STATUS_STYLE[detailStatus])}>
-                    {labelStatus(detailStatus)}
-                  </Badge>
+                  <StatusBadge
+                    label={labelStatus(detailStatus)}
+                    orgTone={orgParticipationTone(detailStatus)}
+                    size="sm"
+                    className="mt-0.5"
+                  />
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Payment</p>
-                  <Badge className={cn("capitalize text-xs mt-0.5", PAYMENT_STYLE[detailPayment])}>
-                    {labelStatus(detailPayment)}
-                  </Badge>
+                  <StatusBadge
+                    label={labelStatus(detailPayment)}
+                    orgTone={orgPaymentTone(detailPayment)}
+                    size="sm"
+                    className="mt-0.5"
+                  />
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Check-in</p>

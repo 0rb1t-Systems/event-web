@@ -86,7 +86,6 @@ export default function EventStudioAnalytics() {
     <div className="space-y-6">
       <div>
         <h2 className="font-display text-2xl font-semibold tracking-tight">Analytics</h2>
-        <p className="text-sm text-muted-foreground">Laravel scalars for this event. No invented series.</p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {statCards.map((stat) => (

@@ -119,7 +119,7 @@ export default function OrganizerEventCreate() {
             <h1 id="create-event-title" className="font-head font-semibold text-2xl text-oc-ink">
               Create event
             </h1>
-            <p className="text-[13px] text-oc-muted mt-1">
+            <p className="text-sm text-oc-muted mt-1">
               Start with the basics — add tickets and program later.
             </p>
           </div>
@@ -137,7 +137,7 @@ export default function OrganizerEventCreate() {
           <div className="rounded-[12px] bg-oc-bad-soft p-4 mb-4 space-y-2">
             <h2 className="font-head font-semibold text-sm text-oc-bad">Event quota reached</h2>
             <p className="text-sm text-oc-ink">{quotaBlock.message}</p>
-            <p className="text-[13px] text-oc-muted">
+            <p className="text-sm text-oc-muted">
               {quotaBlock.quota
                 ? quotaBlock.quota.unlimited
                   ? `${quotaBlock.quota.events_created} events created · unlimited quota`
@@ -196,7 +196,7 @@ export default function OrganizerEventCreate() {
                     onClick={() => setEventMode(mode.value)}
                     aria-pressed={active}
                     className={cn(
-                      "flex-1 flex items-center justify-center gap-2 rounded-full py-[9px] text-[13px] transition-colors",
+                      "flex-1 flex items-center justify-center gap-2 rounded-full py-[9px] text-sm transition-colors",
                       active
                         ? "bg-oc-surface text-oc-ink font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
                         : "text-oc-muted font-medium hover:text-oc-ink",

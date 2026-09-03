@@ -163,7 +163,7 @@ export function EventRoomExtras({ participationId, eventId, onlineUrl, isOnline 
               <Video className="w-5 h-5" />
             </span>
             <div className="flex-1 min-w-0 space-y-1">
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Live session</p>
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Live session</p>
               <h2 className="font-display font-semibold text-xl tracking-[-0.02em]">Join online</h2>
               <p className="text-sm text-muted-foreground">
                 Your meeting link stays private here after registration.
@@ -272,7 +272,7 @@ export function EventRoomExtras({ participationId, eventId, onlineUrl, isOnline 
                   <>
                     <p className="text-sm whitespace-pre-wrap leading-relaxed">{d.body}</p>
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-[11px] text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
                         {d.speaker?.name ? `To ${d.speaker.name}` : "General"} · {d.status}
                       </p>
                       <div className="flex gap-0.5">

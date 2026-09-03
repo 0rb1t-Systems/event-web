@@ -158,22 +158,12 @@ export default function PackageSubscribeDialog({
             )}
             <ul className="space-y-1 text-muted-foreground">
               <li>
-                Event quota:{" "}
                 {pkg.event_quota == null
-                  ? "Unlimited"
+                  ? "Unlimited events"
                   : pkg.event_quota === 0
-                    ? "0 (cannot create events)"
-                    : `${pkg.event_quota}`}
+                    ? "0 events"
+                    : `${pkg.event_quota} events`}
               </li>
-              {action === "upgrade" && (
-                <li>
-                  Upgrade starts immediately after payment. No proration or credit for unused time
-                  on your current plan — you pay the full new package price.
-                </li>
-              )}
-              {!free && (
-                <li>You will approve the charge on your phone. Keep this dialog open.</li>
-              )}
             </ul>
 
             {!free && (
@@ -202,13 +192,11 @@ export default function PackageSubscribeDialog({
                 <Loader2 className="w-4 h-4 mt-0.5 animate-spin shrink-0" />
                 <div>
                   <p className="font-medium text-sm">
-                    {free ? "Activating plan…" : "Waiting for phone approval…"}
+                    {free ? "Activating…" : "Awaiting approval…"}
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    {free
-                      ? "This usually finishes instantly."
-                      : `Do not close this window (${elapsed}s). Approval can take up to a few minutes.`}
-                  </p>
+                  {!free && (
+                    <p className="text-xs text-muted-foreground">{elapsed}s</p>
+                  )}
                 </div>
               </div>
             )}

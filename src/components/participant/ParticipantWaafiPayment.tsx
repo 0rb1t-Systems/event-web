@@ -1,36 +1,12 @@
 /**
  * Shared EVC Plus / WaafiPay payment UI.
  *
- * Used by both:
- *   - Register.tsx  — inline in the cinematic event form slot (after participation creation)
- *   - RegistrationDetail.tsx — resume payment for stranded pending/failed participations
- *
- * Props:
- *   participationId  — numeric ID of the ALREADY CREATED participation
- *   eventName        — shown in the header
- *   ticketName       — shown in the header (optional)
- *   amount           — ticket price string (e.g. "25.00")
- *   currency         — ISO currency code (e.g. "USD")
- *   brandColor       — hex/hsl brand color (for styling)
- *   isDark           — dark glass card (optional)
- *   onSuccess        — called with refreshed ApiParticipation after confirmed payment
- *   onFailure        — called with human-readable reason string on definitive failure (optional;
- *                      the component already shows the error inline — caller can also toast)
- *   onCancel         — called when user explicitly cancels (no payment attempt in flight)
- *   onCheckStatus    — called when user clicks "Check status" (optional; parent can re-fetch)
- *
- * Internal states:
- *   idle     → phone input + Pay button
- *   charging → spinner + elapsed time + "do not close"
- *   failed   → error message visible on page + Try again + Check status
- *
- * The failure message is ALWAYS shown inline on the page, never only in a toast.
- * Callers may additionally surface a toast via onFailure if they wish.
- *
- * This component does NOT create participations or hold backend business rules.
+ * Used by Register checkout and RegistrationDetail resume payment.
+ * Polls participation while charging so approval on the phone still completes
+ * checkout even if the long-running charge HTTP response is delayed or lost.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, Loader2, Phone, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -52,18 +28,21 @@ export type ParticipantWaafiPaymentProps = {
   currency: string;
   brandColor?: string;
   isDark?: boolean;
+  embedded?: boolean;
   onSuccess: (participation: ApiParticipation) => void;
-  /** Optional — component already shows the error inline. Caller may also toast. */
   onFailure?: (reason: string) => void;
-  /** Called only when user clicks Cancel and NO charge is in flight. */
   onCancel?: () => void;
-  /** Called when user clicks "Check status" — parent should re-fetch participation. */
   onCheckStatus?: () => void;
 };
 
 type PanelState = "idle" | "charging" | "failed";
 
 const DEFAULT_BRAND = "#7C3AED";
+const POLL_MS = 4000;
+
+function isParticipationConfirmed(p: ApiParticipation): boolean {
+  return p.payment_status === "paid" || p.payment_status === "not_required";
+}
 
 export function ParticipantWaafiPayment({
   participationId,
@@ -73,6 +52,7 @@ export function ParticipantWaafiPayment({
   currency,
   brandColor = DEFAULT_BRAND,
   isDark,
+  embedded,
   onSuccess,
   onFailure,
   onCancel,
@@ -80,12 +60,16 @@ export function ParticipantWaafiPayment({
 }: ParticipantWaafiPaymentProps) {
   const [phone, setPhone] = useState("");
   const [panelState, setPanelState] = useState<PanelState>("idle");
-  const [failureMessage, setFailureMessage] = useState<string>("");
+  const [failureMessage, setFailureMessage] = useState("");
+  const [statusHint, setStatusHint] = useState("");
   const [elapsed, setElapsed] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const succeededRef = useRef(false);
 
   useEffect(() => {
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
   }, []);
 
   const formattedAmount = (() => {
@@ -100,16 +84,81 @@ export function ParticipantWaafiPayment({
     }
   })();
 
+  const completeSuccess = useCallback(
+    async (participation?: ApiParticipation) => {
+      if (succeededRef.current) return;
+      succeededRef.current = true;
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      if (participation && isParticipationConfirmed(participation)) {
+        onSuccess(participation);
+        return;
+      }
+      try {
+        const updated = await getParticipation(participationId);
+        onSuccess(updated);
+      } catch {
+        onSuccess({ id: participationId } as ApiParticipation);
+      }
+    },
+    [onSuccess, participationId],
+  );
+
+  const pollParticipation = useCallback(async (): Promise<boolean> => {
+    if (succeededRef.current) return true;
+    try {
+      const updated = await getParticipation(participationId);
+      if (isParticipationConfirmed(updated)) {
+        await completeSuccess(updated);
+        return true;
+      }
+    } catch {
+      /* ignore transient poll errors */
+    }
+    return false;
+  }, [completeSuccess, participationId]);
+
+  useEffect(() => {
+    if (panelState !== "charging") return;
+
+    const pollId = window.setInterval(() => {
+      void pollParticipation();
+    }, POLL_MS);
+
+    return () => window.clearInterval(pollId);
+  }, [panelState, pollParticipation]);
+
   const fail = (reason: string) => {
+    if (succeededRef.current) return;
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    setElapsed(0);
     setFailureMessage(reason);
     setPanelState("failed");
     onFailure?.(reason);
+  };
+
+  const handleCheckStatus = async () => {
+    setStatusHint("");
+    onCheckStatus?.();
+    const ok = await pollParticipation();
+    if (!ok && !succeededRef.current) {
+      setStatusHint(
+        "Payment is still pending. If you already approved on your phone, wait a few seconds and check again.",
+      );
+    }
   };
 
   const handleCharge = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!phone.trim() || panelState === "charging") return;
 
+    succeededRef.current = false;
+    setStatusHint("");
     setPanelState("charging");
     setElapsed(0);
     timerRef.current = setInterval(() => setElapsed((s) => s + 1), 1000);
@@ -119,80 +168,264 @@ export function ParticipantWaafiPayment({
         participation_id: participationId,
         payer_phone: phone.trim(),
       });
-      if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+      if (succeededRef.current) return;
 
       if (payment.status === "completed") {
-        // Re-fetch so caller has fresh state (payment_status=paid, qr_token set)
-        try {
-          const updated = await getParticipation(participationId);
-          onSuccess(updated);
-        } catch {
-          onSuccess(payment.participation ?? ({ id: participationId } as ApiParticipation));
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+        const nested = payment.participation;
+        if (nested && isParticipationConfirmed(nested)) {
+          await completeSuccess(nested);
+        } else {
+          await completeSuccess();
         }
         return;
       }
 
-      // HTTP 200 but payment.status = "failed" — extract the real provider message
+      if (payment.status === "pending") {
+        const ok = await pollParticipation();
+        if (!ok && !succeededRef.current) {
+          setStatusHint(
+            "Waafi is still processing. If you approved on your phone, we'll detect it shortly — or tap Check status.",
+          );
+        }
+        return;
+      }
+
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
       fail(getChargeFailureMessage(payment));
+    } catch (err: unknown) {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      if (succeededRef.current) return;
 
-    } catch (err: any) {
-      if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+      const axiosErr = err as {
+        response?: { status?: number; data?: unknown };
+        code?: string;
+        message?: string;
+      };
+      const httpStatus = axiosErr?.response?.status;
+      const errCode = axiosErr?.code;
 
-      const httpStatus = err?.response?.status as number | undefined;
-      const errCode: string | undefined = err?.code;
-
-      // "already paid" race — treat as success
       if (httpStatus === 400) {
         const msg = getApiErrorMessage(err, "");
         if (msg.toLowerCase().includes("already paid")) {
-          try {
-            const updated = await getParticipation(participationId);
-            onSuccess(updated);
-          } catch {
-            onSuccess({ id: participationId } as ApiParticipation);
-          }
+          await completeSuccess();
           return;
         }
 
         if (msg.toLowerCase().includes("already pending")) {
+          const ok = await pollParticipation();
+          if (ok) return;
           fail(
             "A payment request is already in progress for this registration. " +
-            "Please wait for Waafi to respond (up to 3 minutes), then use \u201CCheck status\u201D."
+              "Please wait for Waafi to respond (up to 3 minutes), then use Check status.",
           );
           return;
         }
 
-        // Other 400 — surface the backend message directly
         fail(msg || "Payment failed. Please try again.");
         return;
       }
 
-      // Network timeout or connection lost — uncertain, don't say "failed"
-      if (
+      const timedOut =
         errCode === "ECONNABORTED" ||
         errCode === "ERR_NETWORK" ||
         errCode === "ERR_CANCELED" ||
-        err?.message?.toLowerCase().includes("timeout")
-      ) {
+        axiosErr?.message?.toLowerCase().includes("timeout");
+
+      if (timedOut) {
+        const ok = await pollParticipation();
+        if (ok) return;
         fail(
           "The payment request timed out or the network was lost. " +
-          "The result is uncertain \u2014 please use \u201CCheck status\u201D before retrying."
+            "If you already paid on your phone, tap Check status — do not pay again until you confirm.",
         );
         return;
       }
 
-      // All other errors — use the central extractor which now prioritises data.message
+      const ok = await pollParticipation();
+      if (ok) return;
       fail(getApiErrorMessage(err, "Payment was not completed. Please try again."));
-
-    } finally {
-      setElapsed(0);
     }
   };
 
   const handleRetry = () => {
     setFailureMessage("");
+    setStatusHint("");
+    setElapsed(0);
     setPanelState("idle");
   };
+
+  const body = (
+    <div className={embedded ? "" : "p-8"}>
+      <div className="mb-5 flex items-center gap-3">
+        <div
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
+          style={{ background: brandColor }}
+        >
+          <Phone className="h-5 w-5 text-white" />
+        </div>
+        <div className="min-w-0">
+          <h2 className="font-display text-lg font-bold leading-tight tracking-[-0.02em]">
+            Pay with EVC Plus
+          </h2>
+          <p className="truncate text-xs text-muted-foreground">{eventName}</p>
+          {ticketName ? (
+            <p className="truncate text-xs text-muted-foreground">{ticketName}</p>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="mb-5 rounded-2xl border border-border/50 bg-muted/30 px-4 py-2.5 text-sm leading-relaxed text-muted-foreground/80">
+        Your registration is reserved but payment is not complete.
+      </div>
+
+      <div
+        className="mb-6 rounded-2xl px-4 py-3"
+        style={{ background: `${brandColor}12` }}
+      >
+        <p className="mb-0.5 text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
+          Total
+        </p>
+        <p
+          className="font-display text-2xl font-bold tabular-nums tracking-[-0.02em]"
+          style={{ color: brandColor }}
+        >
+          {formattedAmount}
+        </p>
+      </div>
+
+      <AnimatePresence mode="wait">
+        {panelState === "charging" && (
+          <motion.div
+            key="charging"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="space-y-3 py-5 text-center"
+          >
+            <Loader2 className="mx-auto h-8 w-8 animate-spin" style={{ color: brandColor }} />
+            <div className="space-y-1">
+              <p className="text-sm font-semibold">Waiting for approval on your phone.</p>
+              <p className="text-xs text-muted-foreground">
+                Check your EVC prompt and enter your PIN.
+              </p>
+              <p className="text-xs text-muted-foreground">This can take up to 3 minutes.</p>
+              {elapsed > 0 ? (
+                <p className="mt-2 text-xs tabular-nums text-muted-foreground">{elapsed}s elapsed…</p>
+              ) : null}
+            </div>
+            {statusHint ? (
+              <p className="text-xs leading-relaxed text-muted-foreground">{statusHint}</p>
+            ) : null}
+            <p className="text-xs text-muted-foreground">Do not close this page.</p>
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-2 h-11 w-full gap-1.5 rounded-full text-sm"
+              onClick={() => void handleCheckStatus()}
+            >
+              <RefreshCw className="h-4 w-4" /> Check status
+            </Button>
+          </motion.div>
+        )}
+
+        {panelState === "failed" && (
+          <motion.div
+            key="failed"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="space-y-4"
+          >
+            <div className="space-y-2 rounded-2xl border border-destructive/20 bg-destructive/8 p-4">
+              <div className="flex items-center gap-2 text-sm font-semibold text-destructive">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                Payment was not completed
+              </div>
+              <p className="pl-6 text-sm leading-relaxed text-destructive/90">{failureMessage}</p>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Button
+                type="button"
+                onClick={handleRetry}
+                className="h-12 w-full rounded-full border-0 text-sm font-semibold text-white"
+                style={{ background: brandColor }}
+              >
+                Try again
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 w-full gap-1.5 rounded-full text-sm"
+                onClick={() => void handleCheckStatus()}
+              >
+                <RefreshCw className="h-4 w-4" /> Check status
+              </Button>
+            </div>
+          </motion.div>
+        )}
+
+        {panelState === "idle" && (
+          <motion.form
+            key="form"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onSubmit={handleCharge}
+            className="space-y-4"
+          >
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-foreground/80">
+                EVC Plus phone number
+              </Label>
+              <Input
+                type="tel"
+                placeholder="e.g. 0612345678 or +252612345678"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                required
+                className="h-12 rounded-2xl border-0 bg-muted/40 px-4 text-sm placeholder:text-muted-foreground/60 focus-visible:ring-2 focus-visible:ring-offset-0"
+                style={{ ["--tw-ring-color" as string]: brandColor }}
+              />
+              <p className="text-xs text-muted-foreground">
+                Enter the phone number linked to your Hormuud EVC wallet.
+                You&apos;ll receive a PIN prompt on your phone.
+              </p>
+            </div>
+
+            <Button
+              type="submit"
+              disabled={!phone.trim()}
+              className="h-14 w-full rounded-full border-0 font-display text-base font-semibold tracking-[-0.01em] text-white transition-transform hover:scale-[1.01] active:scale-[0.99] disabled:scale-100 disabled:opacity-50"
+              style={{ background: brandColor }}
+            >
+              Complete payment · {formattedAmount}
+            </Button>
+
+            {onCancel ? (
+              <button
+                type="button"
+                onClick={onCancel}
+                className="w-full py-1 text-center text-xs text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Cancel
+              </button>
+            ) : null}
+          </motion.form>
+        )}
+      </AnimatePresence>
+    </div>
+  );
 
   return (
     <motion.div
@@ -201,183 +434,9 @@ export function ParticipantWaafiPayment({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -12 }}
       transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-      className="w-full max-w-lg mx-auto relative z-10"
+      className={embedded ? "relative z-10 w-full" : "relative z-10 mx-auto w-full max-w-lg"}
     >
-      <GlassCard isDark={isDark} brandColor={brandColor}>
-        <div className="p-8">
-          {/* Header */}
-          <div className="flex items-center gap-3 mb-5">
-            <div
-              className="w-11 h-11 rounded-full flex items-center justify-center shrink-0"
-              style={{ background: `linear-gradient(135deg, ${brandColor}, hsl(265 90% 62%))` }}
-            >
-              <Phone className="w-5 h-5 text-white" />
-            </div>
-            <div className="min-w-0">
-              <h2 className="font-display font-bold text-lg tracking-[-0.02em] leading-tight">
-                Pay with EVC Plus
-              </h2>
-              <p className="text-muted-foreground text-xs truncate">{eventName}</p>
-              {ticketName && (
-                <p className="text-muted-foreground text-xs truncate">{ticketName}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Context banner */}
-          <div className="rounded-2xl px-4 py-2.5 mb-5 text-sm text-muted-foreground/80 border border-border/50 bg-muted/30 leading-relaxed">
-            Your registration is reserved but payment is not complete.
-          </div>
-
-          {/* Amount */}
-          <div
-            className="rounded-2xl px-4 py-3 mb-6"
-            style={{ background: `${brandColor}12` }}
-          >
-            <p className="text-[10px] uppercase tracking-[0.18em] font-bold text-muted-foreground mb-0.5">
-              Total
-            </p>
-            <p
-              className="text-2xl font-display font-bold tabular-nums tracking-[-0.02em]"
-              style={{ color: brandColor }}
-            >
-              {formattedAmount}
-            </p>
-          </div>
-
-          <AnimatePresence mode="wait">
-
-            {/* ── Charging ── */}
-            {panelState === "charging" && (
-              <motion.div
-                key="charging"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="text-center py-5 space-y-3"
-              >
-                <Loader2
-                  className="w-8 h-8 animate-spin mx-auto"
-                  style={{ color: brandColor }}
-                />
-                <div className="space-y-1">
-                  <p className="font-semibold text-sm">Waiting for approval on your phone.</p>
-                  <p className="text-muted-foreground text-xs">
-                    Check your EVC prompt and enter your PIN.
-                  </p>
-                  <p className="text-muted-foreground text-xs">This can take up to 3 minutes.</p>
-                  {elapsed > 0 && (
-                    <p className="text-muted-foreground text-xs tabular-nums mt-2">
-                      {elapsed}s elapsed…
-                    </p>
-                  )}
-                </div>
-                <p className="text-[11px] text-muted-foreground">Do not close this page.</p>
-              </motion.div>
-            )}
-
-            {/* ── Failed ── */}
-            {panelState === "failed" && (
-              <motion.div
-                key="failed"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                className="space-y-4"
-              >
-                {/* Visible failure block — stays on page until user retries */}
-                <div className="rounded-2xl bg-destructive/8 border border-destructive/20 p-4 space-y-2">
-                  <div className="flex items-center gap-2 text-destructive font-semibold text-sm">
-                    <AlertTriangle className="w-4 h-4 shrink-0" />
-                    Payment was not completed
-                  </div>
-                  <p className="text-sm text-destructive/90 leading-relaxed pl-6">
-                    {failureMessage}
-                  </p>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <Button
-                    type="button"
-                    onClick={handleRetry}
-                    className="w-full h-12 text-sm border-0 text-white rounded-full font-semibold"
-                    style={{
-                      background: `linear-gradient(135deg, ${brandColor}, hsl(265 90% 62%))`,
-                      boxShadow: `0 12px 30px -8px ${brandColor}88`,
-                    }}
-                  >
-                    Try again
-                  </Button>
-                  {onCheckStatus && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full h-11 rounded-full text-sm gap-1.5"
-                      onClick={onCheckStatus}
-                    >
-                      <RefreshCw className="w-4 h-4" /> Check status
-                    </Button>
-                  )}
-                </div>
-              </motion.div>
-            )}
-
-            {/* ── Idle / phone form ── */}
-            {panelState === "idle" && (
-              <motion.form
-                key="form"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onSubmit={handleCharge}
-                className="space-y-4"
-              >
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-foreground/80">
-                    EVC Plus phone number
-                  </Label>
-                  <Input
-                    type="tel"
-                    placeholder="e.g. 0612345678 or +252612345678"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    required
-                    className="h-12 rounded-2xl bg-muted/40 border-0 px-4 text-sm placeholder:text-muted-foreground/60 focus-visible:ring-2 focus-visible:ring-offset-0"
-                    style={{ ["--tw-ring-color" as any]: brandColor }}
-                  />
-                  <p className="text-[11px] text-muted-foreground">
-                    Enter the phone number linked to your Hormuud EVC wallet.
-                    You'll receive a PIN prompt on your phone.
-                  </p>
-                </div>
-
-                <Button
-                  type="submit"
-                  disabled={!phone.trim()}
-                  className="w-full h-14 text-base border-0 text-white rounded-full font-display font-semibold tracking-[-0.01em] transition-transform hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:scale-100"
-                  style={{
-                    background: `linear-gradient(135deg, ${brandColor}, hsl(265 90% 62%))`,
-                    boxShadow: `0 18px 40px -12px ${brandColor}99, 0 0 0 1px rgba(255,255,255,0.08) inset`,
-                  }}
-                >
-                  Complete payment · {formattedAmount}
-                </Button>
-
-                {onCancel && (
-                  <button
-                    type="button"
-                    onClick={onCancel}
-                    className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors py-1"
-                  >
-                    Cancel
-                  </button>
-                )}
-              </motion.form>
-            )}
-
-          </AnimatePresence>
-        </div>
-      </GlassCard>
+      {embedded ? body : <GlassCard isDark={isDark} brandColor={brandColor}>{body}</GlassCard>}
     </motion.div>
   );
 }

@@ -1,14 +1,10 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  Loader2, CheckCircle2,
-  Clock, AlertTriangle, XCircle,
+  Loader2, Clock, AlertTriangle, XCircle, Ticket as TicketIcon,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { publicApi } from "@/lib/api";
@@ -18,15 +14,12 @@ import {
   type PublicEventDetailResponse,
   type PublicEventUiModel,
 } from "@/lib/publicEventsAdapters";
-
 import { PublicEventPage } from "@/components/event-public/PublicEventPage";
 import { EventCountdown } from "@/components/event-public/EventCountdown";
 import { PULSE } from "@/components/event-public/pulseTheme";
 import { toast } from "sonner";
-import { motion } from "framer-motion";
 import { getMediaUrl } from "@/lib/mediaUrl";
 import type { TicketTier } from "@/components/event-detail/TicketTiersManager";
-import { Ticket as TicketIcon, Crown, Check } from "lucide-react";
 import {
   createParticipation,
   listParticipations,
@@ -36,214 +29,9 @@ import {
   validateParticipantDiscountCode,
   type DiscountQuote,
 } from "@/services/participantDiscounts";
-import { ParticipantWaafiPayment } from "@/components/participant/ParticipantWaafiPayment";
-
-const formatTicketPrice = (price: number, currency = "USD") => {
-  if (!price) return "Free";
-  try {
-    return new Intl.NumberFormat(undefined, { style: "currency", currency, maximumFractionDigits: 2 }).format(price);
-  } catch {
-    return `${currency} ${price}`;
-  }
-};
-
-const formatMoneyString = (amount: string, currency = "USD") => {
-  const n = Number(amount);
-  if (!Number.isFinite(n)) return `${currency} ${amount}`;
-  return formatTicketPrice(n, currency);
-};
-
-const TicketPicker = ({
-  tickets, selectedId, onSelect, brandColor,
-}: {
-  tickets: TicketTier[];
-  selectedId: string | null;
-  onSelect: (id: string) => void;
-  brandColor: string;
-}) => (
-  <div className="space-y-2.5">
-    <div className="flex items-baseline justify-between">
-      <Label className="text-sm font-medium text-slate-600">
-        Choose your ticket
-      </Label>
-      <span className="text-[10px] text-muted-foreground">{tickets.length} available</span>
-    </div>
-    <div className="space-y-2">
-      {tickets.map((t) => {
-        const selected = selectedId === t.id;
-        const soldOut = t.capacity !== null && t.capacity !== undefined && t.capacity <= 0;
-        return (
-          <motion.button
-            type="button"
-            key={t.id}
-            onClick={() => !soldOut && onSelect(t.id)}
-            whileTap={soldOut ? undefined : { scale: 0.99 }}
-            disabled={soldOut}
-            className={`group relative w-full overflow-hidden rounded-[1.25rem] border p-4 text-left transition-all ${
-              soldOut
-                ? "cursor-not-allowed border-slate-200 bg-slate-50 opacity-50"
-                : selected
-                  ? "border-transparent bg-slate-50"
-                  : "border-slate-200 bg-white hover:border-slate-300"
-            }`}
-            style={selected && !soldOut ? {
-              boxShadow: `0 0 0 1.5px ${brandColor}, 0 18px 40px -20px ${brandColor}66`,
-            } : undefined}
-          >
-            {selected && !soldOut && (
-              <motion.div
-                layoutId="ticket-glow"
-                className="absolute inset-0 -z-10 opacity-60"
-                style={{ background: `radial-gradient(circle at 0% 50%, ${brandColor}1a, transparent 60%)` }}
-              />
-            )}
-            <div className="flex items-center gap-3.5">
-              <div
-            className={`shrink-0 w-10 h-10 inline-flex items-center justify-center rounded-full transition ${
-                  selected && !soldOut
-                    ? "text-white"
-                    : t.is_vip
-                      ? "text-slate-700 bg-slate-100"
-                      : "bg-slate-100 text-slate-500"
-                }`}
-                style={
-                  selected && !soldOut
-                    ? {
-                        background: brandColor,
-                      }
-                    : undefined
-                }
-              >
-                {t.is_vip ? <Crown className="w-4 h-4" /> : <TicketIcon className="w-4 h-4" />}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="truncate text-sm font-semibold text-slate-900">
-                    {t.name || "Untitled"}
-                  </span>
-                  {t.is_vip && (
-                    <span
-                      className="text-[9px] uppercase tracking-[0.2em] font-bold px-1.5 py-0.5 rounded-full"
-                      style={{ color: brandColor, background: `${brandColor}1a` }}
-                    >
-                      VIP
-                    </span>
-                  )}
-                  {soldOut && (
-                    <span className="text-[9px] uppercase tracking-[0.2em] font-bold px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
-                      Sold out
-                    </span>
-                  )}
-                </div>
-                {t.description && (
-                  <p className="text-xs text-muted-foreground truncate mt-0.5">{t.description}</p>
-                )}
-              </div>
-              <div className="text-right shrink-0 flex items-center gap-3">
-                <div>
-                  <div className="text-base font-display font-bold tabular-nums tracking-[-0.01em]">
-                    {formatTicketPrice(t.price, t.currency || "USD")}
-                  </div>
-                </div>
-                <div
-                  className={`shrink-0 w-5 h-5 rounded-full inline-flex items-center justify-center transition ${
-                    selected && !soldOut ? "scale-100" : "scale-0"
-                  }`}
-                  style={{ background: brandColor }}
-                >
-                  <Check className="w-3 h-3 text-white" strokeWidth={3} />
-                </div>
-              </div>
-            </div>
-
-          </motion.button>
-        );
-      })}
-    </div>
-  </div>
-);
-
-// ─── Result screens ───────────────────────────────────────────────────────────
-
-const SuccessCard = ({
-  brandColor, eventName, participationId,
-}: {
-  brandColor: string;
-  eventName: string;
-  participationId: number | null;
-}) => {
-  const navigate = useNavigate();
-  return (
-    <motion.div
-      key="success"
-      initial={{ opacity: 0, scale: 0.92, y: 20 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      transition={{ type: "spring", damping: 18 }}
-      className="w-full mx-auto"
-    >
-      <div className="rounded-[1.75rem] bg-slate-50 p-8 text-center sm:p-10">
-        <div className="relative inline-block mb-5">
-          <div
-            className="relative w-20 h-20 rounded-full flex items-center justify-center"
-            style={{ background: brandColor }}
-          >
-            <CheckCircle2 className="w-9 h-9 text-white" />
-          </div>
-        </div>
-        <h2 className="mb-3 font-display text-xl font-semibold tracking-tight">
-          You're registered!
-        </h2>
-        <p className="text-slate-500 leading-relaxed">
-          Thank you for registering for <strong className="text-slate-800">{eventName}</strong>. You&apos;ll receive a confirmation email shortly.
-        </p>
-        {participationId && (
-          <Button
-            className="mt-6 h-10 rounded-full px-6 text-white border-0 font-semibold"
-            style={{ background: brandColor }}
-            onClick={() => navigate(`/registrations/${participationId}/room`)}
-          >
-            Enter event room
-          </Button>
-        )}
-      </div>
-    </motion.div>
-  );
-};
-
-const PaymentFailCard = ({
-  brandColor, reason, onRetry,
-}: {
-  brandColor: string;
-  reason: string;
-  onRetry: () => void;
-}) => (
-  <motion.div
-    key="fail"
-    initial={{ opacity: 0, scale: 0.92, y: 20 }}
-    animate={{ opacity: 1, scale: 1, y: 0 }}
-    transition={{ type: "spring", damping: 18 }}
-    className="w-full mx-auto"
-  >
-    <div className="rounded-[1.75rem] bg-slate-50 p-8 text-center sm:p-10">
-      <div className="relative inline-block mb-5">
-        <div className="w-20 h-20 rounded-full flex items-center justify-center bg-red-50 mx-auto">
-          <AlertTriangle className="w-9 h-9 text-destructive" />
-        </div>
-      </div>
-      <h2 className="mb-3 font-display text-lg font-semibold tracking-tight">Payment failed</h2>
-      <p className="text-slate-500 text-sm leading-relaxed mb-6">{reason} Your seat was released — you can try again.</p>
-      <Button
-        className="h-10 rounded-full px-6 text-white border-0 font-semibold"
-        style={{ background: brandColor }}
-        onClick={onRetry}
-      >
-        Try again
-      </Button>
-    </div>
-  </motion.div>
-);
-
-// ─── Locked registration (sold out / closed / coming soon / etc.) ─────────────
+import { CheckoutLayout } from "@/components/event-checkout/CheckoutLayout";
+import { TicketSelectStep } from "@/components/event-checkout/TicketSelectStep";
+import { WaafiPayStep } from "@/components/event-checkout/WaafiPayStep";
 
 type LockedReason =
   | "coming_soon"
@@ -325,189 +113,20 @@ const RegistrationLockedPanel = ({
           : AlertTriangle;
 
   return (
-    <div className="flex flex-col items-start gap-4 py-2">
-      <Icon className="h-8 w-8 text-slate-400" />
-      <h2 className="font-display text-2xl font-bold tracking-tight text-slate-900">{copy.title}</h2>
-      <p className="max-w-sm text-sm leading-relaxed text-slate-500">{copy.body}</p>
-      {reason === "coming_soon" ? <EventCountdown targetIso={startsAt} tone="light" className="mt-2 justify-start" /> : null}
+    <div className="flex flex-col items-start gap-3">
+      <Icon className="h-7 w-7 text-muted-foreground" />
+      <h2 className="font-display text-lg font-bold tracking-tight">{copy.title}</h2>
+      <p className="text-sm leading-relaxed text-muted-foreground">{copy.body}</p>
+      {reason === "coming_soon" ? <EventCountdown targetIso={startsAt} tone="light" className="mt-1 justify-start" /> : null}
     </div>
   );
 };
 
-// ─── Registration form ────────────────────────────────────────────────────────
-
-const RegistrationForm = ({
-  consent,
-  onConsentChange,
-  onSubmit,
-  isPending,
-  submitDisabled,
-  submitLabel,
-  brandColor,
-  tickets,
-  selectedTicketId,
-  onSelectTicket,
-  discountCode,
-  onDiscountCodeChange,
-  discountQuote,
-  discountApplying,
-  discountError,
-  onApplyDiscount,
-  onClearDiscount,
-  className = "",
-}: {
-  consent: boolean;
-  onConsentChange: (v: boolean) => void;
-  onSubmit: (e: React.FormEvent) => void;
-  isPending: boolean;
-  submitDisabled?: boolean;
-  submitLabel?: string;
-  brandColor: string;
-  tickets: TicketTier[];
-  selectedTicketId: string | null;
-  onSelectTicket: (id: string) => void;
-  discountCode: string;
-  onDiscountCodeChange: (v: string) => void;
-  discountQuote: DiscountQuote | null;
-  discountApplying: boolean;
-  discountError: string | null;
-  onApplyDiscount: () => void;
-  onClearDiscount: () => void;
-  className?: string;
-}) => {
-  const selectedTicket = tickets.find((t) => t.id === selectedTicketId);
-  const unitPrice = selectedTicket?.price ?? 0;
-  const isPaid = !!selectedTicket && unitPrice > 0;
-  const quoteFinal = discountQuote ? Number(discountQuote.final_amount) : null;
-  const displayTotal =
-    quoteFinal != null && Number.isFinite(quoteFinal)
-      ? quoteFinal
-      : unitPrice;
-  const ctaLabel = isPending
-    ? "Processing…"
-    : isPaid
-      ? `Get ticket · ${formatTicketPrice(displayTotal, selectedTicket.currency || "USD")}`
-      : selectedTicket
-        ? "Reserve my spot"
-        : "Register now";
-
-  const effectiveLabel = submitLabel ?? ctaLabel;
-
-  return (
-    <form onSubmit={onSubmit} className={`space-y-6 ${className}`}>
-      {tickets.length > 0 && (
-        <TicketPicker
-          tickets={tickets}
-          selectedId={selectedTicketId}
-          onSelect={onSelectTicket}
-          brandColor={brandColor}
-        />
-      )}
-
-      {isPaid && selectedTicketId && (
-        <div className="space-y-2">
-          <Label className="text-sm font-medium text-slate-600">
-            Discount code
-          </Label>
-          <div className="flex gap-2">
-            <Input
-              value={discountCode}
-              onChange={(e) => onDiscountCodeChange(e.target.value.toUpperCase())}
-              placeholder="SAVE10"
-            className="rounded-full uppercase"
-              autoComplete="off"
-              disabled={!!discountQuote || discountApplying}
-            />
-            {discountQuote ? (
-              <Button
-                type="button"
-                variant="outline"
-                className="rounded-full shrink-0"
-                onClick={onClearDiscount}
-              >
-                Remove
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                variant="outline"
-                className="rounded-full shrink-0"
-                onClick={onApplyDiscount}
-                disabled={discountApplying || !discountCode.trim()}
-              >
-                {discountApplying ? <Loader2 className="w-4 h-4 animate-spin" /> : "Apply"}
-              </Button>
-            )}
-          </div>
-          {discountError && (
-            <p className="text-xs text-destructive">{discountError}</p>
-          )}
-          {discountQuote && (
-            <p className="text-xs text-muted-foreground">
-              Code <span className="font-medium text-foreground">{discountQuote.code}</span> applied
-              {": "}
-              save {formatMoneyString(discountQuote.discount_amount, selectedTicket?.currency || "USD")}
-            </p>
-          )}
-        </div>
-      )}
-
-      {isPaid && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between rounded-2xl bg-slate-50 px-5 py-4"
-        >
-          <div>
-            <p className="text-xs font-medium text-slate-500">Order total</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {selectedTicket!.name}
-              {discountQuote
-                ? ` · was ${formatMoneyString(discountQuote.original_amount, selectedTicket!.currency || "USD")}`
-                : ` @ ${formatTicketPrice(selectedTicket!.price, selectedTicket!.currency)}`}
-            </p>
-          </div>
-          <div className="text-right">
-            {discountQuote && (
-              <div className="text-xs text-muted-foreground line-through tabular-nums">
-                {formatMoneyString(discountQuote.original_amount, selectedTicket!.currency || "USD")}
-              </div>
-            )}
-            <div className="text-xl font-display font-bold tabular-nums tracking-[-0.02em]" style={{ color: brandColor }}>
-              {formatTicketPrice(displayTotal, selectedTicket!.currency || "USD")}
-            </div>
-          </div>
-        </motion.div>
-      )}
-
-      <div className="flex items-start gap-2.5 pt-1">
-        <Checkbox id="gdpr" checked={consent} onCheckedChange={(c) => onConsentChange(!!c)} className="mt-0.5" />
-        <Label htmlFor="gdpr" className="text-xs text-muted-foreground leading-relaxed cursor-pointer">
-          I agree to receive communications about this event and consent to the processing of my data in accordance with the Privacy Policy.
-        </Label>
-      </div>
-
-      <Button
-        type="submit"
-        className="h-14 w-full rounded-full border-0 text-base font-semibold text-white"
-        style={{ background: brandColor }}
-        disabled={isPending || !!submitDisabled}
-      >
-        {isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing…</> : effectiveLabel}
-      </Button>
-    </form>
-  );
-};
-
-// ─── Registration step state ───────────────────────────────────────────────────
-
-type RegistrationStep =
-  | { kind: "form" }
+type PageView =
+  | { kind: "detail" }
+  | { kind: "select" }
   | { kind: "waafi"; participation: ApiParticipation }
-  | { kind: "success"; participation: ApiParticipation }
-  | { kind: "payment_failed"; participation: ApiParticipation; reason: string };
-
-// ─── Main component ───────────────────────────────────────────────────────────
+  | { kind: "fail"; participation: ApiParticipation; reason: string };
 
 const Register = () => {
   const { id } = useParams();
@@ -532,14 +151,12 @@ const Register = () => {
   const [discountApplying, setDiscountApplying] = useState(false);
   const [discountError, setDiscountError] = useState<string | null>(null);
 
-  const [step, setStep] = useState<RegistrationStep>({ kind: "form" });
+  const [view, setView] = useState<PageView>({ kind: "detail" });
 
-  // Track whether a charge is in flight (for navigation safety)
   const chargeInFlightRef = useRef(false);
 
   const tickets: TicketTier[] = event?.ticket_tiers ?? [];
 
-  // Auto-select single ticket
   useEffect(() => {
     if (tickets.length === 1 && !selectedTicketId) setSelectedTicketId(tickets[0].id);
   }, [tickets, selectedTicketId]);
@@ -550,8 +167,8 @@ const Register = () => {
     setDiscountCode("");
   }, []);
 
-  const handleSelectTicket = useCallback((id: string) => {
-    setSelectedTicketId(id);
+  const handleSelectTicket = useCallback((ticketId: string) => {
+    setSelectedTicketId(ticketId);
     setDiscountQuote(null);
     setDiscountError(null);
   }, []);
@@ -580,7 +197,6 @@ const Register = () => {
     }
   }, [discountCode, event, navigate, selectedTicketId, user]);
 
-  // Navigation safety: warn if a charge is pending
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
       if (!chargeInFlightRef.current) return;
@@ -667,10 +283,7 @@ const Register = () => {
         enabled: true,
         position: 0,
         title: "Why Attend",
-        content: {
-          heading: "Why attend",
-          bullets: whyBullets,
-        },
+        content: { heading: "Why attend this event", bullets: whyBullets },
       });
     }
 
@@ -681,7 +294,7 @@ const Register = () => {
         enabled: true,
         position: 1,
         title: "Schedule",
-        content: { heading: "Agenda overview", items: scheduleItems },
+        content: { heading: "Agenda", items: scheduleItems },
       });
     }
 
@@ -692,7 +305,7 @@ const Register = () => {
         enabled: true,
         position: 2,
         title: "Speakers",
-        content: { heading: "Meet our speakers", people },
+        content: { heading: "Featured speakers", people },
       });
     }
 
@@ -711,7 +324,6 @@ const Register = () => {
       });
     }
 
-    // Never expose online_url on the public page — join link lives in the event room after register.
     const hasVenue = ui.location_type !== "virtual" && !!(ui.city || ui.location);
     const isOnline = ui.location_type === "virtual" || ui.location_type === "hybrid";
     if (hasVenue || isOnline) {
@@ -722,7 +334,7 @@ const Register = () => {
         position: 4,
         title: "Location",
         content: {
-          heading: ui.location_type === "virtual" ? "Online event" : "Find us here",
+          heading: ui.location_type === "virtual" ? "Online event" : "Venue",
           venue: ui.city ?? (ui.location_type === "virtual" ? "Online event" : undefined),
           address: ui.location ?? (isOnline && !hasVenue ? "Meeting link shared after registration" : undefined),
           image_url: ui.background_image_url || galleryUrls[0],
@@ -738,10 +350,7 @@ const Register = () => {
         enabled: true,
         position: 5,
         title: "Gallery",
-        content: {
-          heading: "Gallery",
-          images: galleryUrls,
-        },
+        content: { heading: "Gallery", images: galleryUrls },
       });
     }
 
@@ -777,7 +386,7 @@ const Register = () => {
           );
           if (existing) {
             redirected = true;
-            navigate(`/registrations/${existing.id}/room`, { replace: true });
+            navigate(`/registrations/${existing.id}`, { replace: true });
             return;
           }
         }
@@ -805,22 +414,26 @@ const Register = () => {
 
   const registrationAllowed = event?.registration_gates?.allowed === true;
   const lockedReason = event ? resolveLockedReason(event) : null;
+  const submitDisabled = !registrationAllowed;
 
   const registerLabel = (() => {
     if (!event) return "Register";
-    if (registrationAllowed) {
-      const hasPaid = event.ticket_tiers.some((t) => t.price > 0);
-      return hasPaid ? "Get Tickets" : "Register";
-    }
+    if (registrationAllowed) return "Register";
     if (lockedReason) return LOCKED_COPY[lockedReason].title;
     return "Registration closed";
   })();
 
-  const submitDisabled = !registrationAllowed;
+  const openCheckout = () => {
+    if (!event || submitDisabled || lockedReason) return;
+    if (!user) {
+      navigate(`/auth?redirect=${encodeURIComponent(`/events/${event.id}`)}`);
+      return;
+    }
+    setView({ kind: "select" });
+    window.scrollTo({ top: 0, behavior: "auto" });
+  };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const handleComplete = async () => {
     if (!event) return;
     if (submitDisabled) {
       toast.error(registerLabel);
@@ -834,14 +447,12 @@ const Register = () => {
       toast.error("Please accept the privacy policy to register.");
       return;
     }
-
     if (tickets.length > 0 && !selectedTicketId) {
       toast.error("Please choose a ticket to continue.");
       return;
     }
 
     setIsSubmitting(true);
-
     const selectedTicketNum = selectedTicketId ? Number(selectedTicketId) : null;
 
     try {
@@ -860,27 +471,20 @@ const Register = () => {
         participation.payment_status === "not_required" ||
         participation.payment_status === "paid"
       ) {
-        setStep({ kind: "success", participation });
-        // Navigate to event room after a brief moment
-        setTimeout(() => {
-          navigate(`/registrations/${participation.id}/room`);
-        }, 2200);
+        navigate(`/registrations/${participation.id}`);
         return;
       }
 
       if (participation.payment_status === "pending") {
-        // Paid ticket — show WaafiPay phone step
-        setStep({ kind: "waafi", participation });
+        setView({ kind: "waafi", participation });
         return;
       }
 
-      // Unexpected state — treat as success
-      setStep({ kind: "success", participation });
+      navigate(`/registrations/${participation.id}`);
     } catch (err: any) {
       const msg = getApiErrorMessage(err);
       const status = err?.response?.status;
       if (status === 422) {
-        // Laravel validation failure
         const errors = err?.response?.data?.errors;
         if (errors) {
           const firstError = Object.values(errors).flat()[0] as string;
@@ -892,9 +496,7 @@ const Register = () => {
         msg.toLowerCase().includes("already has an active participation") ||
         msg.toLowerCase().includes("duplicate")
       ) {
-        // Check if they have a pending participation they should resume paying for
         toast.error("You're already registered for this event. Check your tickets.");
-        // Navigate to dashboard so they can find their pending registration
         setTimeout(() => navigate("/dashboard/home"), 1500);
       } else if (
         msg.toLowerCase().includes("deadline") ||
@@ -924,43 +526,31 @@ const Register = () => {
     }
   };
 
-  // Handlers passed to WaafiPhoneStep
   const handlePaymentSuccess = (participation: ApiParticipation) => {
     chargeInFlightRef.current = false;
-    setStep({ kind: "success", participation });
-    setTimeout(() => {
-      navigate(`/registrations/${participation.id}/room`);
-    }, 2200);
+    navigate(`/registrations/${participation.id}`);
   };
 
   const handlePaymentFailure = (reason: string) => {
     chargeInFlightRef.current = false;
-    if (step.kind === "waafi") {
-      setStep({ kind: "payment_failed", participation: step.participation, reason });
+    if (view.kind === "waafi") {
+      setView({ kind: "fail", participation: view.participation, reason });
     }
   };
 
   const handlePaymentCancel = () => {
     chargeInFlightRef.current = false;
-    // Participation already exists (payment_status=pending). Navigating back to the form
-    // would let the user re-submit and get a "already has an active participation" error.
-    // Instead, go to the registration detail page where they can resume payment.
-    if (step.kind === "waafi") {
-        toast("You can finish payment from My Tickets. Unpaid seats are released after 15 minutes.");
-      navigate(`/registrations/${step.participation.id}`);
+    if (view.kind === "waafi") {
+      toast("You can finish payment from your registration page. Unpaid seats are released after 15 minutes.");
+      navigate(`/registrations/${view.participation.id}`);
     } else {
-      setStep({ kind: "form" });
+      setView({ kind: "detail" });
     }
   };
 
-  const handleRetryPayment = () => {
-    setStep({ kind: "form" });
-  };
-
-  // Loading
   if (loading) {
     return (
-      <div className="pulse-event min-h-screen overflow-x-hidden" style={{ background: PULSE.paper }}>
+      <div className="pulse-event min-h-screen overflow-x-hidden bg-background text-foreground">
         <div className="mx-4 mt-4 h-[42vh] rounded-[1.75rem] sm:mx-6" style={{ background: `linear-gradient(180deg, ${PULSE.navy}, ${PULSE.sky})` }} />
         <div className="mx-auto max-w-3xl space-y-4 px-4 py-10">
           <Skeleton className="h-10 w-2/3 rounded-full" />
@@ -973,12 +563,12 @@ const Register = () => {
 
   if (loadError) {
     return (
-      <div className="pulse-event flex min-h-screen flex-col" style={{ background: PULSE.paper }}>
+      <div className="pulse-event flex min-h-screen flex-col bg-background text-foreground">
         <div className="flex flex-1 items-center justify-center px-4">
-        <Card className="w-full max-w-md rounded-[1.75rem] border-slate-200 bg-white">
+        <Card className="w-full max-w-md rounded-[1.75rem] border-border bg-card">
           <CardContent className="p-8 text-center">
             <h1 className="mb-2 font-display text-2xl font-bold">Couldn&apos;t load event</h1>
-            <p className="mb-6 text-slate-500">{loadError}</p>
+            <p className="mb-6 text-muted-foreground">{loadError}</p>
             <Button className="rounded-full" onClick={() => setRetryNonce((n) => n + 1)}>
               Retry
             </Button>
@@ -991,12 +581,12 @@ const Register = () => {
 
   if (notFound || !event) {
     return (
-      <div className="pulse-event flex min-h-screen flex-col" style={{ background: PULSE.paper }}>
+      <div className="pulse-event flex min-h-screen flex-col bg-background text-foreground">
         <div className="flex flex-1 items-center justify-center px-4">
-        <Card className="w-full max-w-md rounded-[1.75rem] border-slate-200 bg-white">
+        <Card className="w-full max-w-md rounded-[1.75rem] border-border bg-card">
           <CardContent className="p-8 text-center">
             <h1 className="mb-2 font-display text-2xl font-bold">Event not found</h1>
-            <p className="mb-6 text-slate-500">This event may have ended or is not publicly available.</p>
+            <p className="mb-6 text-muted-foreground">This event may have ended or is not publicly available.</p>
             <Button className="rounded-full" onClick={() => navigate("/")}>
               Return to Home
             </Button>
@@ -1007,104 +597,89 @@ const Register = () => {
     );
   }
 
-  const brandColor = PULSE.teal;
+  const selectedTicket = tickets.find((t) => t.id === selectedTicketId);
+  const unitPrice = selectedTicket?.price ?? 0;
+  const quoteFinal = discountQuote ? Number(discountQuote.final_amount) : null;
+  const displayTotal =
+    quoteFinal != null && Number.isFinite(quoteFinal) ? quoteFinal : unitPrice;
+  const currency = selectedTicket?.currency || "USD";
+  const ticketName = selectedTicket?.name || "Admission";
 
-  // Non-form steps are overlaid in place of the form slot inside PublicEventPage
-  if (step.kind === "waafi") {
-    const ticket = event.ticket_tiers.find((t) => t.id === String(step.participation.ticket_type_id));
-    chargeInFlightRef.current = true;
+  const backToEvent = () => setView({ kind: "detail" });
+
+  if (view.kind === "select" || view.kind === "waafi" || view.kind === "fail") {
+    if (view.kind === "waafi") chargeInFlightRef.current = true;
+
+    const stepId =
+      view.kind === "select" ? "selection" as const : "payment" as const;
+
     return (
-      <div className="overflow-x-hidden">
-        <PublicEventPage
-          event={event}
-          modules={modules}
-          registerLabel={registerLabel}
-          registerDisabled={true}
-          formSlot={
-            <ParticipantWaafiPayment
-              participationId={step.participation.id}
-              eventName={event.name}
-              ticketName={ticket?.name ?? step.participation.ticket_type?.name ?? null}
-              amount={
-                step.participation.final_amount
-                ?? (ticket?.price ? String(ticket.price) : step.participation.ticket_type?.price ?? "0")
-              }
-              currency={ticket?.currency || "USD"}
-              brandColor={brandColor}
-              isDark={false}
-              onSuccess={handlePaymentSuccess}
-              onFailure={handlePaymentFailure}
-              onCancel={handlePaymentCancel}
-            />
-          }
-        />
-      </div>
+      <CheckoutLayout
+        eventId={event.id}
+        eventName={event.name}
+        current={stepId}
+        onBackToEvent={backToEvent}
+      >
+        {view.kind === "select" ? (
+          <TicketSelectStep
+            tickets={tickets}
+            selectedId={selectedTicketId}
+            onSelect={handleSelectTicket}
+            discountCode={discountCode}
+            onDiscountCodeChange={(v) => {
+              setDiscountCode(v);
+              if (discountQuote) setDiscountQuote(null);
+              if (discountError) setDiscountError(null);
+            }}
+            discountQuote={discountQuote}
+            discountApplying={discountApplying}
+            discountError={discountError}
+            onApplyDiscount={() => void handleApplyDiscount()}
+            onClearDiscount={clearDiscount}
+            consent={consent}
+            onConsentChange={setConsent}
+            isSubmitting={isSubmitting}
+            onComplete={() => void handleComplete()}
+          />
+        ) : view.kind === "fail" ? (
+          <div className="mx-auto max-w-md rounded-2xl border border-border bg-card p-8 text-center">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
+              <AlertTriangle className="h-8 w-8 text-destructive" />
+            </div>
+            <h2 className="font-display text-lg font-semibold tracking-tight">Payment failed</h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              {view.reason} You can try paying again without re-registering.
+            </p>
+            <Button
+              className="mt-6 h-11 rounded-full px-6 text-white"
+              style={{ background: PULSE.teal }}
+              onClick={() => setView({ kind: "waafi", participation: view.participation })}
+            >
+              Try payment again
+            </Button>
+          </div>
+        ) : (
+          <WaafiPayStep
+            participation={view.participation}
+            eventName={event.name}
+            eventImage={event.background_image_url}
+            ticketName={ticketName}
+            currency={currency}
+            unitPrice={unitPrice}
+            discountQuote={discountQuote}
+            displayTotal={displayTotal}
+            waafiAmount={
+              view.participation.final_amount
+              ?? (selectedTicket?.price != null ? String(selectedTicket.price) : undefined)
+            }
+            onWaafiSuccess={handlePaymentSuccess}
+            onWaafiFailure={handlePaymentFailure}
+            onWaafiCancel={handlePaymentCancel}
+          />
+        )}
+      </CheckoutLayout>
     );
   }
-
-  if (step.kind === "success") {
-    return (
-      <div className="overflow-x-hidden">
-        <PublicEventPage
-          event={event}
-          modules={modules}
-          registerLabel={registerLabel}
-          registerDisabled={true}
-          formSlot={
-            <SuccessCard
-              brandColor={brandColor}
-              eventName={event.name}
-              participationId={step.participation.id}
-            />
-          }
-        />
-      </div>
-    );
-  }
-
-  if (step.kind === "payment_failed") {
-    return (
-      <div className="overflow-x-hidden">
-        <PublicEventPage
-          event={event}
-          modules={modules}
-          registerLabel={registerLabel}
-          registerDisabled={true}
-          formSlot={
-            <PaymentFailCard
-              brandColor={brandColor}
-              reason={step.reason}
-              onRetry={handleRetryPayment}
-            />
-          }
-        />
-      </div>
-    );
-  }
-
-  const formProps = {
-    consent,
-    onConsentChange: setConsent,
-    onSubmit: handleSubmit,
-    isPending: isSubmitting,
-    submitDisabled,
-    submitLabel: registerLabel,
-    brandColor,
-    tickets,
-    selectedTicketId,
-    onSelectTicket: handleSelectTicket,
-    discountCode,
-    onDiscountCodeChange: (v: string) => {
-      setDiscountCode(v);
-      if (discountQuote) setDiscountQuote(null);
-      if (discountError) setDiscountError(null);
-    },
-    discountQuote,
-    discountApplying,
-    discountError,
-    onApplyDiscount: () => void handleApplyDiscount(),
-    onClearDiscount: clearDiscount,
-  };
 
   return (
     <div className="overflow-x-hidden">
@@ -1113,15 +688,11 @@ const Register = () => {
         modules={modules}
         registerLabel={registerLabel}
         registerDisabled={submitDisabled || !!lockedReason}
-        formSlot={
+        onRegisterClick={openCheckout}
+        lockedSlot={
           lockedReason ? (
-            <RegistrationLockedPanel
-              reason={lockedReason}
-              startsAt={event.event_date}
-            />
-          ) : (
-            <RegistrationForm {...formProps} className="pb-24 sm:pb-0" />
-          )
+            <RegistrationLockedPanel reason={lockedReason} startsAt={event.event_date} />
+          ) : undefined
         }
       />
     </div>

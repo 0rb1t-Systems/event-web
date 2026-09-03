@@ -60,7 +60,7 @@ export function OrgStudioHeader({ eventId, event, status, transitioning, onTrans
         type="button"
         onClick={() => navigate("/organizer/events")}
         aria-label="Back to events"
-        className="lg:hidden flex items-center gap-1.5 rounded-lg px-1.5 py-1.5 text-[13px] font-medium text-oc-muted hover:text-oc-ink hover:bg-oc-surface transition-colors shrink-0"
+        className="lg:hidden flex items-center gap-1.5 rounded-lg px-1.5 py-1.5 text-sm font-medium text-oc-muted hover:text-oc-ink hover:bg-oc-surface transition-colors shrink-0"
       >
         <IconArrowLeft className="w-[17px] h-[17px]" />
       </button>

@@ -90,9 +90,7 @@ const SettingsPage = () => {
   return (
     <div className="space-y-8 max-w-3xl mx-auto">
       <div>
-        <p className="text-sm text-muted-foreground">Home / Settings</p>
-        <h1 className="mt-1.5 text-2xl font-display font-semibold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground">Manage your account and preferences.</p>
+        <h1 className="text-2xl font-display font-semibold tracking-tight">Settings</h1>
       </div>
 
       <Tabs defaultValue="profile">
@@ -197,13 +195,12 @@ const SettingsPage = () => {
           <div className="house-card bg-card rounded-2xl border border-border p-6 space-y-6">
             <div>
               <h3 className="font-display font-semibold text-lg mb-1">Theme</h3>
-              <p className="text-sm text-muted-foreground">Applies to Home, Browse, tickets, and the organizer console. Public event pages stay on their cover design.</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {([
-                { value: "light", label: "Light", icon: Sun, desc: "Clean and bright interface" },
-                { value: "dark", label: "Dark", icon: Moon, desc: "Easy on the eyes" },
-                { value: "system", label: "System", icon: Monitor, desc: "Match your device settings" },
+                { value: "light", label: "Light", icon: Sun },
+                { value: "dark", label: "Dark", icon: Moon },
+                { value: "system", label: "System", icon: Monitor },
               ] as const).map((opt) => (
                 <button
                   key={opt.value}
@@ -221,7 +218,6 @@ const SettingsPage = () => {
                   </div>
                   <div className="text-center">
                     <p className="font-medium text-sm">{opt.label}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{opt.desc}</p>
                   </div>
                 </button>
               ))}

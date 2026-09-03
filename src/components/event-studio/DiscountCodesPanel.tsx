@@ -82,7 +82,6 @@ export default function DiscountCodesPanel({ eventId, onDenied }: Props) {
       <div className="flex items-start justify-between gap-2 min-w-0">
         <div className="min-w-0">
           <h3 className="font-display font-semibold">Discount codes</h3>
-          <p className="text-xs text-muted-foreground mt-0.5 text-pretty">Event-scoped codes plus any organizer-wide codes.</p>
         </div>
         <Button size="sm" className="rounded-full gap-1.5 shrink-0" onClick={() => { setEditingId(null); setForm(emptyDiscountForm()); }}>
           <IconPlus className="w-3.5 h-3.5" />
@@ -106,11 +105,11 @@ export default function DiscountCodesPanel({ eventId, onDenied }: Props) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-semibold tracking-wider">{code.code}</span>
-                    <Badge className="border-0 bg-card text-[10px] rounded-full capitalize">{type}</Badge>
+                    <Badge variant="outline" className="text-xs rounded-full capitalize bg-oc-well border-oc-line text-oc-muted">{type}</Badge>
                     {code.event_id == null && (
-                      <Badge className="border-0 bg-secondary/20 text-[10px] rounded-full">Organizer-wide</Badge>
+                      <Badge variant="outline" className="text-xs rounded-full bg-oc-brand-soft border-oc-brand/40 text-oc-brand-strong">Organizer-wide</Badge>
                     )}
-                    {!code.active && <Badge className="border-0 bg-muted text-[10px] rounded-full">Inactive</Badge>}
+                    {!code.active && <Badge variant="outline" className="text-xs rounded-full bg-oc-well border-oc-line text-oc-faint">Inactive</Badge>}
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {label} · {code.usage_count}{code.usage_limit != null ? ` / ${code.usage_limit}` : ""} uses

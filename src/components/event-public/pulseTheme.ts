@@ -5,7 +5,7 @@ export const PULSE = {
   navyMid: "#163D86",
   sky: "#4B8FE8",
   mint: "#D4F4F0",
-  paper: "#F5F1EA",
+  paper: "#FFFFFF",
   ink: "#0F172A",
   muted: "#64748B",
   black: "#0B0B0B",

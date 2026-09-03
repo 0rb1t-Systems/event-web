@@ -24,13 +24,9 @@ export default function EventRooms() {
   return (
     <div className="mx-auto w-full max-w-3xl space-y-8">
       <header>
-        <p className="text-sm text-muted-foreground">Home / Next event</p>
-        <h1 className="mt-1.5 font-display text-2xl font-semibold tracking-tight">
+        <h1 className="font-display text-2xl font-semibold tracking-tight">
           Choose an event room
         </h1>
-        <p className="mt-2 max-w-[50ch] text-sm text-muted-foreground">
-          Open the room for the event you want. Tickets stay on My Tickets.
-        </p>
       </header>
 
       {isLoading ? (
