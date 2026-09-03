@@ -182,9 +182,11 @@ export async function downloadTicketPng(ticket: TicketStubModel): Promise<void> 
   }
 
   ctx.fillStyle = MUTED;
-  ctx.font = "600 16px 'IBM Plex Mono', ui-monospace, monospace";
   ctx.textAlign = "center";
-  ctx.fillText("DOOR CHIP", bodyRight + qrPanel / 2, qrY + qrSize + 48);
+  const tokenLabel =
+    ticket.valid && ticket.qrToken ? ticket.qrToken : "—";
+  ctx.font = "600 20px 'IBM Plex Mono', ui-monospace, monospace";
+  ctx.fillText(tokenLabel, bodyRight + qrPanel / 2, qrY + qrSize + 48);
   ctx.restore();
 
   ctx.strokeStyle = LINE;

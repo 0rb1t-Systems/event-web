@@ -126,7 +126,12 @@ export function PurchasedTicketStub({
               </p>
             )}
           </div>
-          <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">Door chip</p>
+          <p
+            className="max-w-[9.5rem] text-center font-mono text-[11px] font-semibold tracking-[0.14em] text-muted-foreground"
+            title={ticket.valid && ticket.qrToken ? ticket.qrToken : undefined}
+          >
+            {ticket.valid && ticket.qrToken ? ticket.qrToken : "—"}
+          </p>
         </div>
       </div>
     </article>
