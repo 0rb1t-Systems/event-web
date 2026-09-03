@@ -356,11 +356,10 @@ export default function CheckInScanner({ eventId, eventTitle, onDenied, scanToke
       </div>
 
       {/* Counters */}
-      <div className="grid grid-cols-3 gap-2 px-4 pb-3">
+      <div className="grid grid-cols-2 gap-2 px-4 pb-3">
         {[
           { label: "Checked in", value: stats?.arrived ?? 0 },
           { label: "Registered", value: stats?.registered ?? 0 },
-          { label: "Waitlist", value: stats?.waitlisted ?? 0 },
         ].map((c) => (
           <div key={c.label} className="rounded-[12px] bg-oc-dark-soft px-3 py-2.5">
             <p className="font-head text-xl font-bold text-white tabular-nums leading-tight">

@@ -115,15 +115,6 @@ export async function getOrganizerParticipation(
   return data.data;
 }
 
-export async function promoteOrganizerParticipation(
-  id: number,
-): Promise<OrganizerParticipation> {
-  const { data } = await organizerApi.post<OneResponse>(
-    `/organizer/participations/${id}/promote`,
-  );
-  return data.data;
-}
-
 /** Reason is optional on Laravel (`nullable|string|max:500`). */
 export async function cancelOrganizerParticipation(
   id: number,

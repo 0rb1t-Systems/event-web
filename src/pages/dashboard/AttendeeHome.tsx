@@ -7,13 +7,12 @@ import { PurchasedTicketStub } from "@/components/participant/PurchasedTicketStu
 import type { ApiParticipation } from "@/services/participationService";
 
 function isTicketValid(p: ApiParticipation) {
-  if (p.status === "cancelled" || p.status === "waitlisted") return false;
+  if (p.status === "cancelled") return false;
   return p.payment_status === "paid" || p.payment_status === "not_required";
 }
 
 function statusLabel(p: ApiParticipation) {
   if (p.status === "cancelled") return "Cancelled";
-  if (p.status === "waitlisted") return "Waitlisted. QR issues when you get a seat.";
   if (p.payment_status === "pending") return "Awaiting payment";
   if (p.payment_status === "failed") return "Payment failed";
   if (p.payment_status === "refunded") return "Refunded";

@@ -7,7 +7,6 @@ import {
   IconChevronRight,
   IconDownload,
   IconSearch,
-  IconUpload,
 } from "@/components/organizer-console/orgIcons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -54,7 +53,6 @@ import {
   listOrganizerEventParticipations,
   participationStatus,
   participationTicket,
-  promoteOrganizerParticipation,
   type CapacitySnapshot,
   type OrganizerParticipation,
 } from "@/services/organizerParticipations";
@@ -78,7 +76,6 @@ const PAYMENT_STYLE: Record<string, string> = {
 const STATUS_FILTERS = [
   { value: "all", label: "All statuses" },
   { value: "joined", label: "Joined" },
-  { value: "waitlisted", label: "Waitlisted" },
   { value: "paid", label: "Paid" },
   { value: "checked_in", label: "Checked in" },
   { value: "cancelled", label: "Cancelled" },
@@ -116,7 +113,6 @@ export default function EventRegistrationsPanel({ eventId, onDenied, compact }: 
   const [loading, setLoading] = useState(true);
   const [detail, setDetail] = useState<OrganizerParticipation | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
-  const [promoteTarget, setPromoteTarget] = useState<OrganizerParticipation | null>(null);
   const [cancelTarget, setCancelTarget] = useState<OrganizerParticipation | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [actionBusy, setActionBusy] = useState(false);
@@ -177,22 +173,6 @@ export default function EventRegistrationsPanel({ eventId, onDenied, compact }: 
       toast.error(getApiErrorMessage(err, "Couldn't load registration"));
     } finally {
       setDetailLoading(false);
-    }
-  };
-
-  const confirmPromote = async () => {
-    if (!promoteTarget) return;
-    setActionBusy(true);
-    try {
-      await promoteOrganizerParticipation(promoteTarget.id);
-      toast.success("Promoted from waitlist");
-      setPromoteTarget(null);
-      setDetail(null);
-      await load();
-    } catch (err) {
-      toast.error(getApiErrorMessage(err, "Couldn't promote"));
-    } finally {
-      setActionBusy(false);
     }
   };
 
@@ -257,10 +237,9 @@ export default function EventRegistrationsPanel({ eventId, onDenied, compact }: 
       )}
 
       {capacity && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           {[
             { label: "Registered", value: capacity.registered_count },
-            { label: "Waitlisted", value: capacity.waitlisted_count },
             {
               label: "Capacity",
               value: capacity.capacity == null ? "Unlimited" : capacity.capacity,
@@ -524,16 +503,6 @@ export default function EventRegistrationsPanel({ eventId, onDenied, compact }: 
               )}
 
               <DialogFooter className="flex-col sm:flex-row gap-2 sm:justify-end">
-                {detailStatus === "waitlisted" && (
-                  <Button
-                    size="sm"
-                    className="rounded-full"
-                    onClick={() => setPromoteTarget(detail)}
-                  >
-                    <IconUpload className="w-3.5 h-3.5 mr-1.5" />
-                    Promote
-                  </Button>
-                )}
                 {detailStatus !== "cancelled" && (
                   <Button
                     size="sm"
@@ -552,33 +521,6 @@ export default function EventRegistrationsPanel({ eventId, onDenied, compact }: 
           ) : null}
         </DialogContent>
       </Dialog>
-
-      <AlertDialog open={!!promoteTarget} onOpenChange={(o) => !o && setPromoteTarget(null)}>
-        <AlertDialogContent className="rounded-2xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Promote from waitlist?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {promoteTarget?.user?.name ?? "This participant"} will move to a confirmed seat if
-              capacity allows. If the event is full, promotion will fail.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-full" disabled={actionBusy}>
-              Back
-            </AlertDialogCancel>
-            <AlertDialogAction
-              className="rounded-full"
-              disabled={actionBusy}
-              onClick={(e) => {
-                e.preventDefault();
-                void confirmPromote();
-              }}
-            >
-              {actionBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : "Promote"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       <AlertDialog
         open={!!cancelTarget}

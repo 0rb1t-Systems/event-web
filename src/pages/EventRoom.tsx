@@ -291,7 +291,6 @@ export default function EventRoom() {
   const showFeedback = eventEnded && detail.status !== "cancelled" && feedback !== "unloaded";
   const ticketValid =
     detail.status !== "cancelled" &&
-    detail.status !== "waitlisted" &&
     (detail.payment_status === "paid" || detail.payment_status === "not_required");
   const firstName = user?.name?.split(" ")[0];
   const switcher = roomSwitcherList(parts?.items ?? []);
@@ -380,14 +379,6 @@ export default function EventRoom() {
       </div>
 
       <div className="mx-auto max-w-3xl px-4 pb-20 space-y-5 sm:px-6">
-        {detail.status === "waitlisted" && (
-          <Reveal>
-            <div className="rounded-[1.5rem] border border-amber-200 bg-amber-50 p-4 sm:p-5 text-sm text-amber-900">
-              You are on the waitlist. Room features unlock when you get a confirmed seat.
-            </div>
-          </Reveal>
-        )}
-
         {detail.status === "cancelled" && (
           <Reveal>
             <div className="rounded-[1.5rem] border border-destructive/25 bg-destructive/10 p-4 sm:p-5 text-sm">

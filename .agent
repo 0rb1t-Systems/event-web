@@ -1,6 +1,6 @@
 # EventHub Web App — Agent Context
 
-Last updated: 2026-09-02 — Custom form fields removed (web + Laravel API + admin)
+Last updated: 2026-09-03 — Form fields fully removed (Admin tab + DB table)
 Repository: D:\Orbit Systems\EventHub\event-web
 Git remote: https://github.com/Abdiaziiz-1717/event-web.git
 Default branch: main (GitHub HEAD; CI also listens to `master`)
@@ -375,8 +375,8 @@ Guards:
 | Organizer event detail | EventDetail + Outlet + EventStudioProvider with sticky `OrgStudioNav` (12px items, 232px) + `OrgStudioHeader` | `GET/PATCH/DELETE` via `useOrganizerEvent` | Yes | Desktop: native page scroll; rail sticky. MANAGE (Finance, Settings) is in the rail — do not clip it with viewport lock. 403/404: "You don't have access to this event." Mutations invalidate event, list, dashboard. |
 | Organizer event studio — tickets | TicketTypeCard/Form + DiscountCodeForm | ticket-types + discount-codes | Yes | VIP = `is_vip`; sales_enabled pause ≠ sold out; registration is ticket-only (no custom form tab) |
 | Organizer event studio — content | speakers/sponsors/sessions | CRUD | Yes | speaker photo file upload (not URL); sponsor tiers; sessions timeline |
-| Attendees / registrations | Event Studio Audience tab | participations promote/cancel | Yes | `/organizer/attendees` redirects to `/organizer/events`; page-only search/CSV; no auto-refund claim; no custom-field answers panel |
-| Lucky wheel | Event Studio `/lucky-wheel` (`LuckyWheelPanel`) | `GET/POST …/lucky-wheel` | Yes | confirmed seats only (`joined`/`paid`/`checked_in`); waitlisted + cancelled excluded; spin stores attempts + unique winners |
+| Attendees / registrations | Event Studio Audience tab | participations cancel only (no waitlist/promote) | Yes | `/organizer/attendees` redirects to `/organizer/events`; page-only search/CSV; no auto-refund claim; no custom-field answers panel |
+| Lucky wheel | Event Studio `/lucky-wheel` (`LuckyWheelPanel`) | `GET/POST …/lucky-wheel` | Yes | confirmed seats only (free joined / paid / checked-in); pending unpaid and cancelled excluded; spin stores attempts + unique winners |
 | Announcements | Event Studio attendees tab | announcements GET/POST | Yes | toast includes recipient count |
 | Analytics | Event Studio `/analytics` + Recharts | `GET …/analytics` via `useOrganizerEventAnalytics` | Yes | scalars only; `/organizer/analytics` redirects to last studio event or Events |
 | QR check-in scanner | Event Studio `/scanner` (`CheckInScanner`) | `POST /organizer/qr-scan-logs/validate`; `GET …/qr-scan-logs`; `GET …/check-in-stats` | Yes | body `{ token, gate? }` only; results valid/already_used/invalid; network ≠ invalid; Wake Lock; manual token; lazy-loaded |
@@ -532,7 +532,9 @@ Do not allow Web App architecture to accidentally use admin-panel tokens.
 - other organizers' events return 404 "Event not found"; UI must show "You don't have access to this event." and must not render leaked details
 - create quota failures are 403 with package messages; link organizers to `/organizer/subscription` for self-serve subscribe/upgrade (Prompt 15 backend + Web UI)
 - gallery upload field name is `image`; jpeg/png/jpg/gif/webp; max 4096 KB
-- **Custom registration form fields removed from product.** Web App join is ticket-only. Laravel endpoints `GET/POST …/form-fields` and admin `event-form-fields` routes are **removed**; `ParticipationService::join()` ignores answers. DB table `event_form_fields` and legacy `participations.custom_field_answers` rows may remain for history.
+- **Custom registration form fields removed from product.** Web App join is ticket-only. Laravel endpoints `GET/POST …/form-fields` are gone. Table `event_form_fields` is **dropped**. Admin Event hub has no Form Fields tab (rebuild Admin if a stale build still shows it). `ParticipationService::join()` ignores answers. Legacy `participations.custom_field_answers` column may remain.
+- **No waitlist.** Full events return 400 `Event capacity reached` (sold-out toast on Register). There is no promote route. `waitlisted` may appear on old rows only.
+- **Capacity:** displayed registered = free joined + paid + checked-in. Unpaid pending **holds** a seat (`seats_remaining`) so checkout cannot oversell, but does **not** increment `registrations_count`. Waafi failure or pending expiry **cancels** the participation and releases ticket quantity; retry is a new join, not the cancelled row.
 - ticket type delete is soft trash even when quantity_sold > 0
 - `sales_enabled=false` means sales paused (ticket still exists) — not sold out. Organizer UI must say "Sales enabled" / "Sales paused" with the participant-facing explanation. Public registration filters those tickets out via `adaptTicketTypes`.
 - Participant discount quote: `POST /participant/events/{event}/discount-codes/validate` body `{ code, ticket_type_id }` → `{ code, type, value, original_amount, discount_amount, final_amount }`. Join may include `discount_code`. Waafi / join charge uses snapshotted `final_amount` (display that amount; do not invent client-side pricing).
@@ -571,13 +573,14 @@ For every meaningful change:
 All under `/api/v1`. Header `X-API-Key` + Bearer `participant_token`.
 
 - `POST /participant/events/{event}/discount-codes/validate` — body `{ code, ticket_type_id }`. Ticket must belong to the event and have `sales_enabled=true`. Success data: `{ code, type, value, original_amount, discount_amount, final_amount }` (amounts as `12.34` strings). 404 `discount_not_valid_for_event` / ticket not found; 400 `discount_inactive` | `discount_expired` | `discount_usage_exhausted`. Service: `src/services/participantDiscounts.ts`.
-- `POST /participant/participations` — body `{ event_id, ticket_type_id?, discount_code? }`. Never send `user_id` or `custom_field_answers`. Returns wrapped `{ success, data: Participation }` (201). Participation may include `original_amount`, `discount_amount`, `final_amount` when a code was applied. Possible errors: 422 validation, 400 "already has an active participation", 400 "Registration deadline has passed", 400 "Invalid ticket type", 400 "Ticket type sales are disabled", 400 "Ticket type quantity exhausted", 400 discount_* codes.
-  - `participation.status` values: `joined | waitlisted | paid | checked_in | cancelled`
+- `POST /participant/participations` — body `{ event_id, ticket_type_id?, discount_code? }`. Never send `user_id` or `custom_field_answers`. Returns wrapped `{ success, data: Participation }` (201). Participation may include `original_amount`, `discount_amount`, `final_amount` when a code was applied. Possible errors: 422 validation, 400 "already has an active participation", 400 "Registration deadline has passed", 400 "Invalid ticket type", 400 "Ticket type sales are disabled", 400 "Ticket type quantity exhausted", 400 "Event capacity reached", 400 discount_* codes.
+  - `participation.status` values: `joined | paid | checked_in | cancelled` (`waitlisted` is legacy only; join never creates it)
   - `participation.payment_status` values: `not_required | pending | paid | refunded | failed`
-  - Free or no-ticket → `payment_status=not_required`, `status=joined` → navigate to `/registrations/{id}`
-  - Paid ticket → `payment_status=pending`, `status=joined` → proceed to WaafiPay phone step (display `final_amount` when present)
-  - Discount to $0 → `payment_status=paid` (no Waafi)
-  - Capacity reached → `status=waitlisted` → show waitlist screen (no QR until promoted)
+  - Free or no-ticket → `payment_status=not_required`, `status=joined` → occupies a confirmed seat → navigate to event room
+  - Paid ticket → `payment_status=pending`, `status=joined` → **does not occupy confirmed `registrations_count`**; still holds a seat so the event cannot be oversold until pay/fail/expire → WaafiPay
+  - Discount to $0 → `payment_status=paid` (no Waafi) → occupies a confirmed seat
+  - Capacity full → **400 Event capacity reached** (no waitlist)
+  - Waafi **failure** or pending **expiry** → participation **cancelled**, ticket quantity released, seat freed; user may join again
 
 - `POST /participant/payments/charge` — body `{ participation_id, payer_phone }`. Returns wrapped `{ success, data: Payment }`. Uses **210-second Axios timeout** (WaafiPay holds connection up to 180s). Backend charges snapshotted `final_amount` (not a client-invented amount). `payment.status` values: `pending | completed | refunded | failed`. On failure: `failure_code` + `failure_reason`. Error 400 "A payment is already pending" = idempotency guard. Error 400 "already paid" = race win, re-fetch participation.
 
@@ -703,16 +706,15 @@ All under `/api/v1`, `organizerApi` (X-API-Key + Bearer `organizer_token`). Owne
 
 Participations (registrations):
 
-- `GET /organizer/events/{id}/participations` — query `status?` (`joined|waitlisted|paid|checked_in|cancelled`), `per_page`, `page`. Envelope `{ success, data: { items, pagination, event_id, capacity } }`. Capacity: `{ registered_count, waitlisted_count, capacity, seats_remaining }`. Items include `user`, ticket as `ticket_type` and/or `ticketType`, `status`, `payment_status`, `custom_field_answers`, amounts, `created_at`.
+- `GET /organizer/events/{id}/participations` — query `status?` (`joined|paid|checked_in|cancelled`), `per_page`, `page`. Envelope `{ success, data: { items, pagination, event_id, capacity } }`. Capacity: `{ registered_count` (confirmed seats only), `waitlisted_count` always `0`, `capacity`, `seats_remaining` from held seats }. Items include `user`, ticket as `ticket_type` and/or `ticketType`, `status`, `payment_status`, amounts, `created_at`.
 - `GET /organizer/participations/{id}` — single row with `user`, `event`, ticket relation.
-- `POST /organizer/participations/{id}/promote` — waitlisted → confirmed seat. Capacity full → 400 (e.g. “No seats available…”). UI shows confirm + surfaces API error.
-- `POST /organizer/participations/{id}/cancel` — body `{ reason? }` (`nullable|string|max:500`). Does **not** claim automatic refund. UI confirms strongly and states cancellation does not auto-refund.
+- `POST /organizer/participations/{id}/cancel` — body `{ reason? }` (`nullable|string|max:500`). Does **not** claim automatic refund. UI confirms strongly and states cancellation does not auto-refund. There is **no promote/waitlist** route.
 
-Participation status enum: `joined | waitlisted | paid | checked_in | cancelled`. Payment status: `not_required | pending | paid | refunded | failed`.
+Participation status enum: `joined | paid | checked_in | cancelled` (legacy `waitlisted` may exist in old rows). Payment status: `not_required | pending | paid | refunded | failed`. Confirmed seats (capacity display): free `joined` + `paid`/`checked_in`. Pending unpaid holds a seat for sold-out but is not counted in `registrations_count`. Failed payment cancels the row.
 
 Lucky wheel:
 
-- `GET /organizer/events/{id}/lucky-wheel` — `{ event_id, participant_count, participants[], attempts[] }`. Participants = confirmed-seat registrations only (`joined`, `paid`, `checked_in` with `user` + ticket). **Waitlisted and cancelled are excluded.** Attempts include `winner_count`, `participant_count`, `created_at`, nested `winners[]` with `participation` + `user`.
+- `GET /organizer/events/{id}/lucky-wheel` — `{ event_id, participant_count, participants[], attempts[] }`. Participants = confirmed-seat registrations only (free joined / paid / checked-in). **Pending unpaid, cancelled, and legacy waitlisted are excluded.**
 - `POST /organizer/events/{id}/lucky-wheel/spin` — body `{ winner_count }` (required int ≥ 1, must be ≤ participant count). Randomly picks that many unique winners, stores `lucky_wheel_attempts` + `lucky_wheel_winners`. Returns attempt (201). 422 when no participants or winner count too high.
 
 Announcements:
@@ -786,6 +788,17 @@ Event `scan_token` is generated on create; organizer show/update/banner/transiti
 
 ## Change Log
 
+### 2026-09-03 — Admin Form Fields tab + `event_form_fields` table gone
+
+The Admin screenshot still showed Form Fields because `public/build` was stale. Laravel Event hub `EVENT_TABS` has no Form Fields entry. Table `event_form_fields` is dropped. Leftover form-field PHP deleted. Web studio form files were already gone; `/form` still redirects to tickets.
+
+### 2026-09-03 — No waitlist; failed payment releases the seat
+
+Waitlist removed end-to-end. Full events return 400 `Event capacity reached` (no promote routes). Confirmed capacity (`registrations_count`) is free joined + paid + checked-in only. Unpaid pending still **holds** a seat for 15 minutes so checkout cannot oversell; Waafi failure, pending expiry, or abandoned unpaid checkout **cancels** the participation and releases ticket quantity. Laravel migration cancels leftover waitlisted/failed-active rows. Web: no waitlist screens, no Promote; failed payment ticket page offers Register again.
+
+Files (web): `Register.tsx`, `EventRegistrationsPanel.tsx`, `organizerParticipations.ts`, `RegistrationDetail.tsx`, `EventRoom.tsx`, `AttendeeHome.tsx`, `CheckInScanner.tsx`, `LuckyWheelPanel.tsx`, `EventStudioAttendees.tsx`, `nextEvent.ts`, `.agent`.
+Files (Laravel): `ParticipationService.php`, `PaymentService.php`, `EventRegistrationGate.php`, `Participation.php`, `Event.php`, participation/organizer routes + controllers, Admin `ParticipationOversight.tsx` / `EventOverviewTab.tsx` / `CheckInStatsPanel.tsx`, tests.
+
 ### 2026-09-02 — Ticket-only registration (remove custom form fields everywhere)
 
 Client policy: no custom registration questions. Join flow is **free → join** or **paid ticket → pay → participant**.
@@ -798,7 +811,7 @@ Client policy: no custom registration questions. Join flow is **free → join** 
 
 Tests: deleted `EventFormFieldModuleTest`, `FormFieldValidationServiceTest`; updated `ParticipantWebApiTest`, `OrganizerWebCoreApiTest`, `Prompt12CategoryATest`.
 
-DB table `event_form_fields` and legacy `participations.custom_field_answers` remain for historical rows only.
+DB table `event_form_fields` **dropped**. Legacy `participations.custom_field_answers` column may remain.
 
 Files: web — see above; Laravel — `ParticipationService.php`, `ParticipantParticipationController.php`, `ParticipationController.php`, `routes/api.php`, `routes/api/v1/events.php`, `routes/api/v1/organizer-web-core.php`, `resources/js/src/pages/event/show.tsx`, `resources/js/src/services/event.ts`, tests, `.agent` (both repos).
 

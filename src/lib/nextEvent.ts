@@ -1,12 +1,8 @@
 import type { ApiParticipation } from "@/services/participationService";
 
 export function canEnterEventRoom(p: ApiParticipation) {
-  if (p.status === "cancelled") return false;
-  return (
-    p.payment_status === "paid" ||
-    p.payment_status === "not_required" ||
-    p.status === "waitlisted"
-  );
+  if (p.status === "cancelled" || p.status === "waitlisted") return false;
+  return p.payment_status === "paid" || p.payment_status === "not_required";
 }
 
 /** Soonest upcoming or currently active registration that can open a room. */

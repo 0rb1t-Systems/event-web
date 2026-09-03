@@ -10,7 +10,6 @@ export default function EventStudioAttendees() {
   const registered = event.registrations_count ?? 0;
   const summary = [
     `${registered} registered`,
-    `${event.waitlisted_count ?? 0} waitlisted`,
     event.capacity ? `${event.capacity} capacity` : "open capacity",
   ].join(" · ");
 

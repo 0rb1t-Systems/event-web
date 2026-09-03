@@ -56,13 +56,13 @@ function statusMeta(status: Status, paymentStatus: PaymentStatus) {
 
 /**
  * A ticket is valid — invitation, QR, and download may be shown — only when:
- *   - participation is not waitlisted or cancelled (no confirmed spot)
+ *   - participation is not cancelled
  *   - payment is confirmed (paid) or not required (free event)
  *
  * All other payment states (pending, failed, refunded) must NOT show a valid ticket.
  */
 function hasValidTicket(status: Status, paymentStatus: PaymentStatus): boolean {
-  if (status === "cancelled" || status === "waitlisted") return false;
+  if (status === "cancelled") return false;
   return paymentStatus === "paid" || paymentStatus === "not_required";
 }
 
@@ -420,7 +420,6 @@ export default function RegistrationDetail() {
   }
 
   const meta = statusMeta(detail.status, detail.payment_status);
-  const isWaitlisted = detail.status === "waitlisted";
   const isCancelled = detail.status === "cancelled";
   const isCheckedIn = detail.status === "checked_in";
   const isPaymentPending = detail.payment_status === "pending";
@@ -434,7 +433,7 @@ export default function RegistrationDetail() {
     detail.event?.status === "completed" ||
     (!!detail.event?.ends_at && new Date(detail.event.ends_at).getTime() < Date.now());
   // "Check status" is useful whenever the payment outcome may still be resolving
-  const showCheckStatus = isPaymentPending || isPaymentFailed;
+  const showCheckStatus = isPaymentPending && !isCancelled;
   const eventTitle = detail.event?.title ?? "Event";
   const eventId = detail.event?.id;
   const invitation = detail.invitation;
@@ -555,20 +554,6 @@ export default function RegistrationDetail() {
           )}
         </div>
 
-        {/* Waitlist explanation */}
-        {isWaitlisted && (
-          <div className="rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-5 space-y-2">
-            <div className="flex items-center gap-2 font-semibold text-amber-700 dark:text-amber-400">
-              <Clock className="w-5 h-5" /> You're on the waitlist
-            </div>
-            <p className="text-sm text-amber-700/80 dark:text-amber-400/80 leading-relaxed">
-              This event is currently at capacity. You've been added to the waitlist.
-              We'll send you a notification if a spot becomes available and you're moved up.
-              No QR code is issued until your spot is confirmed.
-            </p>
-          </div>
-        )}
-
         {/* Cancelled explanation */}
         {isCancelled && (
           <div className="rounded-2xl bg-muted/50 border border-border p-5">
@@ -577,12 +562,20 @@ export default function RegistrationDetail() {
             </div>
             <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
               Your registration was cancelled. Your ticket is no longer valid.
+              {isPaymentFailed
+                ? " Payment did not go through, so this seat was released."
+                : ""}
             </p>
+            {isPaymentFailed && eventId ? (
+              <Button asChild className="mt-4 rounded-full h-10">
+                <Link to={`/events/${eventId}`}>Register again</Link>
+              </Button>
+            ) : null}
           </div>
         )}
 
         {/* ── Payment pending — resume Waafi payment ── */}
-        {isPaymentPending && !isWaitlisted && !isCancelled && (
+        {isPaymentPending && !isCancelled && (
           <ParticipantWaafiPayment
             participationId={detail.id}
             eventName={eventTitle}
@@ -599,7 +592,7 @@ export default function RegistrationDetail() {
         )}
 
         {/* ── Payment failed — show message + retry ── */}
-        {isPaymentFailed && !isWaitlisted && !isCancelled && (
+        {isPaymentFailed && !isCancelled && (
           <ParticipantWaafiPayment
             participationId={detail.id}
             eventName={eventTitle}

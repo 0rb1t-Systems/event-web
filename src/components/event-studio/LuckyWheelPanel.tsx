@@ -704,8 +704,8 @@ export default function LuckyWheelPanel({ eventId, onDenied }: Props) {
           <h2 className="text-2xl sm:text-3xl font-display font-bold tracking-tight">Lucky wheel</h2>
           <p className="text-sm text-muted-foreground mt-1 max-w-xl">
             {isMultiDraw
-              ? "Each winner gets their own spin. Only confirmed attendees are eligible — waitlisted registrations are excluded."
-              : "Spin once to pick a winner from confirmed attendees. Waitlisted registrations are not included."}{" "}
+              ? "Each winner gets their own spin. Only confirmed attendees are eligible."
+              : "Spin once to pick a winner from confirmed attendees."}{" "}
             Every attempt is saved with full results.
           </p>
         </div>
@@ -910,7 +910,7 @@ export default function LuckyWheelPanel({ eventId, onDenied }: Props) {
           <div className="px-5 py-4 border-b border-border/60 bg-muted/30">
             <h3 className="font-display font-semibold">Confirmed participants</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Confirmed seats only — waitlisted registrations are not included
+              Confirmed seats only
             </p>
           </div>
           {participantCount === 0 ? (

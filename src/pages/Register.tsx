@@ -166,11 +166,10 @@ const TicketPicker = ({
 // ─── Result screens ───────────────────────────────────────────────────────────
 
 const SuccessCard = ({
-  brandColor, eventName, waitlisted, participationId,
+  brandColor, eventName, participationId,
 }: {
   brandColor: string;
   eventName: string;
-  waitlisted: boolean;
   participationId: number | null;
 }) => {
   const navigate = useNavigate();
@@ -188,18 +187,16 @@ const SuccessCard = ({
             className="relative w-20 h-20 rounded-full flex items-center justify-center"
             style={{ background: brandColor }}
           >
-            {waitlisted ? <Clock className="w-9 h-9 text-white" /> : <CheckCircle2 className="w-9 h-9 text-white" />}
+            <CheckCircle2 className="w-9 h-9 text-white" />
           </div>
         </div>
         <h2 className="mb-3 font-display text-xl font-semibold tracking-tight">
-          {waitlisted ? "You're on the waitlist" : "You're registered!"}
+          You're registered!
         </h2>
         <p className="text-slate-500 leading-relaxed">
-          {waitlisted
-            ? <>This event is at capacity. We&apos;ve added you to the waitlist for <strong className="text-slate-800">{eventName}</strong> and will notify you if a spot opens up.</>
-            : <>Thank you for registering for <strong className="text-slate-800">{eventName}</strong>. You&apos;ll receive a confirmation email shortly.</>}
+          Thank you for registering for <strong className="text-slate-800">{eventName}</strong>. You&apos;ll receive a confirmation email shortly.
         </p>
-        {!waitlisted && participationId && (
+        {participationId && (
           <Button
             className="mt-6 h-10 rounded-full px-6 text-white border-0 font-semibold"
             style={{ background: brandColor }}
@@ -234,7 +231,7 @@ const PaymentFailCard = ({
         </div>
       </div>
       <h2 className="mb-3 font-display text-lg font-semibold tracking-tight">Payment failed</h2>
-      <p className="text-slate-500 text-sm leading-relaxed mb-6">{reason}</p>
+      <p className="text-slate-500 text-sm leading-relaxed mb-6">{reason} Your seat was released — you can try again.</p>
       <Button
         className="h-10 rounded-full px-6 text-white border-0 font-semibold"
         style={{ background: brandColor }}
@@ -507,7 +504,7 @@ const RegistrationForm = ({
 type RegistrationStep =
   | { kind: "form" }
   | { kind: "waafi"; participation: ApiParticipation }
-  | { kind: "success"; participation: ApiParticipation; waitlisted: boolean }
+  | { kind: "success"; participation: ApiParticipation }
   | { kind: "payment_failed"; participation: ApiParticipation; reason: string };
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -855,7 +852,7 @@ const Register = () => {
       });
 
       if (participation.status === "waitlisted") {
-        setStep({ kind: "success", participation, waitlisted: true });
+        toast.error("This event is sold out.");
         return;
       }
 
@@ -863,7 +860,7 @@ const Register = () => {
         participation.payment_status === "not_required" ||
         participation.payment_status === "paid"
       ) {
-        setStep({ kind: "success", participation, waitlisted: false });
+        setStep({ kind: "success", participation });
         // Navigate to event room after a brief moment
         setTimeout(() => {
           navigate(`/registrations/${participation.id}/room`);
@@ -878,7 +875,7 @@ const Register = () => {
       }
 
       // Unexpected state — treat as success
-      setStep({ kind: "success", participation, waitlisted: false });
+      setStep({ kind: "success", participation });
     } catch (err: any) {
       const msg = getApiErrorMessage(err);
       const status = err?.response?.status;
@@ -930,7 +927,7 @@ const Register = () => {
   // Handlers passed to WaafiPhoneStep
   const handlePaymentSuccess = (participation: ApiParticipation) => {
     chargeInFlightRef.current = false;
-    setStep({ kind: "success", participation, waitlisted: false });
+    setStep({ kind: "success", participation });
     setTimeout(() => {
       navigate(`/registrations/${participation.id}/room`);
     }, 2200);
@@ -949,7 +946,7 @@ const Register = () => {
     // would let the user re-submit and get a "already has an active participation" error.
     // Instead, go to the registration detail page where they can resume payment.
     if (step.kind === "waafi") {
-        toast("Payment cancelled. Your registration is saved. You can complete payment anytime from My Tickets.");
+        toast("You can finish payment from My Tickets. Unpaid seats are released after 15 minutes.");
       navigate(`/registrations/${step.participation.id}`);
     } else {
       setStep({ kind: "form" });
@@ -957,9 +954,7 @@ const Register = () => {
   };
 
   const handleRetryPayment = () => {
-    if (step.kind === "payment_failed") {
-      setStep({ kind: "waafi", participation: step.participation });
-    }
+    setStep({ kind: "form" });
   };
 
   // Loading
@@ -1059,7 +1054,6 @@ const Register = () => {
             <SuccessCard
               brandColor={brandColor}
               eventName={event.name}
-              waitlisted={step.waitlisted}
               participationId={step.participation.id}
             />
           }
