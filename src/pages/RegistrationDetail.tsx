@@ -4,10 +4,10 @@
  * Participant registration / ticket detail:
  *  - Status + payment
  *  - Static EventHub ticket stub (QR when valid)
- *  - PDF via browser print of that stub
+ *  - PNG download of that stub (ticket only)
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft, Award, ExternalLink, CheckCircle2, Clock,
@@ -31,6 +31,7 @@ import { ParticipantWaafiPayment } from "@/components/participant/ParticipantWaa
 import { asEventMode } from "@/lib/eventMode";
 import { PublicSiteHeader } from "@/components/layout/PublicSiteHeader";
 import { PurchasedTicketStub } from "@/components/participant/PurchasedTicketStub";
+import { downloadTicketPng } from "@/lib/ticketImage";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -145,65 +146,6 @@ const CertificatePanel = ({
 };
 
 
-// ─── Print styles injected once ───────────────────────────────────────────────
-// Print the on-screen static ticket stub (not the old 800×1100 invitation canvas).
-
-let printStylesInjected = false;
-function ensurePrintStyles() {
-  if (printStylesInjected) return;
-  printStylesInjected = true;
-  const style = document.createElement("style");
-  style.textContent = `
-@media print {
-  @page {
-    size: auto;
-    margin: 12mm;
-  }
-  html, body {
-    margin: 0 !important;
-    padding: 0 !important;
-    background: white !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-  body * {
-    visibility: hidden !important;
-  }
-  #print-root,
-  #print-root * {
-    visibility: visible !important;
-  }
-  #print-root {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    position: fixed !important;
-    inset: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    background: white !important;
-    overflow: hidden !important;
-    z-index: 9999 !important;
-  }
-  #print-root .ticket-print-sheet {
-    position: relative !important;
-    width: 720px !important;
-    max-width: 100% !important;
-    margin: 0 !important;
-    box-shadow: none !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-  #print-root img {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-}`;
-  document.head.appendChild(style);
-}
-
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function RegistrationDetail() {
@@ -215,8 +157,7 @@ export default function RegistrationDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [certificate, setCertificate] = useState<ApiCertificateResult | null>(null);
-
-  const printRootRef = useRef<HTMLDivElement>(null);
+  const [downloading, setDownloading] = useState(false);
 
   const numericId = Number(registrationId);
 
@@ -268,45 +209,24 @@ export default function RegistrationDetail() {
     load();
   }, [load]);
 
-  // Inject print styles once
-  useEffect(() => { ensurePrintStyles(); }, []);
-
-  const handleDownload = () => {
-    if (!detail || !hasValidTicket(detail.status, detail.payment_status)) return;
-
-    const ticket = document.getElementById("ticket-stub");
-    if (!ticket) {
-      toast.error("Ticket is not ready to print yet.");
-      return;
+  const handleDownload = async () => {
+    if (!detail || !hasValidTicket(detail.status, detail.payment_status) || downloading) return;
+    setDownloading(true);
+    try {
+      await downloadTicketPng({
+        id: detail.id,
+        title: detail.event?.title ?? "Event",
+        startsAt: detail.event?.starts_at,
+        ticketType: detail.ticket_type?.name,
+        qrToken: asEventMode(detail.event?.event_mode) === "online" ? null : detail.qr_token,
+        valid: true,
+        statusLabel: statusMeta(detail.status, detail.payment_status).label,
+      });
+    } catch {
+      toast.error("Couldn't download the ticket. Try again.");
+    } finally {
+      setDownloading(false);
     }
-
-    let root = document.getElementById("print-root");
-    if (!root) {
-      root = document.createElement("div");
-      root.id = "print-root";
-      root.setAttribute("aria-hidden", "true");
-      root.style.cssText = "display:none;position:fixed;inset:0;z-index:9999;background:white;";
-      document.body.appendChild(root);
-    }
-
-    root.replaceChildren();
-    const sheet = ticket.cloneNode(true) as HTMLElement;
-    sheet.removeAttribute("id");
-    sheet.classList.add("ticket-print-sheet");
-    root.appendChild(sheet);
-
-    let cleaned = false;
-    const cleanup = () => {
-      if (cleaned) return;
-      cleaned = true;
-      root.replaceChildren();
-      window.removeEventListener("afterprint", cleanup);
-    };
-
-    window.addEventListener("afterprint", cleanup);
-    requestAnimationFrame(() => {
-      window.print();
-    });
   };
 
   const handleBack = () => {
@@ -475,9 +395,9 @@ export default function RegistrationDetail() {
 
         {ticketValid ? (
           <div className="flex flex-wrap justify-center gap-2">
-            <Button className="rounded-full" onClick={handleDownload}>
-              <Download className="w-4 h-4" />
-              Download Tickets (PDF)
+            <Button className="rounded-full" onClick={() => void handleDownload()} disabled={downloading}>
+              {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              Download ticket
             </Button>
             {calendarHref ? (
               <Button variant="outline" className="rounded-full" asChild>
@@ -610,8 +530,6 @@ export default function RegistrationDetail() {
             </Link>
           </div>
         )}
-
-        <div ref={printRootRef} />
       </motion.div>
     </div>
     </div>
