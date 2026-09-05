@@ -1,5 +1,8 @@
 import QRCode from "qrcode";
-import type { TicketStubModel } from "@/components/participant/PurchasedTicketStub";
+import {
+  ticketShowsDoorCode,
+  type TicketStubModel,
+} from "@/components/participant/PurchasedTicketStub";
 
 const W = 1600;
 const H = 520;
@@ -94,7 +97,8 @@ export async function downloadTicketPng(ticket: TicketStubModel): Promise<void> 
   const when = dayPart(ticket.startsAt);
   const type = ticket.ticketType || "General";
   const status = (ticket.statusLabel || "Confirmed").toUpperCase();
-  const qrPanel = 300;
+  const showDoor = ticketShowsDoorCode(ticket);
+  const qrPanel = showDoor ? 300 : 0;
   const bar = 64;
   const bodyLeft = bar;
   const bodyRight = W - qrPanel;
@@ -147,26 +151,26 @@ export async function downloadTicketPng(ticket: TicketStubModel): Promise<void> 
   drawChip(ctx, bodyLeft + 40 + chipW + gap, chipY, chipW, chipH, "Door", formatTime(ticket.startsAt));
   drawChip(ctx, bodyLeft + 40 + (chipW + gap) * 2, chipY, chipW, chipH, "Type", type);
 
-  ctx.strokeStyle = LINE;
-  ctx.lineWidth = 2;
-  ctx.setLineDash([6, 10]);
-  ctx.beginPath();
-  ctx.moveTo(bodyRight, 36);
-  ctx.lineTo(bodyRight, H - 36);
-  ctx.stroke();
-  ctx.setLineDash([]);
+  if (showDoor && ticket.qrToken) {
+    ctx.strokeStyle = LINE;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 10]);
+    ctx.beginPath();
+    ctx.moveTo(bodyRight, 36);
+    ctx.lineTo(bodyRight, H - 36);
+    ctx.stroke();
+    ctx.setLineDash([]);
 
-  const qrSize = 220;
-  const qrX = bodyRight + (qrPanel - qrSize) / 2;
-  const qrY = 88;
-  roundRect(ctx, qrX - 10, qrY - 10, qrSize + 20, qrSize + 20, 18);
-  ctx.fillStyle = "#ffffff";
-  ctx.fill();
-  ctx.strokeStyle = LINE;
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
+    const qrSize = 220;
+    const qrX = bodyRight + (qrPanel - qrSize) / 2;
+    const qrY = 88;
+    roundRect(ctx, qrX - 10, qrY - 10, qrSize + 20, qrSize + 20, 18);
+    ctx.fillStyle = "#ffffff";
+    ctx.fill();
+    ctx.strokeStyle = LINE;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
 
-  if (ticket.valid && ticket.qrToken) {
     const qrUrl = await QRCode.toDataURL(ticket.qrToken, {
       width: 440,
       margin: 1,
@@ -174,19 +178,13 @@ export async function downloadTicketPng(ticket: TicketStubModel): Promise<void> 
     });
     const qrImg = await loadImage(qrUrl);
     ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
-  } else {
+
     ctx.fillStyle = MUTED;
-    ctx.font = "600 18px 'IBM Plex Mono', ui-monospace, monospace";
     ctx.textAlign = "center";
-    ctx.fillText(ticket.valid ? "ENCODING" : "LOCKED", bodyRight + qrPanel / 2, qrY + qrSize / 2);
+    ctx.font = "600 20px 'IBM Plex Mono', ui-monospace, monospace";
+    ctx.fillText(ticket.qrToken, bodyRight + qrPanel / 2, qrY + qrSize + 48);
   }
 
-  ctx.fillStyle = MUTED;
-  ctx.textAlign = "center";
-  const tokenLabel =
-    ticket.valid && ticket.qrToken ? ticket.qrToken : "—";
-  ctx.font = "600 20px 'IBM Plex Mono', ui-monospace, monospace";
-  ctx.fillText(tokenLabel, bodyRight + qrPanel / 2, qrY + qrSize + 48);
   ctx.restore();
 
   ctx.strokeStyle = LINE;

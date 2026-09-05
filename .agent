@@ -1,6 +1,6 @@
 # EventHub Web App — Agent Context
 
-Last updated: 2026-09-03 — Homepage scale, 3-col catalog, Rooms nav label
+Last updated: 2026-09-05 — Deny QR scan for ended events; hide ticket QR after check-in/expiry
 Repository: D:\Orbit Systems\EventHub\event-web
 Git remote: https://github.com/Abdiaziiz-1717/event-web.git
 Default branch: main (GitHub HEAD; CI also listens to `master`)
@@ -367,7 +367,7 @@ Guards:
 | Public event page + registration | PublicEventPage + cover-photo Hero (banner island + countdown + Register, no in-hero section pill) + overlapping black facts + white-card two-column body + in-page checkout + house `SiteFooter` | `GET /events/{id}` (publicApi); `POST /participant/events/{id}/discount-codes/validate`, `POST /participant/participations` (ticket + optional `discount_code` only — **no custom form fields**), `POST /participant/payments/charge`, `GET /participant/participations/{id}` (participantApi) | Yes | Registration UI: pick ticket (if any) → privacy consent → join or pay. Free events with no ticket types join directly. Paid: discount quote optional, then Waafi. No `GET /events/{id}/form-fields` on register. Cover fills a rounded island; type sits bottom-left over a light gradient so the photo shows. Industry type scale (hero ~24–34px). Pulse countdown + black facts bar kept. Left column: About, Why attend this event (separate card), speakers, agenda timeline. Gallery is full-width below the two-column block. Right sticky rail: starting price + Register + Share, Event Detail (date/time/venue/map), organizer, partners. `PublicSiteHeader` above hero. Footer is shared `SiteFooter` (light-locked). Sessions pass description/room/ends_at; speakers pass bio. Page chrome accent is Pulse teal `#2ECFC2`. Tickets with `sales_enabled=false` omitted; paid flow can validate + apply discount quote before join. |
 | Participant dashboard (home) | AttendeeHome as My Tickets (light perforated EventHub pass + QR) | `GET /participant/participations` via `useMyParticipations` | Yes | Lists purchased tickets, not event-room cards. QR from `qr_token` when the ticket is valid. |
 | Event rooms list | EventRooms at `/dashboard/rooms` | same participations list, filtered by `roomSwitcherList` | Yes | Next event lands here. User picks which room to open. |
-| Registration detail (ticket) | RegistrationDetail | `GET .../invitation` (ticket payload; `invitation` always null) | Yes | `/registrations/:id`; static EventHub pass stub; QR panel shows `qr_token` under the code (scan or type at door); **Download ticket** saves a PNG of the pass only (`ticketImage.ts`); **Open event room** CTA when ticket valid |
+| Registration detail (ticket) | RegistrationDetail | `GET .../invitation` (ticket payload; `invitation` always null) | Yes | `/registrations/:id`; static EventHub pass stub; QR + token shown only while claimable (hidden after `checked_in` or event ended/`completed`); **Download ticket** PNG matches (`ticketImage.ts`); **Open event room** CTA when ticket valid |
 | Event room | EventRoom + PublicSiteHeader | announcements/discussions via EventRoomExtras + feedback | Yes | `/registrations/:id/room`; room switcher when several eligible regs; separate from ticket |
 | Organizer event studio — invitation | removed | — | — | `/branding` and `/invitation` redirect to overview. No template picker, overlays, or custom background. |
 | Organizer events | grid: banner/gradient cards, status chips, search + All/Published/Draft/Ended pills (`?status=` URL) | `GET /organizer/events` via `useOrganizerEventList` | Yes | Published = catalog set (`isPublicCatalogStatus`); Ended = completed+cancelled; grouped pills fetch `per_page: 100` and filter in memory (Laravel `status` is exact). Draft still sends `status=draft`. |
@@ -656,7 +656,7 @@ Documented paths (all under OrganizerLayout):
 
 Studio **section** sidebar groups (`OrgStudioNav`): EVENT (Overview, Tickets, Program), PEOPLE (Attendees, Check-in, Lucky wheel), MANAGE (Finance, Settings). Analytics stays routed, not in the rail. No Invitation/branding item. This rail is not app nav. Desktop rail is `sticky top-16` with 12px items; the page scrolls natively.
 
-Reusable UI lives in `src/components/event-studio/` (`TicketTypeCard`, `TicketTypeForm`, `DiscountCodeForm`, `SpeakerCard`, `SpeakerForm`, `SponsorCard`, `SponsorForm`, `SessionTimeline`, `SessionForm`, `EventRegistrationsPanel`, `AnnouncementsPanel`, `LuckyWheelPanel`, `EventFinancePanel`, `SubscriptionQuotaPanel`). Scanner UI: `src/components/event-detail/CheckInScanner.tsx` via `EventStudioScanner`. Lucky wheel UI: `LuckyWheelPanel.tsx` via `EventStudioLuckyWheel`. Ticket UI is the static stub `PurchasedTicketStub` (QR panel label is the live `qr_token`, not “Door chip”). Download is a PNG of that pass (`src/lib/ticketImage.ts`) — not print-to-PDF.
+Reusable UI lives in `src/components/event-studio/` (`TicketTypeCard`, `TicketTypeForm`, `DiscountCodeForm`, `SpeakerCard`, `SpeakerForm`, `SponsorCard`, `SponsorForm`, `SessionTimeline`, `SessionForm`, `EventRegistrationsPanel`, `AnnouncementsPanel`, `LuckyWheelPanel`, `EventFinancePanel`, `SubscriptionQuotaPanel`). Scanner UI: `src/components/event-detail/CheckInScanner.tsx` via `EventStudioScanner`. Lucky wheel UI: `LuckyWheelPanel.tsx` via `EventStudioLuckyWheel`. Ticket UI is the static stub `PurchasedTicketStub` (QR + token only while claimable — hidden after check-in or event end). Download is a PNG of that pass (`src/lib/ticketImage.ts`) — not print-to-PDF.
 
 Organizer chrome (`OrganizerLayout`): top bar with Dashboard, Events, Check-in, Finance. Settings in the avatar menu only. Org Attendees/Analytics URLs redirect into Events / studio analytics.
 
@@ -865,6 +865,14 @@ Files: `PublicEventPage.tsx`, `PublicModule.tsx`, `design/pages/event-detail.md`
 Public `/events/:id` body refinements to match the white-card reference: removed `EventSectionNav`; About and **Why attend this event** are separate left-column cards; venue/date/time moved to a right-column **Event Detail** card (register box above it); partners render in the sidebar below organizer; gallery uses a static grid instead of carousel. Hero + black facts bar unchanged. No Laravel endpoints.
 
 Files: `PublicEventPage.tsx`, `PublicModule.tsx` (`EventDetailSidebar`, exported `Sponsors`, grid `Gallery`), `Register.tsx` (`buildModules` why-attend heading), `design/pages/event-detail.md`, `.agent`.
+
+### 2026-09-05 — Deny QR scan when event has ended
+
+Door scanner (camera + manual token) rejects tickets for ended events. Laravel validates `completed`/`cancelled` or past `ends_at` before `already_used`. Unlock also blocked. `CheckInScanner` shows “This event has ended. Check-in is closed.”
+
+### 2026-09-05 — Hide door QR after check-in or event end
+
+`PurchasedTicketStub` / PNG download omit the QR + token panel when participation `status === checked_in`, event `status === completed`, or `ends_at` is in the past (`ticketShowsDoorCode`). Wired from My Tickets and registration detail.
 
 ### 2026-09-03 — Short door QR tokens (one line)
 

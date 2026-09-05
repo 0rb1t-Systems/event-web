@@ -9,12 +9,31 @@ export type TicketStubModel = {
   title: string;
   location?: string | null;
   startsAt?: string | null;
+  endsAt?: string | null;
+  eventStatus?: string | null;
+  /** Participation status — used to hide door QR after check-in. */
+  status?: string | null;
   ticketType?: string | null;
   qrToken?: string | null;
   valid: boolean;
   statusLabel?: string | null;
   statusBadgeClass?: string | null;
 };
+
+/** Door QR + token only while the pass is claimable (not checked in, event not ended). */
+export function ticketShowsDoorCode(ticket: Pick<
+  TicketStubModel,
+  "valid" | "qrToken" | "status" | "endsAt" | "eventStatus"
+>): boolean {
+  if (!ticket.valid || !ticket.qrToken) return false;
+  if (ticket.status === "checked_in") return false;
+  if (ticket.eventStatus === "completed") return false;
+  if (ticket.endsAt) {
+    const end = new Date(ticket.endsAt).getTime();
+    if (Number.isFinite(end) && end < Date.now()) return false;
+  }
+  return true;
+}
 
 function padId(id: number) {
   return `EH-${String(id).padStart(5, "0")}`;
@@ -58,9 +77,10 @@ export function PurchasedTicketStub({
   id?: string;
 }) {
   const [qr, setQr] = useState("");
+  const showDoor = ticketShowsDoorCode(ticket);
 
   useEffect(() => {
-    if (!ticket.valid || !ticket.qrToken) {
+    if (!showDoor || !ticket.qrToken) {
       setQr("");
       return;
     }
@@ -71,7 +91,7 @@ export function PurchasedTicketStub({
     })
       .then(setQr)
       .catch(() => setQr(""));
-  }, [ticket.valid, ticket.qrToken]);
+  }, [showDoor, ticket.qrToken]);
 
   const when = dayPart(ticket.startsAt);
   const location = (ticket.location || "").trim();
@@ -123,23 +143,25 @@ export function PurchasedTicketStub({
           </div>
         </div>
 
-        <div className="relative flex shrink-0 flex-col items-center justify-center gap-3 border-t border-dashed border-border px-5 py-5 sm:w-44 sm:border-l sm:border-t-0">
-          <div className="flex h-[5.75rem] w-[5.75rem] items-center justify-center rounded-xl bg-white p-1.5 ring-1 ring-border">
-            {ticket.valid && qr ? (
-              <img src={qr} alt="" className="h-full w-full" />
-            ) : (
-              <p className="px-3 text-center font-mono text-[9px] uppercase leading-relaxed tracking-[0.12em] text-muted-foreground">
-                {ticket.valid ? "Encoding" : "Locked"}
-              </p>
-            )}
+        {showDoor ? (
+          <div className="relative flex shrink-0 flex-col items-center justify-center gap-3 border-t border-dashed border-border px-5 py-5 sm:w-44 sm:border-l sm:border-t-0">
+            <div className="flex h-[5.75rem] w-[5.75rem] items-center justify-center rounded-xl bg-white p-1.5 ring-1 ring-border">
+              {qr ? (
+                <img src={qr} alt="" className="h-full w-full" />
+              ) : (
+                <p className="px-3 text-center font-mono text-[9px] uppercase leading-relaxed tracking-[0.12em] text-muted-foreground">
+                  Encoding
+                </p>
+              )}
+            </div>
+            <p
+              className="max-w-[9.5rem] text-center font-mono text-xs font-semibold tracking-[0.14em] text-muted-foreground"
+              title={ticket.qrToken ?? undefined}
+            >
+              {ticket.qrToken}
+            </p>
           </div>
-          <p
-            className="max-w-[9.5rem] text-center font-mono text-xs font-semibold tracking-[0.14em] text-muted-foreground"
-            title={ticket.valid && ticket.qrToken ? ticket.qrToken : undefined}
-          >
-            {ticket.valid && ticket.qrToken ? ticket.qrToken : "—"}
-          </p>
-        </div>
+        ) : null}
       </div>
     </article>
   );

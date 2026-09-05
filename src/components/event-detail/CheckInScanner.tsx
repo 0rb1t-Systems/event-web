@@ -185,8 +185,15 @@ export default function CheckInScanner({ eventId, eventTitle, onDenied, scanToke
         };
       }
 
-      // invalid (and any unexpected) — no internal reason leak
+      // invalid (and any unexpected) — surface ended-event cases for door staff
       void token;
+      const reason = data.scan_log?.meta?.reason;
+      if (reason === "event_ended" || reason === "event_completed" || reason === "event_cancelled") {
+        return {
+          kind: "invalid",
+          message: "This event has ended. Check-in is closed.",
+        };
+      }
       return {
         kind: "invalid",
         message: "This ticket cannot be checked in.",
