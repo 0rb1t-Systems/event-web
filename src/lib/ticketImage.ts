@@ -14,7 +14,7 @@ const CHIP = "#F3F4F6";
 const LINE = "#E5E7EB";
 
 export function ticketSerial(id: number) {
-  return `EH-${String(id).padStart(5, "0")}`;
+  return `E24-${String(id).padStart(5, "0")}`;
 }
 
 function dayPart(iso: string | null | undefined) {
@@ -85,7 +85,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-/** Landscape EventHub pass PNG — ticket only, no page chrome. */
+/** Landscape Event24 pass PNG — ticket only, no page chrome. */
 export async function downloadTicketPng(ticket: TicketStubModel): Promise<void> {
   const canvas = document.createElement("canvas");
   canvas.width = W;
@@ -200,7 +200,7 @@ export async function downloadTicketPng(ticket: TicketStubModel): Promise<void> 
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `eventhub-pass-${serial}.png`;
+  a.download = `event24-pass-${serial}.png`;
   document.body.appendChild(a);
   a.click();
   a.remove();

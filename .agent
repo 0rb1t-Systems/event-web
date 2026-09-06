@@ -1,13 +1,13 @@
-# EventHub Web App — Agent Context
+# Event24 Web App — Agent Context
 
-Last updated: 2026-09-05 — Deny QR scan for ended events; hide ticket QR after check-in/expiry
+Last updated: 2026-09-05 — Vercel static SPA deploy config
 Repository: D:\Orbit Systems\EventHub\event-web
 Git remote: https://github.com/Abdiaziiz-1717/event-web.git
 Default branch: main (GitHub HEAD; CI also listens to `master`)
 
 ## Purpose
 
-This file is the persistent context for AI-assisted work on the EventHub Web App.
+This file is the persistent context for AI-assisted work on the Event24 Web App.
 
 It is the single source of truth for:
 
@@ -26,21 +26,25 @@ Every meaningful code change must update this file.
 
 A new agent should be able to read only `.agent` and correctly continue the project.
 
-`AGENTS.md` is leftover Lovable copy and is not product truth. `WORKSPACE_STATE.md` is the cross-agent stage/decision briefing. This `.agent` file remains the engineering source of truth. Leftover `.cursor/rules/*.mdc` files may still mention mock data.
+`AGENTS.md` is leftover Lovable copy and is not product truth. `PROJECT_CONTEXT.md` is the standalone human briefing for marketers, stakeholders, and newcomers (what the product is, journeys, live features, brand language, what not to claim). `WORKSPACE_STATE.md` is the cross-agent stage/decision briefing. This `.agent` file remains the engineering source of truth. Leftover `.cursor/rules/*.mdc` files may still mention mock data.
 
 ## Project Identity
 
-EventHub Web App is a standalone Vite + React + TypeScript SPA.
+Event24 Web App is a standalone Vite + React + TypeScript SPA.
 
 The repository originated from a Lovable-generated event application.
 
 Lovable is now the visual/theme foundation only.
 
-Its original backend, Supabase integration, product rules, entities, routes, and business logic are not authoritative for EventHub.
+Its original backend, Supabase integration, product rules, entities, routes, and business logic are not authoritative for Event24.
 
-The Laravel EventHub backend is a separate project and is authoritative for API contracts and domain behavior.
+The Laravel Event24 backend is a separate project and is authoritative for API contracts and domain behavior.
 
 Local Laravel + Admin project (not modified by this Web App unless a prompt says so): `D:\Orbit Systems\EventHub\events-admin`
+
+## Human briefing
+
+`PROJECT_CONTEXT.md` (repo root) is the product context file for people, not agents. Hand it to marketers and newcomers. It covers positioning, the three experiences (house / event page / org console), attendee and organizer journeys, live feature map, Waafi/plans/payouts in plain language, locked CTAs, and explicit non-claims (no form builder, no waitlist, no Wallet, no live newsletter). Engineering contracts, routes, and API shapes stay in this file. Do not treat `README.md` as a substitute for either document.
 
 ## Current Runtime / Workspace State
 
@@ -61,7 +65,7 @@ Local Laravel + Admin project (not modified by this Web App unless a prompt says
 - API client authentication: X-API-Key only
 - HMAC: NOT USED
 - Supabase: fully removed. `@supabase/supabase-js` is uninstalled, `src/` has no Supabase client, and the leftover Lovable `supabase/` Deno functions directory has been deleted.
-- Real backend wiring: full participant + organizer EventHub surface through Prompts 1–14 — public catalog/detail, participant auth/registrations/Waafi/invitation/feedback/certificate, organizer auth/dashboard/events/studio (tickets, discounts, form, speakers, sponsors, sessions, invitation, registrations, announcements, finance), org Attendees/Analytics/Payouts (package/quota), and QR check-in scanner (`POST /organizer/qr-scan-logs/validate`).
+- Real backend wiring: full participant + organizer Event24 surface through Prompts 1–14 — public catalog/detail, participant auth/registrations/Waafi/invitation/feedback/certificate, organizer auth/dashboard/events/studio (tickets, discounts, form, speakers, sponsors, sessions, invitation, registrations, announcements, finance), org Attendees/Analytics/Payouts (package/quota), and QR check-in scanner (`POST /organizer/qr-scan-logs/validate`).
 - Mock data: none in production routes. `src/lib/mockData.ts` deleted; do not restore production mock dependencies.
 - Build (Prompt 14): `npx tsc --noEmit` OK; `npm run build` OK. Heavy routes use `React.lazy` + `RouteFallback` (Register, RegistrationDetail, organizer studio tabs, Analytics, Scanner, etc.).
 - Quality (Prompt 14): API-key 401 never clears sessions; session 401 clears that role only; richer `getApiErrorMessage` fallbacks; catalog images `loading="lazy"`; reduced-motion CSS + Lenis respect; scanner accessible names.
@@ -91,7 +95,7 @@ Locked system:
 - House accent: emerald only (`160 72% 34%`). Cool zinc neutrals on white. Not inspiration blue, not Pulse teal on Home/Browse, not rose, not cream, not orange, not acid `#00FF00`.
 - Public discovery + participant concept: **the house**. Slim masthead (`PublicSiteHeader` default), `.house-page` follows `html.dark`, rounded photography cards, admission-stub motif. Night lineup (ink bed, `tone="lineup"`, Barlow Condensed, 3:4 posters, title marquee) is retired on these surfaces.
 - Event detail is a **cover-photo conference**: shared `PublicSiteHeader` above the cover island, countdown, overlapping black facts bar, white-card two-column body, full-width gallery grid. No `EventPulseHeader` on the photo. Catalog cards are house cards; the detail hero is the event cover, not a catalog card.
-- Purchased stubs are **light perforated EventHub passes** (serial `EH-xxxxx`, QR when valid). Not dark laminate.
+- Purchased stubs are **light perforated Event24 passes** (serial `E24-xxxxx`, QR when valid). Not dark laminate.
 - Organizer concept: **org console** (warm paper canvas `#FCFAF7`, teal brand `#0F6E56`, amber accent `#E8A33D`, ink `#141B17`, danger `#C2452D`). Chrome is a **single persistent topbar**, not a sidebar (sidebar removed 2026-09-01 in the anti-slop redesign; see review canvas `canvases/organizer-portal-review.canvas.tsx`). Desktop chrome = `OrgTopbar`: sticky top-0 bar, logo + wordmark, underline nav (Dashboard/Events/Check-in/Finance), `AccountMenu` (workspace + email, Settings, Log out). Search, Bell, New event, and Public site are **not** in the topbar — Create stays on the Events page. Mobile = `OrgAppBar` + `OrgBottomNav` (4 items, `text-[11px]` labels; no Home / Bell). Dashboard `<main>` is `max-w-[1200px]`; studio is `max-w-[1280px]`. `/organizer/scanner` **keeps the topbar** (not immersive); unlock is a centered `max-w-md` card. Event Studio is the **only** left rail: `OrgStudioNav` (232px, 12px items, EVENT/PEOPLE/MANAGE, All events + identity) plus slim `OrgStudioHeader` actions; desktop studio is document flow with a sticky rail (`top-16`) and native page scroll. `SmoothScroll` / Lenis is skipped on `/organizer`. Dashboard Recent events is a hairline table, not thumb-rows. Overview is **edit-only** (`EventQuickInfo` + gallery). Type: H1 `text-[22px] lg:text-2xl`, `OrgStatCard` `text-[22px] lg:text-[26px]`, event titles `text-base`, `OrgButton` md `py-2.5 text-[13px]`. Thumbs teal/amber/slate only. Analytics stays routed, not in nav. Dark console remaps `--oc-*` under `.dark .org-console`; theme toggle lives on the topbar.
 - Console tokens live in `src/index.css` under `.org-console` (`--oc-*` HSL vars; shadcn `--primary`/`--card`/`--muted`… remapped onto them so existing panels adopt the palette). Console radii normalized: `.rounded-xl`→16px, `.rounded-md`→12px inside `.org-console`. Shared primitives in `src/components/organizer-console/`: `OrgButton` (primary/ghost/dark/danger), `OrgChip` (brand/plain/faint/amber/bad dot chips), `OrgStatCard`, `orgTheme.ts` (status tones, money format, thumb gradients, initials).
 - Console type: Funnel Sans Variable (`font-head`, headings), Inter Variable (body), IBM Plex Mono (`font-data`, tokens/amounts/serials). House pages keep Outfit Variable + Source Sans 3 Variable + JetBrains Mono. Self-hosted via `@fontsource*`.
@@ -125,7 +129,7 @@ VITE_API_KEY=[public api client key]
 Optional:
 
 ```text
-VITE_APP_NAME=EventHub
+VITE_APP_NAME=Event24
 VITE_APP_URL=http://localhost:8080
 VITE_GOOGLE_CLIENT_ID=
 VITE_WAAFI_CURRENCY=USD
@@ -145,6 +149,44 @@ Never add:
 - X-API-Timestamp
 
 `VITE_API_KEY` is a public client identifier, visible in browser JavaScript by design.
+
+## Vercel deployment
+
+The Web App is a static Vite SPA. Host it on Vercel as Vite (`dist/`). Do not add a Vercel serverless `/api` proxy, HMAC, or a second backend.
+
+Repo files:
+
+- `vercel.json` — framework `vite`, `pnpm install` / `pnpm build`, output `dist`, SPA rewrite so React Router paths (`/events/:id`, `/organizer/…`) serve `index.html`. Existing `/assets/*` files are not rewritten.
+- `package.json` `packageManager` is `pnpm@10.12.4`. Do not let Vercel use leftover `package-lock.json` (npm).
+
+Vercel Project → Settings → Environment Variables (Production + Preview). Vite inlines these at **build** time — changing a value requires a Redeploy.
+
+Required:
+
+```text
+VITE_API_BASE_URL=https://YOUR-LARAVEL-HOST/api/v1
+VITE_API_KEY=[same public client key Laravel accepts]
+```
+
+Do **not** point Production at `http://localhost:8002`. The browser on Vercel cannot reach the developer machine.
+
+Optional:
+
+```text
+VITE_APP_NAME=Event24
+VITE_APP_URL=https://YOUR-VERCEL-DOMAIN
+VITE_GOOGLE_CLIENT_ID=
+VITE_WAAFI_CURRENCY=USD
+```
+
+After the first deploy URL is known:
+
+1. Set `VITE_APP_URL` to that origin and Redeploy.
+2. Laravel CORS / allowed origins must include the Vercel origin (and any custom domain).
+3. Google Cloud OAuth Web client: add the Vercel origin to Authorized JavaScript origins (and the same origin for redirects if used).
+4. Laravel Admin → Settings → Organization still owns the live name/logos.
+
+Connect the GitHub repo in the Vercel dashboard (Framework Preset: Vite, Root Directory: repo root). Preview deploys get the same env unless you split Production vs Preview values.
 
 Local `.env` is gitignored. `.env` and `.env.development` were previously tracked; they were removed from the git index during foundation and must stay untracked.
 
@@ -282,7 +324,7 @@ Never call axios.create() inside feature files.
 
 Never call raw axios or fetch directly from pages/components unless a future documented exception exists.
 
-**Foundation + participant + organizer auth:** pages must not call axios/fetch directly. Participant session flows go through `src/services/participantAuth.ts` and `AuthContext`. Organizer session flows go through `src/services/organizerAuth.ts` and `OrganizerContext`. Never mix those tokens. All core EventHub modules through Prompt 14 are Laravel-backed, including Event Studio `/scanner` (`src/services/organizerQr.ts`). Legacy `/ticket/:id` redirects to `/registrations/:id`. `missing_api_key` / `invalid_api_key` are config errors — never log the user out.
+**Foundation + participant + organizer auth:** pages must not call axios/fetch directly. Participant session flows go through `src/services/participantAuth.ts` and `AuthContext`. Organizer session flows go through `src/services/organizerAuth.ts` and `OrganizerContext`. Never mix those tokens. All core Event24 modules through Prompt 14 are Laravel-backed, including Event Studio `/scanner` (`src/services/organizerQr.ts`). Legacy `/ticket/:id` redirects to `/registrations/:id`. `missing_api_key` / `invalid_api_key` are config errors — never log the user out.
 
 `src/lib/env.ts` throws at import time if `VITE_API_BASE_URL` or `VITE_API_KEY` is missing. That is intentional once a page imports the API layer.
 
@@ -327,7 +369,7 @@ Organizer chrome: desktop persistent `OrgTopbar` (underline nav + account menu; 
   - `/tickets` → ticket types + discount codes
   - `/form` → redirect → `/tickets` (legacy; registration form builder removed)
   - `/content` → speakers, sponsors, sessions (`/page` → here)
-  - `/branding` and `/invitation` → redirect → overview (invitation designer removed; tickets are a static EventHub stub)
+  - `/branding` and `/invitation` → redirect → overview (invitation designer removed; tickets are a static Event24 stub)
   - `/attendees` → registrations + announcements
   - `/lucky-wheel` → lucky wheel (`LuckyWheelPanel`; confirmed-seat participants only)
   - `/scanner` → QR check-in (`CheckInScanner` + `html5-qrcode`; lazy)
@@ -365,9 +407,9 @@ Guards:
 | Platform branding | `Logo` + document title/favicon | `GET /platform/branding` (publicApi) | Yes | Admin Settings → Organization is the write UI; Web App read-only; fallback `VITE_APP_NAME` + glyph when empty |
 | Auth | house header + compact `max-w-sm` white card + verify/forgot + Continue with Google | Laravel `/auth/*` incl. `POST /auth/google/login` | Yes | participant register/login/verify/logout/me/google; admin users can use `/auth/login` as web-participant; no duplicate logo on `/auth` (header already has it); Google needs `VITE_GOOGLE_CLIENT_ID` + Laravel `GOOGLE_CLIENT_ID` |
 | Public event page + registration | PublicEventPage + cover-photo Hero (banner island + countdown + Register, no in-hero section pill) + overlapping black facts + white-card two-column body + in-page checkout + house `SiteFooter` | `GET /events/{id}` (publicApi); `POST /participant/events/{id}/discount-codes/validate`, `POST /participant/participations` (ticket + optional `discount_code` only — **no custom form fields**), `POST /participant/payments/charge`, `GET /participant/participations/{id}` (participantApi) | Yes | Registration UI: pick ticket (if any) → privacy consent → join or pay. Free events with no ticket types join directly. Paid: discount quote optional, then Waafi. No `GET /events/{id}/form-fields` on register. Cover fills a rounded island; type sits bottom-left over a light gradient so the photo shows. Industry type scale (hero ~24–34px). Pulse countdown + black facts bar kept. Left column: About, Why attend this event (separate card), speakers, agenda timeline. Gallery is full-width below the two-column block. Right sticky rail: starting price + Register + Share, Event Detail (date/time/venue/map), organizer, partners. `PublicSiteHeader` above hero. Footer is shared `SiteFooter` (light-locked). Sessions pass description/room/ends_at; speakers pass bio. Page chrome accent is Pulse teal `#2ECFC2`. Tickets with `sales_enabled=false` omitted; paid flow can validate + apply discount quote before join. |
-| Participant dashboard (home) | AttendeeHome as My Tickets (light perforated EventHub pass + QR) | `GET /participant/participations` via `useMyParticipations` | Yes | Lists purchased tickets, not event-room cards. QR from `qr_token` when the ticket is valid. |
+| Participant dashboard (home) | AttendeeHome as My Tickets (light perforated Event24 pass + QR) | `GET /participant/participations` via `useMyParticipations` | Yes | Lists purchased tickets, not event-room cards. QR from `qr_token` when the ticket is valid. |
 | Event rooms list | EventRooms at `/dashboard/rooms` | same participations list, filtered by `roomSwitcherList` | Yes | Next event lands here. User picks which room to open. |
-| Registration detail (ticket) | RegistrationDetail | `GET .../invitation` (ticket payload; `invitation` always null) | Yes | `/registrations/:id`; static EventHub pass stub; QR + token shown only while claimable (hidden after `checked_in` or event ended/`completed`); **Download ticket** PNG matches (`ticketImage.ts`); **Open event room** CTA when ticket valid |
+| Registration detail (ticket) | RegistrationDetail | `GET .../invitation` (ticket payload; `invitation` always null) | Yes | `/registrations/:id`; static Event24 pass stub; QR + token shown only while claimable (hidden after `checked_in` or event ended/`completed`); **Download ticket** PNG matches (`ticketImage.ts`); **Open event room** CTA when ticket valid |
 | Event room | EventRoom + PublicSiteHeader | announcements/discussions via EventRoomExtras + feedback | Yes | `/registrations/:id/room`; room switcher when several eligible regs; separate from ticket |
 | Organizer event studio — invitation | removed | — | — | `/branding` and `/invitation` redirect to overview. No template picker, overlays, or custom background. |
 | Organizer events | grid: banner/gradient cards, status chips, search + All/Published/Draft/Ended pills (`?status=` URL) | `GET /organizer/events` via `useOrganizerEventList` | Yes | Published = catalog set (`isPublicCatalogStatus`); Ended = completed+cancelled; grouped pills fetch `per_page: 100` and filter in memory (Laravel `status` is exact). Draft still sends `status=draft`. |
@@ -415,7 +457,7 @@ Update this table whenever module status/data source changes.
 ### TypeScript
 
 - this repo currently has `strict: false` and `noImplicitAny: false` in `tsconfig.app.json`
-- new EventHub API/domain types must still be explicit
+- new Event24 API/domain types must still be explicit
 - no unexplained any in new API code
 - do not reintroduce mock fixtures as backend truth
 
@@ -521,7 +563,7 @@ Do not allow Web App architecture to accidentally use admin-panel tokens.
 - Do not set `overflow-x: hidden` on both `html` and `body`. That creates a second scrollport and clips wide children (tabs, tables, datetime inputs) so a phone viewport only shows the left half of the page. Shells use `overflow-x: clip`; horizontal regions use `.h-scroll` (bounded `overflow-x: auto`). Studio mobile tabs (`OrgStudioMobileNav`) must scroll inside a width-bounded scroller — never let `min-w-max` widen the page.
 - Check-in unlock on `/organizer/scanner` is a centered `max-w-md` card, not a left-aligned form.
 - Auth cards are `max-w-sm` with `h-10` controls. Do not restore a second `Logo size="lg"` on `/auth`.
-- `SiteFooter` is a mist multi-column house footer (brand, Platform, Account, New listings). Used on Home, Browse, Auth, participant layout, and public event detail. On `/events/:id` it is light-locked via `.pulse-event .house-page` even when `html.dark`. No circular Search / Ticket / Organizer icons. Newsletter email is `localStorage` only (`eventhub.newsletter-email`); Laravel has no digest/subscribe route. No fake social networks or Privacy/Terms routes.
+- `SiteFooter` is a mist multi-column house footer (brand, Platform, Account, New listings). Used on Home, Browse, Auth, participant layout, and public event detail. On `/events/:id` it is light-locked via `.pulse-event .house-page` even when `html.dark`. No circular Search / Ticket / Organizer icons. Newsletter email is `localStorage` only (`event24.newsletter-email`); Laravel has no digest/subscribe route. No fake social networks or Privacy/Terms routes.
 - participant login destination is `/` (Home). `/dashboard` still opens My Tickets. Never `/organizer/events`
 - organizer login destination is `/organizer/dashboard`
 - logging out organizer clears `organizer_token` only; participant session stays
@@ -788,6 +830,24 @@ Event `scan_token` is generated on create; organizer show/update/banner/transiti
 
 ## Change Log
 
+### 2026-09-05 — Vercel static SPA deploy config
+
+Added `vercel.json` (Vite, `pnpm install` / `pnpm build`, output `dist`, SPA rewrite to `index.html`) and `packageManager: pnpm@10.12.4` so Vercel does not pick leftover `package-lock.json`. `.vercel` is gitignored. Production must set `VITE_API_BASE_URL` + `VITE_API_KEY` on Vercel (build-time); localhost API will not work from the hosted site. After first URL: set `VITE_APP_URL`, allow the origin on Laravel CORS, add it to Google OAuth JS origins.
+
+Files: `vercel.json`, `package.json`, `.gitignore`, `.agent`.
+
+### 2026-09-05 — Product name Event24
+
+The Web App product name is **Event24** (formerly EventHub). Fallback `VITE_APP_NAME` / `env.appName`, `index.html` titles, Logo fallback, pass copy (`Event24 pass · E24-xxxxx`), PNG download `event24-pass-…`, newsletter/session/studio storage keys (`event24.*`), package.json `name`, docs, Cursor rules, and design exports all use Event24. Disk paths under `D:\Orbit Systems\EventHub\` are unchanged (folder name). Live wordmark still comes from `GET /platform/branding` when Admin has an organization name — update Admin Settings → Organization to Event24 or the API name will keep winning.
+
+Files: `src/lib/env.ts`, `src/lib/ticketImage.ts`, `src/lib/authStorage.ts`, `src/lib/lastStudioEvent.ts`, `src/components/participant/PurchasedTicketStub.tsx`, `src/components/layout/SiteFooter.tsx`, `src/pages/RegistrationDetail.tsx`, `index.html`, `package.json`, `.env.example`, `PROJECT_CONTEXT.md`, `AGENTS.md`, `design/MASTER.md`, `design/design-system.pen`, `design/export/organizer.html`, `design/export/organizer-mobile.html`, `.cursor/rules/*.mdc`, `check-agent-update.sh`, `install-agent-hook.*`, `.github/workflows/agent-context-check.yml`, `.agent`.
+
+### 2026-09-05 — Human product briefing (`PROJECT_CONTEXT.md`)
+
+Added a standalone project-context markdown at the repo root for marketers and newcomers. It describes the live Event24 Web App (catalog → in-page register → My Tickets → door / room; organizer studio, Waafi, plans, payouts), the house / venue / org-console split, locked CTAs, and what not to claim. Leftover Lovable README fiction is called out as non-authoritative. Engineering truth is unchanged and stays in this `.agent` file.
+
+Files: `PROJECT_CONTEXT.md`, `.agent`.
+
 ### 2026-09-03 — Pending registration: resume main checkout UI
 
 `/registrations/:id` with `payment_status=pending|failed` now renders `CheckoutLayout` + `WaafiPayStep` (same as in-event checkout) instead of a locked stub + standalone Waafi card. Loads `GET /participant/participations/{id}` for snapshotted `final_amount` / discount totals via `participationCheckoutPricing`.
@@ -884,11 +944,11 @@ On `PurchasedTicketStub` and the downloaded PNG, the text under the QR is the pa
 
 ### 2026-09-03 — Ticket download is a PNG of the pass
 
-`Download ticket` on `/registrations/:id` saves `eventhub-pass-EH-#####.png` — landscape EventHub stub only (admit one, date/door/type chips, QR + token). No print dialog, no PDF page chrome. Renderer: `src/lib/ticketImage.ts`.
+`Download ticket` on `/registrations/:id` saves `event24-pass-E24-#####.png` — landscape Event24 stub only (admit one, date/door/type chips, QR + token). No print dialog, no PDF page chrome. Renderer: `src/lib/ticketImage.ts`.
 
 ### 2026-09-03 — Static ticket only (remove invitation templates)
 
-All attendees get the same EventHub pass stub (`PurchasedTicketStub`). Download saves a PNG of that stub. Organizer Invitation designer tab removed (`/branding` and `/invitation` redirect to overview). Laravel dropped `event_invitation_templates` + `invitation_system_templates`; organizer/admin template APIs gone. `GET /participant/participations/{id}/invitation` still returns ticket payload with `invitation: null` and `qr_token` for in-person door scan.
+All attendees get the same Event24 pass stub (`PurchasedTicketStub`). Download saves a PNG of that stub. Organizer Invitation designer tab removed (`/branding` and `/invitation` redirect to overview). Laravel dropped `event_invitation_templates` + `invitation_system_templates`; organizer/admin template APIs gone. `GET /participant/participations/{id}/invitation` still returns ticket payload with `invitation: null` and `qr_token` for in-person door scan.
 
 Files (web): `RegistrationDetail.tsx`, `PurchasedTicketStub.tsx`, `App.tsx`, `OrgStudioNav.tsx`, `organizerStudioRoutes.ts`, deleted `InvitationDesigner`, `InvitationCanvasPreview`, `InvitationOverlayEditor`, `organizerInvitations.ts`, `invitationCanvas.ts`, `EventStudioBranding.tsx`.
 
@@ -967,7 +1027,7 @@ Files: `orgIcons.ts`, `OrganizerDashboard.tsx`, `OrganizerLayout.tsx`, `OrgStudi
 
 ### 2026-09-01 — Home organizer CTA + newsletter footer
 
-Removed How it works and the pass specimen from `/`. After the catalog, a grayscale hall-photo island asks organizers to **Create event** (emerald pill, not blue “Get Started For Free”) and routes to `/organizer/register` or `/organizer/events`. `SiteFooter` dropped the circular Search / Ticket / Organizer icons. New mist four-column footer: brand, Platform, Account, New listings email field. Subscribe saves `eventhub.newsletter-email` in `localStorage` only; there is no Laravel newsletter endpoint. No Privacy/Terms or social brand icons.
+Removed How it works and the pass specimen from `/`. After the catalog, a grayscale hall-photo island asks organizers to **Create event** (emerald pill, not blue “Get Started For Free”) and routes to `/organizer/register` or `/organizer/events`. `SiteFooter` dropped the circular Search / Ticket / Organizer icons. New mist four-column footer: brand, Platform, Account, New listings email field. Subscribe saves `event24.newsletter-email` in `localStorage` only; there is no Laravel newsletter endpoint. No Privacy/Terms or social brand icons.
 
 Files: `Landing.tsx`, `SiteFooter.tsx`, `design/pages/landing.md`, `design/MASTER.md`, `.agent`.
 
@@ -1081,7 +1141,7 @@ Files: `Landing.tsx`, `BrowseEvents.tsx`, `EventCatalogCard.tsx`, `PublicSiteHea
 
 ### 2026-08-30 — Home + catalog preview-pass language
 
-Home and Browse events now use the same laminate language as the purchased EventHub pass. Catalog cards are preview passes (emerald spine, serial, oversized date/door/mode, circular poster chip). Home is a full-bleed ink door with the lead listing on the glass; the rest sit in a single-column rack. Public event Hero dropped the cinematic purple pills; default event accent is emerald `#178A5C`. No new Laravel endpoints.
+Home and Browse events now use the same laminate language as the purchased Event24 pass. Catalog cards are preview passes (emerald spine, serial, oversized date/door/mode, circular poster chip). Home is a full-bleed ink door with the lead listing on the glass; the rest sit in a single-column rack. Public event Hero dropped the cinematic purple pills; default event accent is emerald `#178A5C`. No new Laravel endpoints.
 
 Files: `Landing.tsx`, `BrowseEvents.tsx`, `EventCatalogCard.tsx`, `Hero.tsx`, `StickyRegisterBar.tsx`, `PublicEventPage.tsx`, `SiteFooter.tsx`, `Logo.tsx`, `publicEventsAdapters.ts`, `src/index.css` (`.pass-hairline`), `design-system/MASTER.md`, `.agent`.
 
@@ -1093,7 +1153,7 @@ Files: `OrganizerLayout.tsx`, `PublicSiteHeader.tsx`, `Landing.tsx`, `BrowseEven
 
 ### 2026-08-30 — Complete UI/UX redesign (IA v3)
 
-New EventHub visual system and information architecture. Lovable rose/cinematic defaults are no longer the design source of truth.
+New Event24 visual system and information architecture. Lovable rose/cinematic defaults are no longer the design source of truth.
 
 Design: ink + emerald tokens in `src/index.css`; Outfit + Source Sans 3 + JetBrains Mono self-hosted; 12px radius; restyled shadcn button/input/card. Spec: `design-system/MASTER.md`.
 
@@ -1107,7 +1167,7 @@ Verification: `npx tsc --noEmit` and `pnpm build`. Public routes checked via the
 
 ### 2026-08-30 — Cross-agent WORKSPACE_STATE.md
 
-Filled the attached SaaS Foundry workspace template with EventHub Web App current state for cross-agent handoff (stage, locked decisions, product, stack, design, open questions). Engineering contracts stay in `.agent`. `AGENTS.md` restored to leftover Lovable stub.
+Filled the attached SaaS Foundry workspace template with Event24 Web App current state for cross-agent handoff (stage, locked decisions, product, stack, design, open questions). Engineering contracts stay in `.agent`. `AGENTS.md` restored to leftover Lovable stub.
 
 Files: `WORKSPACE_STATE.md`, `.agent`.
 
@@ -1212,7 +1272,7 @@ Landing marketing strings no longer hardcode `eventspark`. `landing-defaults.ts`
 
 ### 2026-08-20 — Platform branding (Admin Organization → Web App)
 
-Wired Admin Organization profile into the Web App. `GET /platform/branding` (publicApi) loads `{ name, logo_url, logo_dark_url, icon_url }`. `BrandingProvider` sets document title + favicon; `Logo` uses theme-aware uploaded logos or glyph + name (no more hardcoded `eventspark`). `index.html` fallback titles are EventHub. Landing/Register/PublicEventPage/invitation footers use branding name. Laravel side: `PlatformBrandingController`, organizations route order fix, Admin Organization copy clarified.
+Wired Admin Organization profile into the Web App. `GET /platform/branding` (publicApi) loads `{ name, logo_url, logo_dark_url, icon_url }`. `BrandingProvider` sets document title + favicon; `Logo` uses theme-aware uploaded logos or glyph + name (no more hardcoded `eventspark`). `index.html` fallback titles are Event24. Landing/Register/PublicEventPage/invitation footers use branding name. Laravel side: `PlatformBrandingController`, organizations route order fix, Admin Organization copy clarified.
 
 Files: `src/services/platformBranding.ts`, `src/contexts/BrandingContext.tsx`, `src/components/Logo.tsx`, `src/App.tsx`, `index.html`, Landing/Register/PublicEventPage/InvitationCanvasPreview, `.agent`.
 
@@ -1819,14 +1879,14 @@ Files:
 
 - `supabase/` (deleted: leftover Lovable edge functions for notify, transactional email, ICS, AI cover/page generation, landing CMS)
 - `.cursor/rules/edge-functions.mdc` (deleted)
-- `.cursor/rules/project-system.mdc` (rewritten to EventHub / Laravel; no longer instructs agents to extend Supabase)
+- `.cursor/rules/project-system.mdc` (rewritten to Event24 / Laravel; no longer instructs agents to extend Supabase)
 - `.cursor/rules/frontend-data.mdc` (removed `supabase.rpc` / `notify` instructions)
 - `AGENTS.md` (replaced Event Spark Supabase map with a stub pointing at `.agent`)
 
 Changes:
 
 - The Vite app never imported `supabase/functions/`. That folder survived cleanup only because the earlier `src/` grep and the “do not redo cleanup” foundation prompt left disk leftovers in place.
-- Cursor `project-system.mdc` was still always-on Event Spark copy telling agents this SPA is on Supabase project `oiqiqdctkfjrbrjmjczc`. That conflicted with EventHub Laravel rules.
+- Cursor `project-system.mdc` was still always-on Event Spark copy telling agents this SPA is on Supabase project `oiqiqdctkfjrbrjmjczc`. That conflicted with Event24 Laravel rules.
 - No `src/` pages, API clients, or env vars were changed. No Laravel contracts changed. Screens remain on mock data.
 
 ### 2026-08-18 — Vite Web App foundation

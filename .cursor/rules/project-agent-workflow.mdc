@@ -1,9 +1,9 @@
 ---
-description: EventHub Web App agent workflow and architecture rules
+description: Event24 Web App agent workflow and architecture rules
 alwaysApply: true
 ---
 
-# EventHub Web App — Agent Workflow
+# Event24 Web App — Agent Workflow
 
 ## Before coding
 

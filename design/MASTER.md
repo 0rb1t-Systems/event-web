@@ -1,12 +1,12 @@
-# EventHub design system
+# Event24 design system
 
-Visual source of truth for the EventHub Web App.
+Visual source of truth for the Event24 Web App.
 
 Public discovery (Home, Browse) and the participant product are **the house**: a light ticket desk. Public event detail (`/events/:id`) is a **cover-photo conference** and does **not** inherit house chrome. Organizer surfaces follow the **org console** from `design/design-system.pen`.
 
 ## Context and goals
 
-Intent: a visitor finds a real event, opens it, and keeps every admission in one wallet — on a daylight canvas that feels like EventHub, not a generic ticketing clone and not the retired night lineup.
+Intent: a visitor finds a real event, opens it, and keeps every admission in one wallet — on a daylight canvas that feels like Event24, not a generic ticketing clone and not the retired night lineup.
 
 The house is emerald on white. The venue (event detail) stays Pulse teal on white. That handoff is deliberate. Do not paint Home in `#2ECFC2` to “match” detail.
 
@@ -24,7 +24,7 @@ The house is emerald on white. The venue (event detail) stays Pulse teal on whit
 - Public Home / Browse / Auth / participant chrome: **the house**. Slim masthead, rounded photography cards, admission-stub motif, Outfit display. Follows `html.dark` (cool zinc, emerald accent).
 - Public event detail: **cover-photo conference**. Stays light-locked (`.pulse-event`). Spec: `design/pages/event-detail.md` + in-page checkout `design/pages/checkout.md`. Tokens in `pulseTheme.ts`.
 - Organizer: **org console** per `design/design-system.pen`. Light: white canvas `#FFFFFF`, white 16px cards with hairline `--oc-line`, teal `#0F6E56`. Nested wells use cool `--oc-well` (not cream). Dark: warm ink canvas (`--oc-bg` ~150 16% 7%), elevated `--oc-surface`, teal brand kept. Active filter/tab pills are `bg-oc-ink text-oc-surface` (never `text-white` on ink — ink is light in dark). Status chips (`OrgChip`, studio/house status `Badge`s) are soft-outline: pale `--oc-*-soft` tint, mid-opacity stroke, tone-colored label. Desktop = persistent `OrgTopbar` (Dashboard / Events / Check-in / Finance; Settings in the account menu; theme toggle in the bar). Mobile = `OrgAppBar` + `OrgBottomNav`. Event Studio is the only left rail (`OrgStudioNav` section tabs under the global topbar; sticky, 12px labels). Dashboard Recent events is a table, not thumb-rows. Overview is the edit form, not a public-page snapshot. Check-in keeps the topbar; unlock is centered. Finance is one row: Payouts | Plans. Type: Funnel Sans (headings, H1 22/24px, dashboard greeting ~32/40px), Inter (body), IBM Plex Mono (data). Tokens: `.org-console` `--oc-*` vars in `src/index.css`; primitives in `src/components/organizer-console/`.
-- Signature: the **admission stub** — notched ticket geometry, serial `EH-00012`, JetBrains Mono data, QR when the ticket is valid.
+- Signature: the **admission stub** — notched ticket geometry, serial `E24-00012`, JetBrains Mono data, QR when the ticket is valid.
 
 ### Palette (house)
 
@@ -98,7 +98,7 @@ Mist (`#F4F6F8`) multi-column house footer. Shared by Home, Browse, Auth, partic
 - Brand: `Logo` size `sm` plus one short product sentence. No “world’s leading” copy. No social brand icons.
 - Platform: Browse events, Create event, Home
 - Account: Log in or My Tickets, Organizer
-- New listings: email + Subscribe. Stores `eventhub.newsletter-email` in `localStorage`. No Laravel newsletter endpoint. Helper copy must not promise a live digest.
+- New listings: email + Subscribe. Stores `event24.newsletter-email` in `localStorage`. No Laravel newsletter endpoint. Helper copy must not promise a live digest.
 - Bottom bar: hairline, centered `© {year} {name}. All rights reserved.`
 - Do not restore circular Search / Ticket / Organizer icon buttons. Do not invent Privacy, Terms, Pricing, Help, or social URLs.
 

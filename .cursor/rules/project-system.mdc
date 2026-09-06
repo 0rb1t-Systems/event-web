@@ -1,5 +1,5 @@
 ---
-description: EventHub Web App system map — product truth, architecture, and decision defaults
+description: Event24 Web App system map — product truth, architecture, and decision defaults
 alwaysApply: true
 ---
 
@@ -7,7 +7,7 @@ alwaysApply: true
 
 Read `.agent` before architectural choices. `README.md` and `AGENTS.md` are leftover Lovable copy, not the stack.
 
-This is a Vite React SPA that consumes the EventHub Laravel API. Auth is `X-API-Key` plus a participant or organizer Bearer token. There is no Supabase, HMAC proxy, Next.js, or second backend.
+This is a Vite React SPA that consumes the Event24 Laravel API. Auth is `X-API-Key` plus a participant or organizer Bearer token. There is no Supabase, HMAC proxy, Next.js, or second backend.
 
 **Do:** extend existing pages/hooks, use `publicApi` / `participantApi` / `organizerApi`, preserve Lovable UI.
 **Don't:** restore `supabase/`, invent Laravel endpoints, mix participant and organizer tokens, redesign screens while swapping mock data.

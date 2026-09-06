@@ -9,4 +9,4 @@ sh "`$repo_root/check-agent-update.sh"
 
 Set-Content -Path $hookPath -Value $hookContent -Encoding UTF8
 
-Write-Host "EventHub .agent pre-commit hook installed."
+Write-Host "Event24 .agent pre-commit hook installed."

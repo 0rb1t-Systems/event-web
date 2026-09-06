@@ -9,4 +9,4 @@ EOF
 
 chmod +x .git/hooks/pre-commit
 
-echo "EventHub .agent pre-commit hook installed."
+echo "Event24 .agent pre-commit hook installed."

@@ -1,11 +1,11 @@
 ---
-description: Preserve surviving Lovable UI during EventHub integration
+description: Preserve surviving Lovable UI during Event24 integration
 alwaysApply: true
 ---
 
-# EventHub Lovable UI Preservation Rule
+# Event24 Lovable UI Preservation Rule
 
-The surviving Lovable UI is the visual foundation for EventHub.
+The surviving Lovable UI is the visual foundation for Event24.
 
 ## Rules
 
@@ -15,6 +15,6 @@ The surviving Lovable UI is the visual foundation for EventHub.
 - Replacing mock data with Laravel data is not permission to redesign the page.
 - Existing Lovable business logic is NOT authoritative.
 - Existing Lovable visual implementation IS valuable.
-- If a screen does not map to EventHub later, extract useful UI patterns before deleting it.
+- If a screen does not map to Event24 later, extract useful UI patterns before deleting it.
 - Do not restore removed Supabase/Lovable product features.
 - Screens added later must look like they belong to the same application.

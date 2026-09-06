@@ -495,7 +495,7 @@
                   "id": "hWqjw",
                   "name": "Wordmark",
                   "fill": "$ink",
-                  "content": "EventHub",
+                  "content": "Event24",
                   "fontFamily": "$font-head",
                   "fontSize": 20,
                   "fontWeight": "700"
@@ -3205,7 +3205,7 @@
                   "id": "ZeDU9",
                   "name": "Copy",
                   "fill": "$faint",
-                  "content": "© 2026 EventHub — made for East Africa",
+                  "content": "© 2026 Event24 — made for East Africa",
                   "fontFamily": "$font-body",
                   "fontSize": 12,
                   "fontWeight": "normal"
@@ -4831,7 +4831,7 @@
                       "id": "hdE8y",
                       "name": "Wordmark",
                       "fill": "$ink",
-                      "content": "EventHub",
+                      "content": "Event24",
                       "fontFamily": "$font-head",
                       "fontSize": 20,
                       "fontWeight": "700"
@@ -13137,7 +13137,7 @@
                   "id": "KKvIz",
                   "name": "Copy",
                   "fill": "$faint",
-                  "content": "© 2026 EventHub — made for East Africa",
+                  "content": "© 2026 Event24 — made for East Africa",
                   "fontFamily": "$font-body",
                   "fontSize": 11,
                   "fontWeight": "normal"
@@ -24951,7 +24951,7 @@
               "id": "ZvV47",
               "name": "Wordmark",
               "fill": "$ink",
-              "content": "EventHub",
+              "content": "Event24",
               "fontFamily": "$font-head",
               "fontSize": 20,
               "fontWeight": "700"
@@ -25088,7 +25088,7 @@
               "id": "vFW3V",
               "name": "Wordmark",
               "fill": "$ink",
-              "content": "EventHub",
+              "content": "Event24",
               "fontFamily": "$font-head",
               "fontSize": 18,
               "fontWeight": "700"
@@ -45106,7 +45106,7 @@
                   "id": "H7Ki6",
                   "name": "Wordmark",
                   "fill": "$ink",
-                  "content": "EventHub",
+                  "content": "Event24",
                   "fontFamily": "$font-head",
                   "fontSize": 17,
                   "fontWeight": "700"

@@ -10,7 +10,7 @@ function required(value: string | undefined, name: string): string {
   if (!value || !value.trim()) {
     throw new Error(
       `Missing required environment variable: ${name}. ` +
-        `Copy .env.example to .env and configure the EventHub Web App environment.`,
+        `Copy .env.example to .env and configure the Event24 Web App environment.`,
     );
   }
 
@@ -27,7 +27,7 @@ const apiKey = required(import.meta.env.VITE_API_KEY, "VITE_API_KEY");
 export const env = {
   apiBaseUrl,
   apiKey,
-  appName: import.meta.env.VITE_APP_NAME?.trim() || "EventHub",
+  appName: import.meta.env.VITE_APP_NAME?.trim() || "Event24",
   appUrl:
     import.meta.env.VITE_APP_URL?.trim() ||
     (typeof window !== "undefined" ? window.location.origin : ""),

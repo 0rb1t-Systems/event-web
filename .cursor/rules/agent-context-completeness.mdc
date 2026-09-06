@@ -9,7 +9,7 @@ alwaysApply: true
 
 A new agent reading ONLY `.agent` must understand:
 
-- what EventHub Web App is
+- what Event24 Web App is
 - how to run it
 - what backend it consumes
 - required environment variables

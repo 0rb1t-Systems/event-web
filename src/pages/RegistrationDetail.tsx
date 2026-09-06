@@ -3,7 +3,7 @@
  *
  * Participant registration / ticket detail:
  *  - Status + payment
- *  - Static EventHub ticket stub (QR when valid)
+ *  - Static Event24 ticket stub (QR when valid)
  *  - PNG download of that stub (ticket only)
  */
 
@@ -71,7 +71,7 @@ function hasValidTicket(status: Status, paymentStatus: PaymentStatus): boolean {
 }
 
 function padSerial(id: number) {
-  return `EH-${String(id).padStart(5, "0")}`;
+  return `E24-${String(id).padStart(5, "0")}`;
 }
 
 function googleCalendarUrl(title: string, startIso?: string | null, location?: string | null) {

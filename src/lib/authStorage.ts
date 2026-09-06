@@ -12,7 +12,7 @@ export const AUTH_STORAGE_KEYS = {
 } as const;
 
 /** Fired after a role’s localStorage session is cleared so React contexts can reset. */
-export const SESSION_CLEARED_EVENT = "eventhub:session-cleared";
+export const SESSION_CLEARED_EVENT = "event24:session-cleared";
 
 export type SessionRole = "participant" | "organizer";
 

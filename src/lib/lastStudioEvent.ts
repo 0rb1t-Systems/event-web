@@ -1,4 +1,4 @@
-const STORAGE_KEY = "eventhub:lastStudioEventId";
+const STORAGE_KEY = "event24:lastStudioEventId";
 
 export function rememberStudioEventId(id: number) {
   try {

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBranding } from "@/contexts/BrandingContext";
 
-const NEWSLETTER_KEY = "eventhub.newsletter-email";
+const NEWSLETTER_KEY = "event24.newsletter-email";
 
 function readSavedEmail() {
   try {

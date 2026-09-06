@@ -56,7 +56,7 @@ jobs:
 
           if [ -z "$AGENT_CHANGED" ]; then
             echo ""
-            echo "FAIL: Critical EventHub Web App files changed but .agent was not updated."
+            echo "FAIL: Critical Event24 Web App files changed but .agent was not updated."
             echo ""
             echo "$CRITICAL_CHANGED"
             exit 1

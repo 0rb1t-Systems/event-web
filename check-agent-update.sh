@@ -19,7 +19,7 @@ CRITICAL_CHANGED=$(echo "$STAGED" | grep -E \
 
 if [ -n "$CRITICAL_CHANGED" ]; then
   echo ""
-  echo "ERROR: Critical EventHub Web App files changed but .agent was not updated."
+  echo "ERROR: Critical Event24 Web App files changed but .agent was not updated."
   echo ""
   echo "Critical files:"
   echo "$CRITICAL_CHANGED" | sed 's/^/  /'

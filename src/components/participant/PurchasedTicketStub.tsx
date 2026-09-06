@@ -36,7 +36,7 @@ export function ticketShowsDoorCode(ticket: Pick<
 }
 
 function padId(id: number) {
-  return `EH-${String(id).padStart(5, "0")}`;
+  return `E24-${String(id).padStart(5, "0")}`;
 }
 
 function dayPart(iso: string | null | undefined) {
@@ -115,7 +115,7 @@ export function PurchasedTicketStub({
         <div className="flex min-w-0 flex-1 flex-col justify-between gap-3 px-4 py-4 sm:px-5">
           <div className="flex items-start justify-between gap-3">
             <p className="font-mono text-xs uppercase tracking-[0.22em] text-muted-foreground">
-              EventHub pass · {serial}
+              Event24 pass · {serial}
             </p>
             {ticket.statusLabel ? (
               <span
